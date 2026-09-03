@@ -54,13 +54,16 @@ export const ResponsiveSelect: React.FC<ResponsiveSelectProps> = ({
           bottom = window.innerHeight - rect.top + 4;
         }
 
+        const calculatedLeft = Math.max(8, Math.min(rect.left, window.innerWidth - rect.width - 8));
+        const calculatedWidth = Math.min(window.innerWidth - 16, Math.max(rect.width, 180));
+
         setDropdownStyle({
           position: 'fixed',
           top,
           bottom,
-          left: rect.left,
-          width: rect.width,
-          zIndex: 99999, // Ensure it's above everything
+          left: calculatedLeft,
+          width: calculatedWidth,
+          zIndex: 999999, // Ensure it's above everything
         });
       }
     };

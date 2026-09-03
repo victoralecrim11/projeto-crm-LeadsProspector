@@ -281,13 +281,13 @@ export const GlobalCommandPalette: React.FC = () => {
       }
     },
     {
-      id: 'act-export-csv',
-      title: 'Exportar Base de Leads para CSV',
-      subtitle: 'Download da planilha completa com telefones e status',
+      id: 'act-export-excel',
+      title: 'Exportar Base de Leads para Excel (.xlsx)',
+      subtitle: 'Download da planilha formatada com abas de Resumo e Base Completa',
       category: 'action',
       icon: Download,
       iconColor: 'text-emerald-400',
-      badge: 'CSV',
+      badge: 'Excel .xlsx',
       badgeColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30',
       action: () => {
         exportLeadsCsv();

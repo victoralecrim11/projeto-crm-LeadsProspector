@@ -135,7 +135,7 @@ export class EmailService {
    * Simula ou executa o envio de e-mail pelo CRM e salva no histórico
    */
   public static async sendEmail(
-    options: EmailSendOptions,
+    options: EmailSendOptions & { isDraft?: boolean },
     crmSettings?: Partial<CrmSettingsConfig>
   ): Promise<EmailSendResult> {
     // Simulação com pequeno delay para feedback de envio realista
@@ -161,7 +161,7 @@ export class EmailService {
       subject: options.subject,
       body: options.body,
       sentAt,
-      status: 'entregue',
+      status: options.isDraft ? 'rascunho' : 'entregue',
       templateName: options.templateId ? DEFAULT_EMAIL_TEMPLATES.find(t => t.id === options.templateId)?.name : 'E-mail Personalizado'
     };
 

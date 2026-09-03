@@ -217,7 +217,7 @@ export interface SentEmailRecord {
   subject: string;
   body: string;
   sentAt: string;
-  status: 'entregue' | 'aberto' | 'clicado' | 'respondido';
+  status: 'rascunho' | 'entregue' | 'aberto' | 'clicado' | 'respondido';
   templateName?: string;
 }
 

@@ -936,8 +936,12 @@ export const CrmSettingsView: React.FC = () => {
                     <div key={item.id} className="p-3 rounded-xl bg-slate-900/70 border border-white/10 text-xs">
                       <div className="flex items-center justify-between gap-2">
                         <span className="font-semibold text-white truncate">{item.leadName} ({item.toEmail})</span>
-                        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-400/30">
-                          {item.status}
+                        <span className={`px-2 py-0.5 text-[10px] font-bold rounded-full border ${
+                          item.status === 'rascunho'
+                            ? 'bg-amber-500/20 text-amber-300 border-amber-400/30'
+                            : 'bg-emerald-500/20 text-emerald-300 border-emerald-400/30'
+                        }`}>
+                          {item.status.charAt(0).toUpperCase() + item.status.slice(1)}
                         </span>
                       </div>
                       <p className="text-slate-300 text-[11px] mt-1 line-clamp-1">{item.subject}</p>
@@ -978,30 +982,30 @@ export const CrmSettingsView: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-3">
-                <h4 className="font-semibold text-xs text-white">Exportar Planilha CSV</h4>
-                <p className="text-[11px] text-slate-400">
-                  Compatível com Excel, Google Sheets e ferramentas de prospecção fria.
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col h-full">
+                <h4 className="font-semibold text-xs text-white mb-3">Exportar Planilha Excel (.xlsx)</h4>
+                <p className="text-[11px] text-slate-400 mb-4">
+                  Planilha formatada em alta resolução com abas de Resumo Executivo e Base Completa de Leads com filtros automáticos.
                 </p>
                 <button
                   type="button"
                   onClick={() => exportLeadsCsv()}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl transition-all"
+                  className="mt-auto w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-500 rounded-xl transition-all shadow-md shadow-emerald-600/20"
                 >
                   <Download className="w-3.5 h-3.5" />
-                  <span>Baixar Leads em CSV ({leads.length} registros)</span>
+                  <span>Baixar Planilha Excel ({leads.length} leads formatados)</span>
                 </button>
               </div>
 
-              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 space-y-3">
-                <h4 className="font-semibold text-xs text-white">Backup Completo do CRM (JSON)</h4>
-                <p className="text-[11px] text-slate-400">
+              <div className="p-4 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col h-full">
+                <h4 className="font-semibold text-xs text-white mb-3">Backup Completo do CRM (JSON)</h4>
+                <p className="text-[11px] text-slate-400 mb-4">
                   Exporta configurações, templates, funil e histórico em formato estruturado.
                 </p>
                 <button
                   type="button"
                   onClick={handleExportJson}
-                  className="w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl transition-all"
+                  className="mt-auto w-full flex items-center justify-center gap-2 py-2 px-3 text-xs font-semibold text-white bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl transition-all"
                 >
                   <Download className="w-3.5 h-3.5" />
                   <span>Baixar Backup JSON</span>

@@ -485,12 +485,12 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
         </div>
 
         {/* Filter Controls Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3.5 pt-2 border-t border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 pt-2 border-t border-white/10">
           {/* City Selection */}
-          <div className="min-w-0">
-            <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center justify-between">
-              <span>Cidade no Maps:</span>
-              <span className="text-[10px] text-sky-400 font-normal">Base de Busca</span>
+          <div className="min-w-0 flex flex-col justify-end">
+            <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
+              <span className="truncate">Cidade no Maps:</span>
+              <span className="text-[10px] text-sky-400 font-normal shrink-0 ml-1">Base de Busca</span>
             </label>
             <ResponsiveSelect
               value={selectedCity}
@@ -500,31 +500,32 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
           </div>
 
           {/* Neighborhood / Region Selection */}
-          <div className="min-w-0">
-            <div className="flex items-center justify-between mb-1.5">
-              <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1.5">
-                <span>📍 Bairro / Região:</span>
+          <div className="min-w-0 flex flex-col justify-end">
+            <div className="flex items-center justify-between mb-1.5 gap-1.5 min-w-0 h-6">
+              <label className="text-[11px] font-semibold text-slate-300 flex items-center gap-1 min-w-0 truncate">
+                <span className="truncate">📍 Bairro / Região:</span>
                 {isSyncingNeighborhoods ? (
-                  <span className="text-[10px] text-amber-400 font-normal flex items-center gap-1 animate-pulse">
+                  <span className="text-[10px] text-amber-400 font-normal flex items-center gap-0.5 animate-pulse shrink-0 ml-0.5">
                     <RefreshCw className="w-2.5 h-2.5 animate-spin" />
-                    <span>Sincronizando IBGE...</span>
+                    <span className="hidden xl:inline">IBGE...</span>
                   </span>
                 ) : (
-                  <span className="text-[10px] text-emerald-400 font-normal flex items-center gap-0.5" title="Bairros sincronizados com a API oficial do IBGE e base integrada">
+                  <span className="hidden 2xl:inline-flex text-[10px] text-emerald-400 font-normal items-center gap-0.5 shrink-0 ml-0.5" title="Bairros sincronizados com a API do IBGE">
                     <Check className="w-2.5 h-2.5" />
-                    <span>API Ativa</span>
+                    <span>IBGE</span>
                   </span>
                 )}
               </label>
-              <div className="flex items-center gap-1">
+
+              <div className="flex items-center gap-1 shrink-0 ml-auto">
                 <button
                   type="button"
                   onClick={refreshNeighborhoodsFromApi}
                   disabled={isSyncingNeighborhoods}
-                  className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50"
+                  className="p-1 text-slate-400 hover:text-white hover:bg-white/10 rounded-md transition-colors disabled:opacity-50 shrink-0"
                   title="Atualizar lista de bairros via API do IBGE"
                 >
-                  <RefreshCw className={`w-2.5 h-2.5 ${isSyncingNeighborhoods ? 'animate-spin text-amber-400' : ''}`} />
+                  <RefreshCw className={`w-3 h-3 ${isSyncingNeighborhoods ? 'animate-spin text-amber-400' : ''}`} />
                 </button>
                 <button
                   type="button"
@@ -533,7 +534,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                     setApiSuggestions([]);
                     setShowAddBairroModal(true);
                   }}
-                  className="group flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium text-sky-400 hover:text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 hover:border-sky-400/60 rounded-lg transition-all active:scale-95 shadow-sm shadow-sky-500/10"
+                  className="group flex items-center gap-1 px-1.5 py-1 text-[10px] font-medium text-sky-400 hover:text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 border border-sky-500/30 hover:border-sky-400/60 rounded-lg transition-all active:scale-95 shadow-sm shadow-sky-500/10 shrink-0 whitespace-nowrap leading-none"
                   title="Buscar ou cadastrar outro bairro para esta cidade"
                 >
                   <Plus className="w-3 h-3 text-sky-400 group-hover:rotate-90 transition-transform duration-200" />
@@ -552,10 +553,10 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
           </div>
 
           {/* Niche Selection */}
-          <div className="min-w-0">
-            <label className="block text-[11px] font-semibold text-slate-300 mb-1 flex items-center justify-between">
-              <span>Categoria do Negócio:</span>
-              <span className="text-[10px] text-indigo-400 font-normal">Nicho</span>
+          <div className="min-w-0 flex flex-col justify-end">
+            <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
+              <span className="truncate">Categoria do Negócio:</span>
+              <span className="text-[10px] text-indigo-400 font-normal shrink-0 ml-1">Nicho</span>
             </label>
             <ResponsiveSelect
               value={selectedNiche}
@@ -575,10 +576,10 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
           </div>
 
           {/* Search Radius */}
-          <div className="min-w-0">
-            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1">
-              <span>Raio de Prospecção:</span>
-              <span className="font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-400/20">{searchRadius} km</span>
+          <div className="min-w-0 flex flex-col justify-end">
+            <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
+              <span className="truncate">Raio de Prospecção:</span>
+              <span className="font-bold text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded border border-sky-400/20 shrink-0 ml-1 leading-none">{searchRadius} km</span>
             </div>
             <input
               type="range"

@@ -34,6 +34,9 @@ export const EmailDispatchModal: React.FC = () => {
   const [body, setBody] = useState<string>('');
   const [isSending, setIsSending] = useState<boolean>(false);
   const [sendSuccess, setSendSuccess] = useState<boolean>(false);
+  const [isDrafting, setIsDrafting] = useState<boolean>(false);
+  const [draftSuccess, setDraftSuccess] = useState<boolean>(false);
+  const [isValidated, setIsValidated] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
 
   // Update subject, body, and recipient when template or lead changes
@@ -54,6 +57,7 @@ export const EmailDispatchModal: React.FC = () => {
       const slug = activeLead.name ? activeLead.name.toLowerCase().replace(/[^a-z0-9]/g, '') : 'empresa';
       setRecipientEmail(`contato@${slug}.com.br`);
     }
+    setIsValidated(false);
   }, [selectedTemplateId, activeLead, setupConfig, crmSettings]);
 
   if (!isModalOpen || !activeLead) return null;
@@ -62,7 +66,7 @@ export const EmailDispatchModal: React.FC = () => {
   const onClose = handleClose;
 
   const handleSend = async () => {
-    if (!recipientEmail || !subject || !body) return;
+    if (!recipientEmail || !subject || !body || !isValidated) return;
 
     setIsSending(true);
     try {
@@ -92,6 +96,37 @@ export const EmailDispatchModal: React.FC = () => {
       console.error(err);
     } finally {
       setIsSending(false);
+    }
+  };
+
+  const handleValidateDraft = async () => {
+    if (!recipientEmail || !subject || !body) return;
+
+    setIsDrafting(true);
+    try {
+      const res = await EmailService.sendEmail({
+        toEmail: recipientEmail,
+        toName: lead.name,
+        leadId: lead.id,
+        subject,
+        body,
+        templateId: selectedTemplateId,
+        senderName: crmSettings.closerName,
+        senderEmail: crmSettings.closerEmail,
+        isDraft: true,
+      }, crmSettings);
+
+      if (res.success) {
+        setDraftSuccess(true);
+        setTimeout(() => {
+          setDraftSuccess(false);
+          setIsValidated(true);
+        }, 800);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsDrafting(false);
     }
   };
 
@@ -198,7 +233,10 @@ export const EmailDispatchModal: React.FC = () => {
               <input
                 type="email"
                 value={recipientEmail}
-                onChange={(e) => setRecipientEmail(e.target.value)}
+                onChange={(e) => {
+                  setRecipientEmail(e.target.value);
+                  setIsValidated(false);
+                }}
                 className="w-full px-3 py-1.5 text-xs bg-slate-900/60 border border-white/15 rounded-lg text-white focus:outline-none focus:border-indigo-400"
                 placeholder="contato@empresa.com.br"
               />
@@ -222,7 +260,10 @@ export const EmailDispatchModal: React.FC = () => {
             <input
               type="text"
               value={subject}
-              onChange={(e) => setSubject(e.target.value)}
+              onChange={(e) => {
+                setSubject(e.target.value);
+                setIsValidated(false);
+              }}
               className="w-full px-3.5 py-2 text-xs bg-slate-900/70 border border-white/15 rounded-xl text-white font-medium focus:outline-none focus:border-indigo-400"
             />
           </div>
@@ -245,7 +286,10 @@ export const EmailDispatchModal: React.FC = () => {
             <textarea
               rows={8}
               value={body}
-              onChange={(e) => setBody(e.target.value)}
+              onChange={(e) => {
+                setBody(e.target.value);
+                setIsValidated(false);
+              }}
               className="w-full px-3.5 py-2.5 text-xs font-mono leading-relaxed bg-slate-900/80 border border-white/15 rounded-xl text-slate-200 focus:outline-none focus:border-indigo-400 resize-none"
             />
           </div>
@@ -292,38 +336,60 @@ export const EmailDispatchModal: React.FC = () => {
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
+              className="px-3 py-2 text-xs font-medium text-slate-400 hover:text-white transition-colors"
             >
               Cancelar
             </button>
 
-            <button
-              type="button"
-              disabled={isSending || sendSuccess}
-              onClick={handleSend}
-              className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-lg transition-all ${
-                sendSuccess
-                  ? 'bg-emerald-600 shadow-emerald-500/25'
-                  : 'bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 shadow-indigo-500/25 border border-white/15'
-              }`}
-            >
-              {isSending ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  <span>Disparando...</span>
-                </>
-              ) : sendSuccess ? (
-                <>
-                  <CheckCircle2 className="w-4 h-4 text-white" />
-                  <span>Enviado com Sucesso!</span>
-                </>
-              ) : (
-                <>
-                  <Send className="w-3.5 h-3.5" />
-                  <span>Enviar via EmailService</span>
-                </>
-              )}
-            </button>
+            {isValidated ? (
+              <button
+                type="button"
+                disabled={isSending || sendSuccess}
+                onClick={handleSend}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-2 px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-lg transition-all ${
+                  sendSuccess
+                    ? 'bg-emerald-600 shadow-emerald-500/25'
+                    : 'bg-gradient-to-r from-emerald-600 to-green-500 hover:from-emerald-500 hover:to-green-400 shadow-emerald-500/25 border border-white/15'
+                }`}
+              >
+                {isSending ? (
+                  <>
+                    <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Disparando...</span>
+                  </>
+                ) : sendSuccess ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4 text-white" />
+                    <span>Enviado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-3.5 h-3.5" />
+                    <span>Enviar Definitivo</span>
+                  </>
+                )}
+              </button>
+            ) : (
+              <button
+                type="button"
+                disabled={isDrafting || draftSuccess}
+                onClick={handleValidateDraft}
+                className={`flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-5 py-2 text-xs font-semibold text-white rounded-xl shadow-lg transition-all ${
+                  draftSuccess
+                    ? 'bg-emerald-600 shadow-emerald-500/25'
+                    : 'bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-600 hover:from-indigo-500 hover:to-sky-500 shadow-indigo-500/25 border border-white/15'
+                }`}
+              >
+                {isDrafting ? (
+                  <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                ) : draftSuccess ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-white" />
+                ) : (
+                  <FileText className="w-3.5 h-3.5" />
+                )}
+                <span>{draftSuccess ? 'Rascunho Validado!' : 'Validar Rascunho'}</span>
+              </button>
+            )}
           </div>
         </div>
       </div>

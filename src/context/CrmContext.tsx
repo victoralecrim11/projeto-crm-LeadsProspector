@@ -23,6 +23,7 @@ import {
   INITIAL_SETUP_CONFIG,
   INITIAL_CRM_SETTINGS
 } from '../data/mockData';
+import { exportLeadsToExcel } from '../utils/excelExporter';
 
 interface CrmContextType {
   activePage: ActivePage;
@@ -46,6 +47,7 @@ interface CrmContextType {
   updateLeadDetails: (updatedLead: Lead) => void;
   addCustomLead: (newLead: Omit<Lead, 'id' | 'createdAt'>) => void;
   exportLeadsCsv: (leadsToExport?: Lead[]) => void;
+  exportLeadsExcel: (leadsToExport?: Lead[], customFileName?: string) => void;
   // Lifecycle actions from Prospector
   runAuditOnLead: (leadId: string) => void;
   redesignLeadSite: (leadId: string) => void;
@@ -641,35 +643,17 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setLeads(prev => [newLead, ...prev]);
   };
 
-  const exportLeadsCsv = (leadsToExport?: Lead[]) => {
+  const exportLeadsExcel = (leadsToExport?: Lead[], customFileName?: string) => {
     const dataToExport = leadsToExport || leads;
-    const headers = ['Nome', 'Categoria', 'Nicho', 'Temperatura', 'Score', 'Telefone', 'Cidade', 'Estado', 'Bairro', 'Endereco', 'Tem Site', 'No CRM', 'Etapa CRM', 'Valor Setup (R$)', 'MRR (R$)'];
-    const rows = dataToExport.map(l => [
-      `"${l.name.replace(/"/g, '""')}"`,
-      `"${l.category}"`,
-      `"${l.niche}"`,
-      `"${l.temperature}"`,
-      l.score,
-      `"${l.phone}"`,
-      `"${l.city}"`,
-      `"${l.state}"`,
-      `"${l.neighborhood || ''}"`,
-      `"${l.address.replace(/"/g, '""')}"`,
-      l.hasWebsite ? 'Sim' : 'Nao',
-      l.inCrm ? 'Sim' : 'Nao',
-      l.crmStage || '',
-      l.dealValue || 1800,
-      l.mrrValue || 197,
-    ]);
+    exportLeadsToExcel(dataToExport, {
+      fileName: customFileName,
+      sheetTitle: 'Base de Leads'
+    });
+  };
 
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `leads_prospector_${new Date().toISOString().slice(0, 10)}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportLeadsCsv = (leadsToExport?: Lead[]) => {
+    // Generates a complete, beautiful Microsoft Excel (.xlsx) workbook by default
+    exportLeadsExcel(leadsToExport);
   };
 
   // Lifecycle Methods from Prospector de Sites
@@ -953,6 +937,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateLeadDetails,
         addCustomLead,
         exportLeadsCsv,
+        exportLeadsExcel,
         runAuditOnLead,
         redesignLeadSite,
         updateLeadCustomization,

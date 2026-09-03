@@ -197,6 +197,26 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
   - `GoogleMapsProspector.tsx`: seletor de bairro com indicador visual de status da API (`✓ API Ativa` / `Sincronizando IBGE...`), botão de atualização direta e busca assistida por API.
   - `LeadsProspectorView.tsx`: adicionado o seletor `ResponsiveSelect` de Bairro / Região também na visualização em Grade (Grid View), permitindo filtrar leads por bairro em qualquer modo de exibição.
 
+#### 13. Exportação de Base em Planilha Excel Nativa
+- **Causa Raiz:** A necessidade de compartilhar ou processar a base de leads externamente, e o formato JSON era útil apenas para backup entre instâncias.
+- **Solução:** 
+  - Adicionado suporte a exportação `.xlsx` no painel de configurações do CRM, convertendo os dados estruturados do sistema em abas de "Resumo Executivo" e "Base Completa de Leads".
+  - Refinamento visual: Alinhamento de botões de exportação (JSON e Excel) utilizando `mt-auto` em containers de altura completa (`flex-col h-full`) para garantir simetria independente do tamanho do texto das descrições.
+
+#### 14. Validação e Workflow de Rascunho para E-mails
+- **Causa Raiz:** O disparo acidental de e-mails de prospecção com informações incompletas ou não revisadas.
+- **Solução:**
+  - Implementado mecanismo de dupla checagem (`EmailDispatchModal.tsx`). O botão de disparo definitivo foi ocultado na etapa inicial.
+  - Criado o fluxo "Validar Rascunho", que salva a versão atual do e-mail no CRM sob o status de `'rascunho'` (identificável visualmente em amarelo no Histórico de E-mails).
+  - Somente após a validação explícita do rascunho o botão de disparo principal (`Enviar Definitivo`) torna-se disponível.
+  - Sistema reativo: qualquer alteração textual no corpo do e-mail, assunto ou destinatário revoga o status de validação instantaneamente, exigindo nova aprovação.
+
+#### 15. Melhorias Gerais de UI e Acessibilidade (Responsividade e Cursores)
+- **Solução:**
+  - Os labels de todos os filtros de prospecção (Cidade, Bairro, Nicho, Raio) receberam alturas fixas rigorosas (`h-6`) e os blocos foram definidos como `flex-col justify-end`, alinhando de forma milimétrica os inputs de busca, ignorando elementos sobressalentes como modais de bairro.
+  - Correção no estilo de ponteiros do mouse (`cursor-pointer`) nas tabelas, itens clicáveis e modais, fortalecendo as micro-interações da plataforma.
+  - Varredura e exclusão de arquivos de debug e temporários que poluíam a árvore de projeto, assegurando a organização estrutural.
+
 ---
 
 ## 📈 5. Estado Atual e Qualidade de Código
