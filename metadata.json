@@ -1,0 +1,6 @@
+{
+  "name": "PROSPECTOR - CRM & Fechamento de Sites para Negócios Locais",
+  "description": "Plataforma completa de prospecção no Google Maps, auditoria técnica, redesenho com IA, gerador de propostas com rapport, pipeline Kanban e contratos de manutenção mensal (MRR).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
