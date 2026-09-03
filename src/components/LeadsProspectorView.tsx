@@ -328,7 +328,7 @@ export const LeadsProspectorView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header & Switcher */}
-      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl">
+      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl relative z-40">
         <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-[11px] uppercase tracking-wider">
@@ -464,31 +464,19 @@ export const LeadsProspectorView: React.FC = () => {
             </div>
 
             {/* 4. Busca Textual por Nome ou Rua */}
-            <div className="min-w-0">
+            <div className="min-w-0 relative z-50">
               <label className="text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center justify-between">
                 <span className="truncate">🔍 Buscar por Nome ou Rua:</span>
                 <span className="text-[10px] text-slate-400 font-normal shrink-0 ml-1">Filtro Livre</span>
               </label>
-              <div className="relative flex items-center">
-                <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 pointer-events-none shrink-0" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Ex: Nome da empresa, rua, telefone..."
-                  className="w-full glass-input text-xs text-white pl-8 pr-8 py-2.5 rounded-xl border border-white/15 focus:outline-none focus:border-sky-400 placeholder:text-slate-500 transition-colors"
-                />
-                {searchTerm && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchTerm('')}
-                    aria-label="Limpar campo de busca"
-                    className="absolute right-2 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded transition-colors"
-                  >
-                    ✕
-                  </button>
-                )}
-              </div>
+              <SearchAutocomplete
+                value={searchTerm}
+                onChange={setSearchTerm}
+                onSelect={handleSelectSuggestion}
+                suggestions={searchSuggestions}
+                placeholder="Ex: Nome da empresa, rua, telefone..."
+                onClear={() => setSearchTerm('')}
+              />
             </div>
           </div>
 

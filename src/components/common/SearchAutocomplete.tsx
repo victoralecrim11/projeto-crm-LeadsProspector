@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Search, X, Building2, MapPin, Tag, Compass, ArrowRight, Clock } from 'lucide-react';
 
 export interface AutocompleteSuggestion {
@@ -80,6 +81,7 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState<number>(-1);
+  const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -104,7 +106,12 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+      const target = event.target as Node;
+      if (
+        containerRef.current && 
+        !containerRef.current.contains(target) &&
+        !(target as HTMLElement).closest?.('[data-autocomplete-dropdown]')
+      ) {
         setIsOpen(false);
         setHighlightedIndex(-1);
       }
@@ -112,6 +119,47 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
+
+  // Calculate and update dropdown portal position
+  const shouldShowDropdown = isOpen && (value.trim().length >= minCharsToShow || activeSuggestions.length > 0);
+
+  useEffect(() => {
+    const updatePosition = () => {
+      if (containerRef.current && shouldShowDropdown) {
+        const rect = containerRef.current.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom;
+        const dropdownHeight = 300;
+
+        let top: number | string = rect.bottom + 6;
+        let bottom: number | string = 'auto';
+
+        if (spaceBelow < dropdownHeight && rect.top > spaceBelow) {
+          top = 'auto';
+          bottom = window.innerHeight - rect.top + 6;
+        }
+
+        setDropdownStyle({
+          position: 'fixed',
+          top,
+          bottom,
+          left: Math.max(8, rect.left),
+          width: Math.min(window.innerWidth - 16, rect.width),
+          zIndex: 999999,
+        });
+      }
+    };
+
+    if (shouldShowDropdown) {
+      updatePosition();
+      window.addEventListener('scroll', updatePosition, true);
+      window.addEventListener('resize', updatePosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePosition, true);
+      window.removeEventListener('resize', updatePosition);
+    };
+  }, [shouldShowDropdown]);
 
   // Reset highlight on query change
   useEffect(() => {
@@ -192,8 +240,6 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
     );
   };
 
-  const shouldShowDropdown = isOpen && (value.trim().length >= minCharsToShow || activeSuggestions.length > 0);
-
   return (
     <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative flex items-center">
@@ -204,7 +250,25 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
           type="text"
           value={value}
           onChange={(e) => {
-            onChange(e.target.value);
+            let val = e.target.value;
+            // Phone mask logic (Brazil)
+            const isNumericInput = /^[\d\s\-\(\)\+]*$/.test(val);
+            const digits = val.replace(/\D/g, '');
+            
+            // Only apply mask if user is adding characters (not deleting), input looks like a phone, and is within phone length
+            if (isNumericInput && val.length > value.length && digits.length >= 2 && digits.length <= 11 && !val.startsWith('0800') && !val.startsWith('0300')) {
+              if (digits.length <= 2) {
+                val = `(${digits}`;
+              } else if (digits.length <= 6) {
+                val = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+              } else if (digits.length <= 10) {
+                val = `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+              } else {
+                val = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+              }
+            }
+            
+            onChange(val);
             setIsOpen(true);
           }}
           onFocus={() => {
@@ -233,68 +297,74 @@ export const SearchAutocomplete: React.FC<SearchAutocompleteProps> = ({
         )}
       </div>
 
-      {/* Autocomplete Dropdown */}
-      {shouldShowDropdown && (
-        <div className="absolute left-0 right-0 top-full mt-1.5 z-50 bg-slate-900/95 backdrop-blur-xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 max-h-72 overflow-y-auto divide-y divide-white/5">
-          {activeSuggestions.length > 0 ? (
-            <div className="p-1.5 space-y-0.5">
-              {activeSuggestions.map((item, idx) => {
-                const isHighlighted = idx === highlightedIndex;
-                const catInfo = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.empresa;
+      {/* Autocomplete Dropdown via Portal to break out of all parent stacking contexts */}
+      {shouldShowDropdown &&
+        createPortal(
+          <div
+            data-autocomplete-dropdown="true"
+            style={dropdownStyle}
+            className="bg-slate-900/98 backdrop-blur-2xl border border-white/20 rounded-2xl shadow-2xl overflow-hidden animate-in fade-in slide-in-from-top-1 duration-150 max-h-72 overflow-y-auto divide-y divide-white/5"
+          >
+            {activeSuggestions.length > 0 ? (
+              <div className="p-1.5 space-y-0.5">
+                {activeSuggestions.map((item, idx) => {
+                  const isHighlighted = idx === highlightedIndex;
+                  const catInfo = CATEGORY_CONFIG[item.category] || CATEGORY_CONFIG.empresa;
 
-                return (
-                  <button
-                    key={item.id || `${item.category}-${idx}`}
-                    type="button"
-                    onClick={() => handleSelect(item)}
-                    onMouseEnter={() => setHighlightedIndex(idx)}
-                    className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2.5 transition-all ${
-                      isHighlighted 
-                        ? 'bg-sky-500/20 text-white border border-sky-400/30' 
-                        : 'text-slate-200 hover:bg-white/5 border border-transparent'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="p-1 rounded-lg bg-white/5 shrink-0">
-                        {catInfo.icon}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="font-semibold text-slate-100 truncate">
-                          {renderHighlightedText(item.title, value)}
+                  return (
+                    <button
+                      key={item.id || `${item.category}-${idx}`}
+                      type="button"
+                      onClick={() => handleSelect(item)}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                      className={`w-full text-left px-3 py-2 rounded-xl text-xs flex items-center justify-between gap-2.5 transition-all ${
+                        isHighlighted 
+                          ? 'bg-sky-500/20 text-white border border-sky-400/30' 
+                          : 'text-slate-200 hover:bg-white/5 border border-transparent'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <div className="p-1 rounded-lg bg-white/5 shrink-0">
+                          {catInfo.icon}
                         </div>
-                        {item.subtitle && (
-                          <div className="text-[10px] text-slate-400 truncate mt-0.5">
-                            {item.subtitle}
+                        <div className="min-w-0">
+                          <div className="font-semibold text-slate-100 truncate">
+                            {renderHighlightedText(item.title, value)}
                           </div>
-                        )}
+                          {item.subtitle && (
+                            <div className="text-[10px] text-slate-400 truncate mt-0.5">
+                              {item.subtitle}
+                            </div>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${catInfo.color}`}>
-                        {item.badge || catInfo.label.split(' ')[0]}
-                      </span>
-                      <ArrowRight className={`w-3 h-3 text-slate-500 transition-transform ${isHighlighted ? 'translate-x-0.5 text-sky-400' : ''}`} />
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          ) : (
-            <div className="p-4 text-center text-xs text-slate-400">
-              <span>Nenhuma sugestão para "<strong>{value}</strong>"</span>
-              <p className="text-[10px] text-slate-500 mt-0.5">Pressione Enter para buscar no radar de leads</p>
-            </div>
-          )}
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border uppercase tracking-wider ${catInfo.color}`}>
+                          {item.badge || catInfo.label.split(' ')[0]}
+                        </span>
+                        <ArrowRight className={`w-3 h-3 text-slate-500 transition-transform ${isHighlighted ? 'translate-x-0.5 text-sky-400' : ''}`} />
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="p-4 text-center text-xs text-slate-400">
+                <span>Nenhuma sugestão para "<strong>{value}</strong>"</span>
+                <p className="text-[10px] text-slate-500 mt-0.5">Pressione Enter para buscar no radar de leads</p>
+              </div>
+            )}
 
-          {/* Helper footer */}
-          <div className="px-3 py-1.5 bg-slate-950/60 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
-            <span>↑↓ navegar</span>
-            <span>↵ selecionar</span>
-            <span>ESC fechar</span>
-          </div>
-        </div>
-      )}
+            {/* Helper footer */}
+            <div className="px-3 py-1.5 bg-slate-950/60 border-t border-white/5 flex items-center justify-between text-[10px] text-slate-500 font-mono">
+              <span>↑↓ navegar</span>
+              <span>↵ selecionar</span>
+              <span>ESC fechar</span>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

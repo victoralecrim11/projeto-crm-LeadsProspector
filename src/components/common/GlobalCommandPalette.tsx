@@ -400,7 +400,23 @@ export const GlobalCommandPalette: React.FC = () => {
             id="input-command-palette-search"
             value={query}
             onChange={(e) => {
-              setQuery(e.target.value);
+              let val = e.target.value;
+              const isNumericInput = /^[\d\s\-\(\)\+]*$/.test(val);
+              const digits = val.replace(/\D/g, '');
+              
+              if (isNumericInput && val.length > query.length && digits.length >= 2 && digits.length <= 11 && !val.startsWith('0800') && !val.startsWith('0300')) {
+                if (digits.length <= 2) {
+                  val = `(${digits}`;
+                } else if (digits.length <= 6) {
+                  val = `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+                } else if (digits.length <= 10) {
+                  val = `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6)}`;
+                } else {
+                  val = `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+                }
+              }
+
+              setQuery(val);
               setSelectedIndex(0);
             }}
             placeholder="Buscar empresa, bairro, página do CRM ou comando rápido..."

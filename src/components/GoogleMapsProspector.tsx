@@ -30,6 +30,7 @@ import {
 import { useCrm, safeStorage } from '../context/CrmContext';
 import { Lead } from '../types';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
+import { SearchAutocomplete, AutocompleteSuggestion } from './common/SearchAutocomplete';
 import { useCityNeighborhoods, BASE_CITY_NEIGHBORHOODS } from '../services/neighborhoodService';
 import { matchesNiche } from '../services/leadGeneratorService';
 
@@ -189,7 +190,64 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
     });
   }, [leads, mapCenter]);
 
-  // Filter leads according to controls: City, Neighborhood, Niche, Radius, and Multi-token Accent-insensitive Query
+  // Multi-token Accent-insensitive Query
+  const searchSuggestions: AutocompleteSuggestion[] = useMemo(() => {
+    const list: AutocompleteSuggestion[] = [];
+
+    // 1. Lead names
+    leads.forEach(lead => {
+      list.push({
+        id: `lead-${lead.id}`,
+        title: lead.name,
+        subtitle: `${lead.category} • ${lead.neighborhood || lead.city}`,
+        category: 'empresa',
+        badge: lead.inCrm ? 'No Funil' : 'Lead',
+        payload: { type: 'lead', id: lead.id, name: lead.name }
+      });
+    });
+
+    // 2. Neighborhoods
+    currentCityNeighborhoods.forEach(nb => {
+      if (nb !== 'Todos os Bairros') {
+        list.push({
+          id: `nb-${nb}`,
+          title: nb,
+          subtitle: `Bairro em ${selectedCity}`,
+          category: 'bairro',
+          badge: 'Bairro',
+          payload: { type: 'neighborhood', name: nb }
+        });
+      }
+    });
+
+    // 3. Addresses
+    const seenAddresses = new Set<string>();
+    leads.forEach(lead => {
+      if (lead.address && !seenAddresses.has(lead.address)) {
+        seenAddresses.add(lead.address);
+        list.push({
+          id: `addr-${lead.id}`,
+          title: lead.address,
+          subtitle: `Localização de ${lead.name}`,
+          category: 'endereco',
+          badge: 'Endereço',
+          payload: { type: 'address', address: lead.address }
+        });
+      }
+    });
+
+    return list;
+  }, [leads, currentCityNeighborhoods, selectedCity]);
+
+  const handleSelectSuggestion = (item: AutocompleteSuggestion) => {
+    if (item.payload?.type === 'neighborhood') {
+      setSelectedNeighborhood(item.payload.name);
+      setSearchQuery('');
+    } else {
+      setSearchQuery(item.title);
+    }
+  };
+
   const filteredLeads = useMemo(() => {
     return mappedLeads.filter(lead => {
       const leadCityNorm = normalizeStr(lead.city);
@@ -384,7 +442,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
   return (
     <div className="space-y-6">
       {/* Top Search & Filter Bar */}
-      <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4">
+      <div className="glass-panel p-5 rounded-2xl border border-white/10 space-y-4 relative z-40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3 min-w-0">
             <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/20 border border-white/20 shrink-0">
@@ -565,25 +623,16 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
             </div>
           </div>
 
-          <div className="relative flex items-center">
-            <Search className="absolute left-3.5 w-4 h-4 text-slate-400 pointer-events-none" />
-            <input
-              type="text"
+          <div className="relative z-50">
+            <SearchAutocomplete
               id="input-prospector-search"
-              placeholder="Digite o nome da empresa (ex: Boy Barbearia), bairro (ex: Savassi) ou rua (ex: Cristóvão Colombo)..."
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-20 py-2.5 text-xs bg-slate-900/90 border border-white/20 rounded-xl text-white placeholder:text-slate-500 focus:outline-none focus:border-sky-400 focus:ring-1 focus:ring-sky-400 transition-all"
+              onChange={setSearchQuery}
+              onSelect={handleSelectSuggestion}
+              suggestions={searchSuggestions}
+              placeholder="Digite o nome da empresa (ex: Boy Barbearia), bairro (ex: Savassi) ou rua..."
+              onClear={() => setSearchQuery('')}
             />
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => setSearchQuery('')}
-                className="absolute right-3 px-2 py-0.5 text-[11px] font-semibold text-slate-400 hover:text-white bg-white/10 hover:bg-white/20 rounded-md transition-colors"
-              >
-                Limpar ✕
-              </button>
-            )}
           </div>
         </div>
 
