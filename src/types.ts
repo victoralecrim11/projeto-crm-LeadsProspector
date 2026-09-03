@@ -77,6 +77,8 @@ export interface Lead {
   distanceKm?: number;
   geoLat?: number;
   geoLng?: number;
+  placeId?: string;        // OSM node ID (e.g. "node/123456") or Google place_id
+  dataSource?: 'real' | 'synthetic';  // tracks origin of the lead data
   hasWebsite: boolean;
   websiteUrl?: string;
   inCrm: boolean;

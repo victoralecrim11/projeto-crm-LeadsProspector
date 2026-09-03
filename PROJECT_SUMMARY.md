@@ -128,6 +128,7 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
 │ [Fase 15] Melhorias Gerais de UI e Acessibilidade                           │
 │ [Fase 16] Correção do InfoWindow do Google Maps + Novos Filtros Avançados   │
 │ [Fase 17] Sistema de Badges de Atenção e Follow-up no Pipeline Kanban       │
+│ [Fase 18] Integração de Dados Reais de Leads via OpenStreetMap (Overpass)   │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -262,6 +263,14 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
     - Barra de alerta `AlertCircle` exibindo o motivo: "Follow-up vencido" ou "Sem resposta há N dia(s)".
   - Importados `AlertCircle` e `Bell` do `lucide-react`.
 
+#### 18. Integração de Dados Reais de Leads via OpenStreetMap (Overpass API)
+- **Causa Raiz:** A prospecção dependia exclusivamente da API do Google Places (que exige configuração e chave paga) ou gerava dados simulados (mock/sintéticos), limitando a experiência inicial do usuário.
+- **Solução:**
+  - **Novo Serviço Overpass:** Criado o `overpassService.ts` conectando à Overpass API, permitindo extrair dados reais de negócios locais gratuitamente e em tempo real a partir do OpenStreetMap.
+  - **Rastreabilidade de Origem:** Evolução do tipo `Lead` (`types.ts`) com a inclusão de `placeId` (ID do node/way no OSM) e `dataSource` (`'real' | 'synthetic'`), rastreando a procedência do dado.
+  - **Interface Transparente no Prospector:** O `GoogleMapsProspector.tsx` passou a exibir badges (`✓ Real OSM`, `⟳ Expandido`, `⚠ Demo`) indicando visualmente se a listagem atual é proveniente de dados reais ou dados demonstrativos.
+  - **Resiliência e Fallback:** Substituição do fluxo de `handleSimulateScan` por `handleScan` com suporte a timeouts e retorno silencioso caso a API gratuita falhe, mantendo a estabilidade.
+
 ---
 
 ## 📈 5. Estado Atual e Qualidade de Código
@@ -272,6 +281,7 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
   - InfoWindow do Google Maps abrindo corretamente ao clicar nos marcadores avançados.
   - Filtros avançados de prospecção: status de auditoria e faixa de preço estimada operacionais.
   - Sistema de alertas visuais no Pipeline Kanban com badges de atenção imediata.
+  - Varredura de leads utilizando dados reais e geolocalizados via Overpass API (OpenStreetMap).
 - **Acessibilidade:** Suporte a toque ergonômico no mobile (alvos de toque >= 44px), navegação por teclado e contraste de cores validado nos modos Claro e Escuro.
 - **Integridade dos Dados:** Todas as alterações no CRM (leads, propostas, notas) são persistidas localmente de forma resiliente.
 - **Observabilidade Visual:** Indicadores de atenção e follow-up pendente diretamente nas colunas do funil de vendas.

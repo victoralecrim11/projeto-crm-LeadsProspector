@@ -46,7 +46,13 @@ import {
   useCityNeighborhoods,
   BASE_CITY_NEIGHBORHOODS,
 } from "../services/neighborhoodService";
-import { matchesNiche } from "../services/leadGeneratorService";
+import {
+  matchesNiche,
+  generateRealisticLeadsForLocation,
+} from "../services/leadGeneratorService";
+import { fetchLeadsFromOverpass } from "../services/overpassService";
+
+type ScanSource = "real" | "expanded" | "synthetic" | null;
 function MapUpdater({
   center,
   zoom,
@@ -217,7 +223,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
   const [auditStatusFilter, setAuditStatusFilter] = useState<string>("Todos");
   const [priceMin, setPriceMin] = useState<number>(0);
   const [priceMax, setPriceMax] = useState<number>(5000);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
 
   useEffect(() => {
@@ -227,9 +233,9 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     return () => clearTimeout(timer);
   }, [searchQuery]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [lastScanSource, setLastScanSource] = useState<ScanSource>(null);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
-  const [infoWindowAnchor, setInfoWindowAnchor] =
-    useState<google.maps.marker.AdvancedMarkerElement | null>(null);
+  const [infoWindowAnchor, setInfoWindowAnchor] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
 
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
@@ -508,6 +514,110 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     searchRadius,
   ]);
 
+  // Dynamic Scan: Hybrid approach - Overpass API → Expanded radius → Synthetic fallback
+  const handleScan = async (overrideQuery?: string | unknown) => {
+    setIsScanning(true);
+    setRadarPulse(true);
+    setLastScanSource(null);
+
+    const activeQuery =
+      typeof overrideQuery === "string" ? overrideQuery : searchQuery;
+    const cleanQuery = (activeQuery || "").trim();
+
+    try {
+      const cityName = selectedCity.split(" - ")[0];
+      const stateName = selectedCity.split(" - ")[1] || "MG";
+
+      // Parse coordinates for Overpass search
+      const coords = CITY_COORDINATES[selectedCity] || CITY_COORDINATES["Belo Horizonte - MG"];
+      if (!coords) {
+        throw new Error("City coordinates not found");
+      }
+
+      // Step 1: Try Overpass API with current radius
+      const overpassLeads = await fetchLeadsFromOverpass(
+        {
+          lat: coords.lat,
+          lng: coords.lng,
+          radiusMeters: searchRadius * 1000,
+          niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined,
+          maxResults: 30
+        },
+        cityName,
+        stateName
+      );
+
+      if (overpassLeads.length >= 8) {
+        console.log(`[handleScan] Found ${overpassLeads.length} real leads via Overpass`);
+        addCustomLeads(overpassLeads.map(l => ({
+          ...l,
+          inCrm: false,
+          temperature: 'quente' as const,
+        })));
+        setLastScanSource("real");
+        setIsScanning(false);
+        setRadarPulse(false);
+        return;
+      }
+
+      // Step 2: Try expanded radius (2x, max 50km)
+      const expandedRadius = Math.min(searchRadius * 2, 50);
+      if (expandedRadius > searchRadius) {
+        const expandedLeads = await fetchLeadsFromOverpass(
+          {
+            lat: coords.lat,
+            lng: coords.lng,
+            radiusMeters: expandedRadius * 1000,
+            niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined,
+            maxResults: 50
+          },
+          cityName,
+          stateName
+        );
+
+        if (expandedLeads.length >= 8) {
+          console.log(`[handleScan] Found ${expandedLeads.length} leads with expanded radius (${expandedRadius}km)`);
+          addCustomLeads(expandedLeads.map(l => ({
+            ...l,
+            inCrm: false,
+            temperature: 'morno' as const,
+          })));
+          setLastScanSource("expanded");
+          setIsScanning(false);
+          setRadarPulse(false);
+          return;
+        }
+      }
+
+      // Step 3: Synthetic fallback
+      console.log("[handleScan] Using synthetic lead generation as fallback");
+      const syntheticLeads = generateRealisticLeadsForLocation({
+        city: selectedCity,
+        neighborhood: selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : "Centro",
+        niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined,
+        count: 3,
+        query: cleanQuery || undefined,
+      });
+
+      addCustomLeads(syntheticLeads);
+      setLastScanSource("synthetic");
+    } catch (err) {
+      console.warn("[handleScan] Error during scan, falling back to synthetic:", err);
+      // Fallback to synthetic on any error
+      const syntheticLeads = generateRealisticLeadsForLocation({
+        city: selectedCity,
+        neighborhood: selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : "Centro",
+        niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined,
+        count: 3,
+      });
+      addCustomLeads(syntheticLeads);
+      setLastScanSource("synthetic");
+    } finally {
+      setIsScanning(false);
+      setRadarPulse(false);
+    }
+  };
+
   // Dynamic Scan: creates realistic leads in the selected city, neighborhood, or custom query street/name
   const handleSimulateScan = (overrideQuery?: string | unknown) => {
     setIsScanning(true);
@@ -698,6 +808,13 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     }, 900);
   };
 
+  // Add missing addCustomLeads function
+  const addCustomLeads = (newLeads: Omit<Lead, 'id' | 'createdAt'>[]) => {
+    newLeads.forEach((lead) => {
+      addCustomLead(lead);
+    });
+  };
+  
   const apiKey =
     crmSettings.googleMapsApiKey ||
     (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
@@ -732,7 +849,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
           <div className="flex items-center gap-2 shrink-0">
             <button
               id="btn-scan-maps"
-              onClick={() => handleSimulateScan()}
+              onClick={() => handleScan()}
               disabled={isScanning}
               className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 sm:py-2 text-xs font-semibold text-white bg-gradient-to-r from-sky-500 via-indigo-600 to-blue-600 hover:from-sky-400 hover:to-indigo-500 rounded-xl shadow-lg shadow-sky-500/25 border border-white/20 transition-all active:scale-[0.98]"
             >
@@ -1093,6 +1210,30 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
             <span className="text-sky-300 font-medium">
               {filteredLeads.length} alvos ativos
             </span>
+            {lastScanSource && (
+              <span
+                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                  lastScanSource === "real"
+                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                    : lastScanSource === "expanded"
+                    ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+                    : "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                }`}
+                title={
+                  lastScanSource === "real"
+                    ? "Dados reais do OpenStreetMap"
+                    : lastScanSource === "expanded"
+                    ? "Raio expandido (2x) - Dados reais do OpenStreetMap"
+                    : "Dados demonstrativos (fallback)"
+                }
+              >
+                {lastScanSource === "real"
+                  ? "✓ Real OSM"
+                  : lastScanSource === "expanded"
+                  ? "⟳ Expandido"
+                  : "⚠ Demo"}
+              </span>
+            )}
           </div>
 
           {/* Google Maps View */}
@@ -1556,7 +1697,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
                 </div>
                 <button
                   type="button"
-                  onClick={() => handleSimulateScan(searchQuery)}
+                  onClick={() => handleScan(searchQuery)}
                   disabled={isScanning}
                   className="w-full py-2 px-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
                 >

@@ -75,7 +75,9 @@ export const INITIAL_LEADS: Lead[] = [
       seoScore: 0,
       issues: ['Empresa sem nenhum website', 'Sem presença digital profissional'],
       opportunities: ['Criação de Site Institucional com Agendamento', 'Link no Google Meu Negócio']
-    }
+    },
+    placeId: 'seed/lead-mateus-guerra',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-1',
@@ -169,7 +171,9 @@ export const INITIAL_LEADS: Lead[] = [
       contractStatus: 'enviado',
       paymentTerms: '50% de entrada + 50% na entrega e ativação do domínio',
       pdfGenerated: true
-    }
+    },
+    placeId: 'seed/lead-1',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-2',
@@ -245,7 +249,9 @@ export const INITIAL_LEADS: Lead[] = [
       viewsCount: 4,
       sentAt: '2026-08-31T14:20:00Z',
       openedAt: '2026-08-31T18:05:00Z'
-    }
+    },
+    placeId: 'seed/lead-2',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-3',
@@ -319,7 +325,9 @@ export const INITIAL_LEADS: Lead[] = [
       viewsCount: 3,
       sentAt: '2026-08-28T18:00:00Z',
       openedAt: '2026-08-29T09:40:00Z'
-    }
+    },
+    placeId: 'seed/lead-3',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-4',
@@ -383,7 +391,9 @@ export const INITIAL_LEADS: Lead[] = [
       paymentTerms: 'À vista com 5% de desconto via Pix (Pago)',
       signedAt: '2026-08-27T17:30:00Z',
       pdfGenerated: true
-    }
+    },
+    placeId: 'seed/lead-4',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-5',
@@ -443,7 +453,9 @@ export const INITIAL_LEADS: Lead[] = [
       testimonials: [
         { author: 'Ana Beatriz Souza', role: 'Tutora do Thor', text: 'Salvaram a vida do meu golden no plantão da madrugada! Gratidão eterna.', rating: 5 }
       ]
-    }
+    },
+    placeId: 'seed/lead-5',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-6',
@@ -501,7 +513,9 @@ export const INITIAL_LEADS: Lead[] = [
       testimonials: [
         { author: 'Carlos Henrique Lima', role: 'Diretor Geral - TechGroup', text: 'A consultoria do Dr. Melo economizou mais de R$ 200 mil no nosso planejamento fiscal.', rating: 5 }
       ]
-    }
+    },
+    placeId: 'seed/lead-6',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-7',
@@ -522,6 +536,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T14:00:00Z',
+    placeId: 'seed/lead-7',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-8',
@@ -542,6 +558,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T15:30:00Z',
+    placeId: 'seed/lead-8',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-9',
@@ -562,6 +580,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T16:00:00Z',
+    placeId: 'seed/lead-9',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-10',
@@ -582,6 +602,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T17:00:00Z',
+    placeId: 'seed/lead-10',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-11',
@@ -602,6 +624,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T18:00:00Z',
+    placeId: 'seed/lead-11',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-12',
@@ -622,6 +646,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T19:00:00Z',
+    placeId: 'seed/lead-12',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-13',
@@ -642,6 +668,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T20:00:00Z',
+    placeId: 'seed/lead-13',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-14',
@@ -662,6 +690,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T21:00:00Z',
+    placeId: 'seed/lead-14',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-15',
@@ -682,6 +712,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T21:30:00Z',
+    placeId: 'seed/lead-15',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-16',
@@ -702,6 +734,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-01T22:00:00Z',
+    placeId: 'seed/lead-16',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-17',
@@ -739,7 +773,9 @@ export const INITIAL_LEADS: Lead[] = [
         'Criar landing page de alta conversão com agendamento via WhatsApp',
         'Exibir fotos de cortes em degradê e avaliações 5 estrelas'
       ]
-    }
+    },
+    placeId: 'seed/lead-17',
+    dataSource: 'synthetic'
   },
   {
     id: 'lead-18',
@@ -760,6 +796,8 @@ export const INITIAL_LEADS: Lead[] = [
     hasWebsite: false,
     inCrm: false,
     createdAt: '2026-09-02T10:15:00Z',
+    placeId: 'seed/lead-18',
+    dataSource: 'synthetic'
   }
 ];
 
