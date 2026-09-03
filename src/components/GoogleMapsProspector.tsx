@@ -1,11 +1,12 @@
-import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  APIProvider, 
-  Map, 
-  AdvancedMarker, 
-  Pin, 
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import {
+  APIProvider,
+  Map,
+  AdvancedMarker,
+  Pin,
   InfoWindow,
-  useMap
+  useMap,
+  useAdvancedMarkerRef
 } from '@vis.gl/react-google-maps';
 
 function MapUpdater({ center, zoom }: { center: { lat: number, lng: number }, zoom: number }) {
@@ -17,18 +18,18 @@ function MapUpdater({ center, zoom }: { center: { lat: number, lng: number }, zo
   }, [map, center, zoom]);
   return null;
 }
-import { 
-  MapPin, 
-  Search, 
-  Sparkles, 
-  Filter, 
-  Star, 
-  Globe, 
-  Phone, 
-  Plus, 
-  Check, 
-  ExternalLink, 
-  Layers, 
+import {
+  MapPin,
+  Search,
+  Sparkles,
+  Filter,
+  Star,
+  Globe,
+  Phone,
+  Plus,
+  Check,
+  ExternalLink,
+  Layers,
   SlidersHorizontal,
   Compass,
   AlertTriangle,
@@ -36,7 +37,9 @@ import {
   Mail,
   Zap,
   Info,
-  X
+  X,
+  ShieldCheck,
+  DollarSign
 } from 'lucide-react';
 import { useCrm, safeStorage } from '../context/CrmContext';
 import { Lead } from '../types';
@@ -93,6 +96,9 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
   const [searchRadius, setSearchRadius] = useState<number>(15);
   const [onlyWithoutWebsite, setOnlyWithoutWebsite] = useState<boolean>(false);
   const [onlyHighRating, setOnlyHighRating] = useState<boolean>(false);
+  const [auditStatusFilter, setAuditStatusFilter] = useState<string>('Todos');
+  const [priceMin, setPriceMin] = useState<number>(0);
+  const [priceMax, setPriceMax] = useState<number>(5000);
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
 
@@ -104,6 +110,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
   }, [searchQuery]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
+  const [activeMarkerRef, activeMarker] = useAdvancedMarkerRef();
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
   // Dynamic neighborhoods powered by IBGE Localidades API, Curated baseline, CRM Leads & User additions
@@ -300,6 +307,22 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
         return false;
       }
       if (onlyHighRating && lead.rating < 4.8) {
+        return false;
+      }
+
+      // Advanced Filter: Audit Status (auditado / não auditado / no CRM)
+      if (auditStatusFilter !== 'Todos') {
+        const isAudited = !!lead.audit;
+        const inCrm = !!lead.inCrm;
+        if (auditStatusFilter === 'Auditados' && !isAudited) return false;
+        if (auditStatusFilter === 'NaoAuditados' && isAudited) return false;
+        if (auditStatusFilter === 'NoCRM' && !inCrm) return false;
+        if (auditStatusFilter === 'ForaCRM' && inCrm) return false;
+      }
+
+      // Advanced Filter: Estimated Price Range (dealValue in BRL)
+      const leadPrice = lead.dealValue ?? 1800;
+      if (leadPrice < priceMin || leadPrice > priceMax) {
         return false;
       }
 
@@ -717,10 +740,105 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
         </div>
       </div>
 
-      {/* Main Interactive Map & Details Layout */}
+      {/* Advanced Filters: Audit Status & Estimated Price Range */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3.5 pt-2 border-t border-white/10">
+        {/* Audit Status Filter */}
+        <div className="lg:col-span-4 min-w-0 flex flex-col justify-end">
+          <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
+            <span className="truncate flex items-center gap-1">
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              Status de Auditoria:
+            </span>
+            <span className="text-[10px] text-emerald-400 font-normal shrink-0 ml-1">Avançado</span>
+          </label>
+          <ResponsiveSelect
+            value={auditStatusFilter}
+            onChange={(val) => setAuditStatusFilter(val)}
+            options={[
+              { value: 'Todos', label: '🔍 Todos os Status' },
+              { value: 'Auditados', label: '✅ Auditados (com diagnóstico)' },
+              { value: 'NaoAuditados', label: '⚠️ Não Auditados' },
+              { value: 'NoCRM', label: '🎯 Já no CRM/Funil' },
+              { value: 'ForaCRM', label: '📤 Fora do CRM' }
+            ]}
+          />
+        </div>
+
+        {/* Estimated Price Range - Slider Min/Max */}
+        <div className="lg:col-span-8 min-w-0 flex flex-col justify-end">
+          <div className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
+            <span className="truncate flex items-center gap-1">
+              <DollarSign className="w-3 h-3 text-emerald-400" />
+              Faixa de Preço Estimada (Setup R$):
+            </span>
+            <span className="font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-400/30 shrink-0 ml-1 leading-none">
+              R$ {priceMin.toLocaleString('pt-BR')} – R$ {priceMax.toLocaleString('pt-BR')}
+            </span>
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-semibold shrink-0">Mín</span>
+              <input
+                type="range"
+                min="0"
+                max="5000"
+                step="100"
+                value={priceMin}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setPriceMin(Math.min(v, priceMax));
+                }}
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-[10px] text-slate-400 font-semibold shrink-0">Máx</span>
+              <input
+                type="range"
+                min="0"
+                max="5000"
+                step="100"
+                value={priceMax}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setPriceMax(Math.max(v, priceMin));
+                }}
+                className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
+              />
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-1 mt-1 text-[10px] text-slate-400">
+            {[
+              { label: 'Econômico', min: 0, max: 1500 },
+              { label: 'Padrão', min: 1500, max: 2500 },
+              { label: 'Premium', min: 2500, max: 5000 }
+            ].map(preset => (
+              <button
+                key={preset.label}
+                type="button"
+                onClick={() => { setPriceMin(preset.min); setPriceMax(preset.max); }}
+                className={`px-1.5 py-0.5 rounded transition-all ${
+                  priceMin === preset.min && priceMax === preset.max
+                    ? 'bg-emerald-500 text-white font-bold shadow-sm'
+                    : 'hover:text-emerald-300 hover:bg-white/5'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => { setPriceMin(0); setPriceMax(5000); }}
+              className="px-1.5 py-0.5 rounded text-slate-500 hover:text-white hover:bg-white/5 transition-all"
+            >
+              ↻ Reset
+            </button>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Map Container */}
-        <div className="lg:col-span-8 glass-panel p-2 rounded-2xl border border-white/10 overflow-hidden relative min-h-[460px] flex flex-col">
+        <div className="lg:col-span-8 glass-panel p-2 rounded-2xl border border-white/10 relative min-h-[460px] flex flex-col">
           {/* Map Header Status Overlay */}
           <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/15 text-xs shadow-lg">
             <div className={`w-2.5 h-2.5 rounded-full ${radarPulse ? 'bg-sky-400 animate-ping' : 'bg-emerald-400'}`} />
@@ -751,6 +869,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                         key={lead.id}
                         position={{ lat: lead.geoLat, lng: lead.geoLng }}
                         onClick={() => setActiveMarkerLead(lead)}
+                        ref={isSelected ? activeMarkerRef : undefined}
                         title={`${lead.name} (${lead.distanceKm} km)`}
                       >
                         <Pin
@@ -763,55 +882,56 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                     );
                   })}
 
-                  {activeMarkerLead && (
+                  {activeMarkerLead && activeMarker && (
                     <InfoWindow
-                      position={{ 
-                        lat: (activeMarkerLead as any).geoLat || mapCenter.lat, 
-                        lng: (activeMarkerLead as any).geoLng || mapCenter.lng 
-                      }}
+                      anchor={activeMarker}
                       onCloseClick={() => setActiveMarkerLead(null)}
+                      minWidth={280}
+                      maxWidth={320}
+                      pixelOffset={[0, -8]}
                     >
-                      <div className="p-1 w-[260px] text-slate-900 flex flex-col gap-1.5">
-                        <div className="flex items-start justify-between gap-2 pr-4">
-                          <h4 className="font-bold text-[13px] leading-tight text-slate-900">{activeMarkerLead.name}</h4>
-                          <span className="text-[11px] font-bold text-amber-600 flex items-center gap-0.5 shrink-0">
+                      <div style={{ padding: '8px', width: '280px', color: '#0f172a', fontFamily: 'system-ui, -apple-system, sans-serif', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: '8px' }}>
+                          <h4 style={{ fontWeight: 700, fontSize: '13px', lineHeight: '1.25', color: '#0f172a', margin: 0 }}>{activeMarkerLead.name}</h4>
+                          <span style={{ fontSize: '11px', fontWeight: 700, color: '#d97706', display: 'inline-flex', alignItems: 'center', gap: '2px', whiteSpace: 'nowrap' }}>
                             ★ {activeMarkerLead.rating}
                           </span>
                         </div>
-                        
-                        <div className="flex items-center gap-1 text-[11px] text-slate-600">
-                           <span className="font-medium">{activeMarkerLead.category}</span>
-                           <span>•</span>
-                           <span>📍 {activeMarkerLead.distanceKm ?? 2} km do centro</span>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: '#475569' }}>
+                          <span style={{ fontWeight: 500 }}>{activeMarkerLead.category}</span>
+                          <span>•</span>
+                          <span>📍 {activeMarkerLead.distanceKm ?? 2} km do centro</span>
                         </div>
-                        
+
                         {activeMarkerLead.address && (
-                          <p className="text-[11px] text-slate-500 leading-snug whitespace-normal break-words pr-2">
+                          <p style={{ fontSize: '11px', color: '#64748b', lineHeight: '1.35', margin: 0, wordBreak: 'break-word' }}>
                             {activeMarkerLead.address}
                           </p>
                         )}
-                        
-                        <div className="mt-1.5 pt-2.5 border-t border-slate-200 flex items-center gap-2">
+
+                        <div style={{ marginTop: '6px', paddingTop: '10px', borderTop: '1px solid #e2e8f0', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {!activeMarkerLead.inCrm ? (
                             <button
                               onClick={() => {
                                 addLeadToCrm(activeMarkerLead.id);
                                 setActiveMarkerLead(null);
                               }}
-                              className="flex-1 px-2 py-1.5 text-[11px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
+                              style={{ flex: 1, padding: '6px 8px', fontSize: '11px', fontWeight: 700, background: '#4f46e5', color: '#ffffff', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               + Adicionar
                             </button>
                           ) : (
-                            <span className="flex-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-1.5 rounded-lg flex items-center justify-center">
+                            <span style={{ flex: 1, padding: '6px 8px', fontSize: '11px', fontWeight: 600, color: '#047857', background: '#d1fae5', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                               ✓ No CRM
                             </span>
                           )}
                           <button
                             onClick={() => {
                               setSelectedLeadForModal(activeMarkerLead);
+                              setActiveMarkerLead(null);
                             }}
-                            className="flex-1 px-2 py-1.5 text-[11px] font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center"
+                            style={{ flex: 1, padding: '6px 8px', fontSize: '11px', fontWeight: 500, background: '#f1f5f9', color: '#334155', border: 'none', borderRadius: '8px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                           >
                             Ver Detalhes
                           </button>

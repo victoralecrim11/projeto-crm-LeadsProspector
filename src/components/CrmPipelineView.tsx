@@ -1,31 +1,34 @@
-import React, { useState } from 'react';
-import { 
-  KanbanSquare, 
-  Plus, 
-  Sparkles, 
-  ArrowRight, 
-  Phone, 
-  DollarSign, 
-  Calendar, 
-  ChevronRight, 
-  CheckCircle2, 
-  Flame, 
-  Clock, 
+import React, { useMemo, useState } from 'react';
+import {
+  KanbanSquare,
+  Plus,
+  Sparkles,
+  ArrowRight,
+  Phone,
+  DollarSign,
+  Calendar,
+  ChevronRight,
+  CheckCircle2,
+  Flame,
+  Clock,
   ShieldCheck,
   Send,
-  MoreVertical
+  MoreVertical,
+  AlertCircle,
+  Bell
 } from 'lucide-react';
 import { useCrm } from '../context/CrmContext';
 import { Lead, LeadStatus } from '../types';
 
 export const CrmPipelineView: React.FC = () => {
-  const { 
-    crmLeads, 
-    updateLeadStage, 
+  const {
+    crmLeads,
+    updateLeadStage,
     setSelectedLeadForModal,
     setActivePage,
     setCurrentEditingLead,
-    redesignLeadSite
+    redesignLeadSite,
+    crmSettings
   } = useCrm();
 
   const stages: { id: LeadStatus; title: string; color: string }[] = [
@@ -37,6 +40,36 @@ export const CrmPipelineView: React.FC = () => {
     { id: 'negociacao', title: '6. Em Negociação', color: 'border-blue-500/40 text-blue-300' },
     { id: 'convertido', title: '7. Fechado / Ganho', color: 'border-emerald-500/40 text-emerald-300' },
   ];
+
+  const followUpAlertDays = crmSettings?.followUpAlertDays ?? 3;
+  const today = new Date();
+
+  // Determina se um lead precisa de atenção imediata (follow-up pendente / sem contato há X dias)
+  const needsAttention = (lead: Lead): boolean => {
+    if (lead.crmStage === 'convertido' || lead.crmStage === 'perdido') return false;
+    if (lead.nextFollowUpDate) {
+      const nextDate = new Date(lead.nextFollowUpDate);
+      const diffDays = Math.ceil((nextDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 0) return true; // follow-up vencido
+    }
+    if (lead.daysWithoutResponse && lead.daysWithoutResponse >= followUpAlertDays) {
+      return true;
+    }
+    return false;
+  };
+
+  // Contagem de leads que precisam de atenção por etapa
+  const stageAttentionCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    stages.forEach(s => counts[s.id] = 0);
+    crmLeads.forEach(lead => {
+      const stage = lead.crmStage || 'novo';
+      if (needsAttention(lead)) {
+        counts[stage] = (counts[stage] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [crmLeads, followUpAlertDays]);
 
   const handleDragStart = (e: React.DragEvent, leadId: string) => {
     e.dataTransfer.setData('leadId', leadId);
@@ -91,6 +124,7 @@ export const CrmPipelineView: React.FC = () => {
         {stages.map((stage) => {
           const leadsInStage = crmLeads.filter(l => (l.crmStage || 'novo') === stage.id);
           const stageTotal = leadsInStage.reduce((acc, curr) => acc + (curr.dealValue || 1800), 0);
+          const attentionCount = stageAttentionCounts[stage.id] || 0;
 
           return (
             <div
@@ -109,6 +143,15 @@ export const CrmPipelineView: React.FC = () => {
                     <span className="w-5 h-5 rounded-full bg-white/10 text-white text-[11px] font-bold flex items-center justify-center">
                       {leadsInStage.length}
                     </span>
+                    {attentionCount > 0 && (
+                      <span
+                        className="relative inline-flex items-center justify-center w-5 h-5 rounded-full bg-rose-500 text-white text-[11px] font-extrabold shadow-md shadow-rose-500/30"
+                        title={`${attentionCount} lead(s) precisando de atenção imediata`}
+                      >
+                        {attentionCount > 9 ? '9+' : attentionCount}
+                        <span className="absolute inline-flex w-full h-full rounded-full bg-rose-400 opacity-60 animate-ping" />
+                      </span>
+                    )}
                   </div>
 
                   <span className="text-[11px] font-bold text-emerald-400">
@@ -123,59 +166,82 @@ export const CrmPipelineView: React.FC = () => {
                       Arraste um lead para esta etapa
                     </div>
                   ) : (
-                    leadsInStage.map((lead) => (
-                      <div
-                        key={lead.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, lead.id)}
-                        className="glass-card p-4 rounded-2xl border border-white/10 hover:border-indigo-400/40 transition-all cursor-grab active:cursor-grabbing space-y-3 select-none"
-                      >
-                        {/* Header: Name & Rating */}
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <h4 
-                              onClick={() => setSelectedLeadForModal(lead)}
-                              className="font-bold text-xs text-white hover:text-sky-300 transition-colors cursor-pointer truncate"
-                              title={lead.name}
-                            >
-                              {lead.name}
-                            </h4>
-                            <span className="text-[10px] text-slate-400 truncate block">{lead.category}</span>
+leadsInStage.map((lead) => {
+                      const urgent = needsAttention(lead);
+                      return (
+                        <div
+                          key={lead.id}
+                          draggable
+                          onDragStart={(e) => handleDragStart(e, lead.id)}
+                          className={`glass-card p-4 rounded-2xl border transition-all cursor-grab active:cursor-grabbing space-y-3 select-none relative ${
+                            urgent
+                              ? 'border-rose-400/60 hover:border-rose-400/90 ring-1 ring-rose-400/30 shadow-lg shadow-rose-500/10'
+                              : 'border-white/10 hover:border-indigo-400/40'
+                          }`}
+                        >
+                          {urgent && (
+                            <div className="absolute -top-2 -right-2 flex items-center justify-center w-6 h-6 rounded-full bg-rose-500 border-2 border-slate-950 shadow-lg shadow-rose-500/40 z-10">
+                              <Bell className="w-3 h-3 text-white animate-pulse" />
+                            </div>
+                          )}
+                          {/* Header: Name & Rating */}
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0 flex-1">
+                              <h4
+                                onClick={() => setSelectedLeadForModal(lead)}
+                                className="font-bold text-xs text-white hover:text-sky-300 transition-colors cursor-pointer truncate"
+                                title={lead.name}
+                              >
+                                {lead.name}
+                              </h4>
+                              <span className="text-[10px] text-slate-400 truncate block">{lead.category}</span>
+                            </div>
+
+                            <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
+                              ★ {lead.rating}
+                            </span>
                           </div>
 
-                          <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
-                            ★ {lead.rating}
-                          </span>
-                        </div>
+                          {urgent && (
+                            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-rose-500/15 border border-rose-400/30 text-[10px] text-rose-300 font-semibold">
+                              <AlertCircle className="w-3 h-3 shrink-0" />
+                              <span className="truncate">
+                                {lead.nextFollowUpDate && new Date(lead.nextFollowUpDate) <= today
+                                  ? 'Follow-up vencido'
+                                  : `Sem resposta há ${lead.daysWithoutResponse || 0} dia(s)`}
+                              </span>
+                            </div>
+                          )}
 
-                        {/* Value & MRR Pill */}
-                        <div className="p-2 glass-panel rounded-xl border border-white/5 flex items-center justify-between gap-2 text-[11px]">
-                          <span className="text-slate-400 truncate">Setup: <strong className="text-white">R$ {lead.dealValue || 1800}</strong></span>
-                          <span className="text-emerald-400 font-bold shrink-0">MRR: R$ {lead.mrrValue || 197}/m</span>
-                        </div>
+                          {/* Value & MRR Pill */}
+                          <div className="p-2 glass-panel rounded-xl border border-white/5 flex items-center justify-between gap-2 text-[11px]">
+                            <span className="text-slate-400 truncate">Setup: <strong className="text-white">R$ {lead.dealValue || 1800}</strong></span>
+                            <span className="text-emerald-400 font-bold shrink-0">MRR: R$ {lead.mrrValue || 197}/m</span>
+                          </div>
 
-                        {/* Quick Action Buttons on Card */}
-                        <div className="flex items-center gap-1.5 pt-1">
-                          <button
-                            onClick={() => handleOpenComparison(lead)}
-                            className="flex-1 py-1.5 px-2 glass-panel hover:bg-white/10 text-[10px] font-semibold text-sky-300 rounded-lg border border-sky-400/30 transition-all flex items-center justify-center gap-1"
-                          >
-                            <Sparkles className="w-3 h-3" />
-                            <span>Antes/Depois</span>
-                          </button>
+                          {/* Quick Action Buttons on Card */}
+                          <div className="flex items-center gap-1.5 pt-1">
+                            <button
+                              onClick={() => handleOpenComparison(lead)}
+                              className="flex-1 py-1.5 px-2 glass-panel hover:bg-white/10 text-[10px] font-semibold text-sky-300 rounded-lg border border-sky-400/30 transition-all flex items-center justify-center gap-1"
+                            >
+                              <Sparkles className="w-3 h-3" />
+                              <span>Antes/Depois</span>
+                            </button>
 
-                          <a
-                            href={`https://wa.me/${lead.whatsapp || lead.phone.replace(/\D/g, '')}`}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="p-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg border border-emerald-500/30 transition-all"
-                            title="Conversar no WhatsApp"
-                          >
-                            <Send className="w-3 h-3" />
-                          </a>
+                            <a
+                              href={`https://wa.me/${lead.whatsapp || lead.phone.replace(/\D/g, '')}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="p-1.5 bg-emerald-600/30 hover:bg-emerald-600/50 text-emerald-300 rounded-lg border border-emerald-500/30 transition-all"
+                              title="Conversar no WhatsApp"
+                            >
+                              <Send className="w-3 h-3" />
+                            </a>
+                          </div>
                         </div>
-                      </div>
-                    ))
+                      );
+                    })
                   )}
                 </div>
               </div>
