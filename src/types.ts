@@ -258,6 +258,7 @@ export interface CrmSettingsConfig {
   aiBaseUrl?: string; // useful for Ollama or OpenAI compatible endpoints
   aiSystemPrompt?: string;
   aiProviders?: AIProviderConfig[];
+  useSeedDemo?: boolean;
 }
 
 export type ActivePage = 

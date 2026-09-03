@@ -1,6 +1,6 @@
 import { Lead, Appointment, Project, SalesRankUser, AppNotification, HostGatorSetupConfig, CrmSettingsConfig } from '../types';
 
-export const INITIAL_CRM_SETTINGS: CrmSettingsConfig = {
+export const SEED_CRM_SETTINGS: CrmSettingsConfig = {
   closerName: 'Victor Alecrim',
   closerTitle: 'Closer Top #1',
   closerEmail: 'victor@agenciaprospector.com.br',
@@ -29,9 +29,10 @@ export const INITIAL_CRM_SETTINGS: CrmSettingsConfig = {
     }
   ],
   aiSystemPrompt: 'Você é um Copywriter Especialista em Conversão. Sua missão é criar textos magnéticos, focados em dores e desejos, para sites de negócios locais (barbearias, dentistas, estéticas). Crie títulos curtos e de impacto.',
+  useSeedDemo: true,
 };
 
-export const INITIAL_SETUP_CONFIG: HostGatorSetupConfig = {
+export const SEED_SETUP_CONFIG: HostGatorSetupConfig = {
   cpanelHost: 'br1098.hostgator.com.br',
   cpanelUser: 'prospector_user',
   cpanelPass: '••••••••••••••••',
@@ -44,7 +45,7 @@ export const INITIAL_SETUP_CONFIG: HostGatorSetupConfig = {
   preferredNiches: ['Barbearias', 'Dentistas & Odonto', 'Clínicas Estéticas', 'Restaurantes', 'Advocacia', 'Pet Shops', 'Academias & Crossfit'],
 };
 
-export const INITIAL_LEADS: Lead[] = [
+export const SEED_LEADS: Lead[] = [
   {
     id: 'lead-mateus-guerra',
     name: 'Barbearia Mateus Guerra',
@@ -801,7 +802,7 @@ export const INITIAL_LEADS: Lead[] = [
   }
 ];
 
-export const INITIAL_APPOINTMENTS: Appointment[] = [
+export const SEED_APPOINTMENTS: Appointment[] = [
   {
     id: 'apt-1',
     leadId: 'lead-1',
@@ -839,7 +840,7 @@ export const INITIAL_APPOINTMENTS: Appointment[] = [
   }
 ];
 
-export const INITIAL_PROJECTS: Project[] = [
+export const SEED_PROJECTS: Project[] = [
   {
     id: 'proj-1',
     leadId: 'lead-4',
@@ -885,7 +886,7 @@ export const INITIAL_PROJECTS: Project[] = [
   }
 ];
 
-export const INITIAL_RANKING: SalesRankUser[] = [
+export const SEED_RANKING: SalesRankUser[] = [
   {
     id: 'user-1',
     name: 'Victor Alecrim',
@@ -929,7 +930,7 @@ export const INITIAL_RANKING: SalesRankUser[] = [
   }
 ];
 
-export const INITIAL_NOTIFICATIONS: AppNotification[] = [
+export const SEED_NOTIFICATIONS: AppNotification[] = [
   {
     id: 'notif-1',
     title: 'Lead visualizou a proposta!',

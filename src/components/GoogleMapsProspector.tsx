@@ -234,6 +234,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
   }, [searchQuery]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [lastScanSource, setLastScanSource] = useState<ScanSource>(null);
+  const [scanNotice, setScanNotice] = useState<string | null>(null);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
   const [infoWindowAnchor, setInfoWindowAnchor] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
 
@@ -519,6 +520,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
     setIsScanning(true);
     setRadarPulse(true);
     setLastScanSource(null);
+    setScanNotice(null);
 
     const activeQuery =
       typeof overrideQuery === "string" ? overrideQuery : searchQuery;
@@ -555,6 +557,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
           temperature: 'quente' as const,
         })));
         setLastScanSource("real");
+        setScanNotice(null);
         setIsScanning(false);
         setRadarPulse(false);
         return;
@@ -583,6 +586,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
             temperature: 'morno' as const,
           })));
           setLastScanSource("expanded");
+          setScanNotice(null);
           setIsScanning(false);
           setRadarPulse(false);
           return;
@@ -601,6 +605,9 @@ const [searchQuery, setSearchQuery] = useState<string>("");
 
       addCustomLeads(syntheticLeads);
       setLastScanSource("synthetic");
+      setScanNotice(
+        "Nenhum negócio encontrado no OpenStreetMap para esta região. Exibindo leads de demonstração para fins de preview — escaneie outra área para dados reais."
+      );
     } catch (err) {
       console.warn("[handleScan] Error during scan, falling back to synthetic:", err);
       // Fallback to synthetic on any error
@@ -612,6 +619,9 @@ const [searchQuery, setSearchQuery] = useState<string>("");
       });
       addCustomLeads(syntheticLeads);
       setLastScanSource("synthetic");
+      setScanNotice(
+        "Serviço OpenStreetMap indisponível no momento. Exibindo leads de demonstração — tente novamente em alguns minutos."
+      );
     } finally {
       setIsScanning(false);
       setRadarPulse(false);
@@ -1235,6 +1245,20 @@ const [searchQuery, setSearchQuery] = useState<string>("");
               </span>
             )}
           </div>
+
+          {scanNotice && (
+            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs">
+              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+              <div className="flex-1 leading-snug">{scanNotice}</div>
+              <button
+                onClick={() => setScanNotice(null)}
+                className="text-amber-200/70 hover:text-amber-100 transition-colors"
+                aria-label="Fechar aviso"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
 
           {/* Google Maps View */}
           <div className="w-full flex-1 min-h-[440px] rounded-xl overflow-hidden relative bg-slate-900">

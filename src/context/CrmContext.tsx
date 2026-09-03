@@ -15,14 +15,14 @@ import {
   CrmSettingsConfig
 } from '../types';
 import { 
-  INITIAL_LEADS, 
-  INITIAL_APPOINTMENTS, 
-  INITIAL_PROJECTS, 
-  INITIAL_RANKING, 
-  INITIAL_NOTIFICATIONS,
-  INITIAL_SETUP_CONFIG,
-  INITIAL_CRM_SETTINGS
-} from '../data/mockData';
+  SEED_LEADS, 
+  SEED_APPOINTMENTS, 
+  SEED_PROJECTS, 
+  SEED_RANKING, 
+  SEED_NOTIFICATIONS,
+  SEED_SETUP_CONFIG,
+  SEED_CRM_SETTINGS
+} from '../data/seedData';
 import { exportLeadsToExcel } from '../utils/excelExporter';
 
 interface CrmContextType {
@@ -142,6 +142,19 @@ const STORAGE_KEYS = {
   GEMINI_API_KEY: 'leadsite_gemini_api_key_v2',
 };
 
+function shouldUseSeedDemo(): boolean {
+  try {
+    const saved = safeStorage.getItem(STORAGE_KEYS.CRM_SETTINGS);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      if (typeof parsed.useSeedDemo === 'boolean') {
+        return parsed.useSeedDemo;
+      }
+    }
+  } catch {}
+  return SEED_CRM_SETTINGS.useSeedDemo ?? true;
+}
+
 export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   // Initialize Active Page with persistence so refresh does not kick user back to dashboard
   const [activePage, setActivePage] = useState<ActivePage>(() => {
@@ -260,7 +273,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Initialize CRM Settings with multi-layer fallback & dedicated API key preservation
   const [crmSettings, setCrmSettings] = useState<CrmSettingsConfig>(() => {
-    let settings: CrmSettingsConfig = { ...INITIAL_CRM_SETTINGS };
+    let settings: CrmSettingsConfig = { ...SEED_CRM_SETTINGS };
     
     // 1. Try loading general settings bundle
     try {
@@ -377,7 +390,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error loading setup config', e);
       }
     }
-    return INITIAL_SETUP_CONFIG;
+    return SEED_SETUP_CONFIG;
   });
 
   // Initialize leads
@@ -407,15 +420,17 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
         // Check if new default leads are missing and append them (also avoiding name collisions)
         const existingIds = new Set(mapped.map(l => l.id));
-        const missingDefaults = INITIAL_LEADS.filter(l => 
-          !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim())
-        );
+        const missingDefaults = shouldUseSeedDemo()
+          ? SEED_LEADS.filter(l => 
+              !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim())
+            )
+          : [];
         return missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
       } catch (e) {
         console.error('Error loading saved leads', e);
       }
     }
-    return INITIAL_LEADS;
+    return shouldUseSeedDemo() ? SEED_LEADS : [];
   });
 
   const [appointments, setAppointments] = useState<Appointment[]>(() => {
@@ -427,7 +442,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error loading appointments', e);
       }
     }
-    return INITIAL_APPOINTMENTS;
+    return shouldUseSeedDemo() ? SEED_APPOINTMENTS : [];
   });
 
   const [projects, setProjects] = useState<Project[]>(() => {
@@ -439,7 +454,7 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error loading projects', e);
       }
     }
-    return INITIAL_PROJECTS;
+    return shouldUseSeedDemo() ? SEED_PROJECTS : [];
   });
 
   const [notifications, setNotifications] = useState<AppNotification[]>(() => {
@@ -451,10 +466,10 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         console.error('Error loading notifications', e);
       }
     }
-    return INITIAL_NOTIFICATIONS;
+    return shouldUseSeedDemo() ? SEED_NOTIFICATIONS : [];
   });
 
-  const [ranking] = useState<SalesRankUser[]>(INITIAL_RANKING);
+  const [ranking] = useState<SalesRankUser[]>(shouldUseSeedDemo() ? SEED_RANKING : []);
 
   // Sync state to local storage
   useEffect(() => {
