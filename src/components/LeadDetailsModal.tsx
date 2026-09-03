@@ -77,10 +77,10 @@ export const LeadDetailsModal: React.FC = () => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-      <div className="glass-panel border border-white/20 rounded-3xl w-full max-w-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-150 flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex justify-end">
+      <div className="bg-slate-950/90 backdrop-blur-xl border-l border-white/20 w-full max-w-xl h-full shadow-2xl animate-in slide-in-from-right duration-200 flex flex-col">
         {/* Modal Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/10 bg-white/[0.04]">
+        <div className="flex items-center justify-between p-5 border-b border-white/10 bg-white/[0.02] shrink-0">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-indigo-600 to-sky-500 flex items-center justify-center font-bold text-white text-lg shadow-md border border-white/20">
               {lead.name.charAt(0)}

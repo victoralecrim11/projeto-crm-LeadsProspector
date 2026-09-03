@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { 
   Search, 
   Compass, 
@@ -22,6 +22,7 @@ import {
 import { useCrm } from '../context/CrmContext';
 import { Lead } from '../types';
 import { GoogleMapsProspector } from './GoogleMapsProspector';
+import { ManualLeadModal } from './ManualLeadModal';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 import { SearchAutocomplete, AutocompleteSuggestion } from './common/SearchAutocomplete';
 import { useCityNeighborhoods } from '../services/neighborhoodService';
@@ -59,7 +60,7 @@ export const LeadsProspectorView: React.FC = () => {
     leads, 
     addLeadToCrm, 
     batchAddLeadsToCrm, 
-    exportLeadsCsv, 
+    exportLeadsExcel, 
     setSelectedLeadForModal,
     redesignLeadSite,
     setCurrentEditingLead,
@@ -69,8 +70,17 @@ export const LeadsProspectorView: React.FC = () => {
   } = useCrm();
 
   const [viewMode, setViewMode] = useState<'map' | 'grid'>('grid');
+  const [showManualLeadModal, setShowManualLeadModal] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>('Belo Horizonte - MG');
   const [searchTerm, setSearchTerm] = useState('');
+  const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchTerm(searchTerm);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>('Todos os Bairros');
   const [selectedNiche, setSelectedNiche] = useState<string>('todos');
   const [selectedQuickFilters, setSelectedQuickFilters] = useState<QuickFilterId[]>([]);
@@ -279,8 +289,8 @@ export const LeadsProspectorView: React.FC = () => {
       }
 
       // 5. Multi-token Search Term Filter
-      if (searchTerm.trim()) {
-        const tokens = normalizeStr(searchTerm).split(/\s+/).filter(Boolean);
+      if (debouncedSearchTerm.trim()) {
+        const tokens = normalizeStr(debouncedSearchTerm).split(/\s+/).filter(Boolean);
         const corpus = normalizeStr([
           lead.name,
           lead.category,
@@ -298,7 +308,7 @@ export const LeadsProspectorView: React.FC = () => {
 
       return true;
     });
-  }, [leads, selectedCity, selectedNeighborhood, selectedNiche, selectedQuickFilters, searchTerm]);
+  }, [leads, selectedCity, selectedNeighborhood, selectedNiche, selectedQuickFilters, debouncedSearchTerm]);
 
   const handleToggleSelectLead = (id: string) => {
     setSelectedLeadIds(prev => 
@@ -339,9 +349,11 @@ export const LeadsProspectorView: React.FC = () => {
               <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
                 Prospecção Geográfica de Leads
               </h1>
-              <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 shrink-0">
-                {filteredLeads.length} {filteredLeads.length === 1 ? 'negócio' : 'negócios'}
-              </span>
+              {viewMode !== 'map' && (
+                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 shrink-0">
+                  {filteredLeads.length} {filteredLeads.length === 1 ? 'negócio' : 'negócios'}
+                </span>
+              )}
             </div>
             <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
               Filtre por cidade, bairro e nicho para identificar empresas com altas notas no Google Maps e sem site moderno próprio.
@@ -360,7 +372,7 @@ export const LeadsProspectorView: React.FC = () => {
                 }`}
               >
                 <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Grade ({filteredLeads.length})</span>
+                <span>Grade {viewMode === 'grid' && `(${filteredLeads.length})`}</span>
               </button>
               <button
                 onClick={() => setViewMode('map')}
@@ -396,9 +408,20 @@ export const LeadsProspectorView: React.FC = () => {
                 )}
               </button>
 
+              {/* Novo Lead Manual */}
+              <button
+                onClick={() => setShowManualLeadModal(true)}
+                className="flex items-center justify-center gap-1.5 px-3.5 py-2 glass-panel hover:bg-sky-500/10 text-slate-200 hover:text-sky-300 font-semibold text-xs rounded-xl border border-white/15 hover:border-sky-500/30 transition-all shrink-0 shadow-sm"
+                title="Adicionar um novo negócio manualmente ao CRM"
+              >
+                <Plus className="w-3.5 h-3.5 text-sky-400" />
+                <span className="hidden sm:inline">Novo Lead</span>
+                <span className="sm:hidden">Novo</span>
+              </button>
+
               {/* Excel Spreadsheet Export */}
               <button
-                onClick={() => exportLeadsCsv(filteredLeads)}
+                onClick={() => exportLeadsExcel(filteredLeads)}
                 className="flex items-center justify-center gap-1.5 px-3.5 py-2 glass-panel hover:bg-emerald-500/10 text-slate-200 hover:text-emerald-300 font-semibold text-xs rounded-xl border border-white/15 hover:border-emerald-500/30 transition-all shrink-0 shadow-sm"
                 title="Exportar planilha formatada em Microsoft Excel (.xlsx) com aba de Resumo e Base Completa"
               >
@@ -411,8 +434,9 @@ export const LeadsProspectorView: React.FC = () => {
         </div>
 
         {/* Dynamic Multi-Dimensional Search & Filters */}
-        <div className="space-y-3 pt-3 border-t border-white/10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
+        {viewMode !== 'map' && (
+          <div className="space-y-3 pt-3 border-t border-white/10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
             {/* 1. Cidade no Maps */}
             <div className="min-w-0 flex flex-col justify-end">
               <label className="text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center justify-between h-6">
@@ -543,6 +567,7 @@ export const LeadsProspectorView: React.FC = () => {
             </div>
           </div>
         </div>
+        )}
       </div>
 
       {/* Main View Mode: Google Maps Interactive Radar vs Grid Cards */}
@@ -757,6 +782,11 @@ export const LeadsProspectorView: React.FC = () => {
           )}
         </>
       )}
+      
+      <ManualLeadModal 
+        isOpen={showManualLeadModal} 
+        onClose={() => setShowManualLeadModal(false)} 
+      />
     </div>
   );
 };

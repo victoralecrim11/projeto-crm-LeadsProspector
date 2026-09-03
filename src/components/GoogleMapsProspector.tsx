@@ -4,8 +4,19 @@ import {
   Map, 
   AdvancedMarker, 
   Pin, 
-  InfoWindow 
+  InfoWindow,
+  useMap
 } from '@vis.gl/react-google-maps';
+
+function MapUpdater({ center, zoom }: { center: { lat: number, lng: number }, zoom: number }) {
+  const map = useMap();
+  useEffect(() => {
+    if (!map) return;
+    map.panTo(center);
+    map.setZoom(zoom);
+  }, [map, center, zoom]);
+  return null;
+}
 import { 
   MapPin, 
   Search, 
@@ -83,6 +94,14 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
   const [onlyWithoutWebsite, setOnlyWithoutWebsite] = useState<boolean>(false);
   const [onlyHighRating, setOnlyHighRating] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>('');
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearchQuery(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
@@ -285,8 +304,8 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
       }
 
       // Search Query filter (Multi-token, Accent-insensitive across Company Name, Neighborhood, Street Address, Niche, City, Phone)
-      if (searchQuery.trim()) {
-        const queryNormalized = normalizeStr(searchQuery);
+      if (debouncedSearchQuery.trim()) {
+        const queryNormalized = normalizeStr(debouncedSearchQuery);
         const tokens = queryNormalized.split(/\s+/).filter(Boolean);
         
         const searchableCorpus = normalizeStr([
@@ -314,7 +333,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
 
       return true;
     });
-  }, [mappedLeads, selectedCity, selectedNeighborhood, selectedNiche, onlyWithoutWebsite, onlyHighRating, searchQuery, searchRadius]);
+  }, [mappedLeads, selectedCity, selectedNeighborhood, selectedNiche, onlyWithoutWebsite, onlyHighRating, debouncedSearchQuery, searchRadius]);
 
   // Dynamic Scan: creates realistic leads in the selected city, neighborhood, or custom query street/name
   const handleSimulateScan = (overrideQuery?: string | unknown) => {
@@ -370,21 +389,49 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
       const generatedDistance2 = Number((Math.min(maxRad * 0.9, generatedDistance1 + Math.random() * 2 + 0.5)).toFixed(1));
 
       // Build 2 tailored leads
-      const businessPrefixes = [
-        targetCat === 'Barbearia' ? 'Barbearia Imperial' : 
-        targetCat === 'Clínica Odontológica' ? 'Centro Odontológico Dr.' :
-        targetCat === 'Restaurante & Pizzaria' ? 'Pizzaria & Forno' :
-        targetCat === 'Advocacia' ? 'Advocacia & Associados' :
-        targetCat === 'Oficina Mecânica' ? 'Auto Center & Mecânica' :
-        targetCat === 'Pet Shop & Veterinária' ? 'Clínica Veterinária & Pet' : 'Studio de Estética & Laser',
-        
-        targetCat === 'Barbearia' ? 'Vintage Barber Club' : 
-        targetCat === 'Clínica Odontológica' ? 'Odonto Prime Especializada' :
-        targetCat === 'Restaurante & Pizzaria' ? 'Trattoria & Gastronomia' :
-        targetCat === 'Advocacia' ? 'Melo & Silva Advogados' :
-        targetCat === 'Oficina Mecânica' ? 'Precision Car Service' :
-        targetCat === 'Pet Shop & Veterinária' ? 'Pet Care & Spa' : 'Espaço VIP Harmonia'
-      ];
+      const getPrefixes = (cat: string) => {
+        const options: Record<string, string[][]> = {
+          'Barbearia': [
+            ['Barbearia Imperial', 'Vintage Barber Club'],
+            ['Studio Alfa Barbearia', 'Roots Barber Shop'],
+            ['Barbearia Dom', 'Navalha de Ouro Barbearia']
+          ],
+          'Clínica Odontológica': [
+            ['Centro Odontológico Dr.', 'Odonto Prime Especializada'],
+            ['Clínica Sorriso', 'Instituto Odontológico'],
+            ['Implanto Odontologia', 'Sorriso & Saúde Clínica']
+          ],
+          'Restaurante & Pizzaria': [
+            ['Pizzaria & Forno', 'Trattoria & Gastronomia'],
+            ['Bistrô Sabor', 'Churrascaria & Grill'],
+            ['Cantina Italiana', 'Gourmet & Cia Restaurante']
+          ],
+          'Advocacia': [
+            ['Advocacia & Associados', 'Melo & Silva Advogados'],
+            ['Escritório Jurídico', 'Soluções Jurídicas'],
+            ['Consultoria & Advocacia', 'Direito & Cidadania']
+          ],
+          'Oficina Mecânica': [
+            ['Auto Center & Mecânica', 'Precision Car Service'],
+            ['Oficina Motor Tech', 'Pit Stop Automotivo'],
+            ['Mecânica de Alta Performance', 'Centro Automotivo Especializado']
+          ],
+          'Pet Shop & Veterinária': [
+            ['Clínica Veterinária & Pet', 'Pet Care & Spa'],
+            ['Hospital Veterinário 24h', 'Amigo Fiel Pet Shop'],
+            ['Bichos & Mimos', 'Espaço Animal Veterinária']
+          ],
+          'Estética & Beleza': [
+            ['Studio de Estética & Laser', 'Espaço VIP Harmonia'],
+            ['Clínica Dermatofuncional', 'Centro de Beleza'],
+            ['Spa & Estética Avançada', 'Renova Estética Facial']
+          ]
+        };
+        const choices = options[cat] || options['Estética & Beleza'];
+        return choices[Math.floor(Math.random() * choices.length)];
+      };
+
+      const businessPrefixes = getPrefixes(targetCat);
 
       const businessName1 = cleanQuery && cleanQuery.length > 2 && !detectedBairro && !cleanQuery.toLowerCase().startsWith('rua') && !cleanQuery.toLowerCase().startsWith('av')
         ? `${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)} - ${targetNeighborhood}`
@@ -688,14 +735,13 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
               <APIProvider apiKey={apiKey}>
                 <Map
                   defaultCenter={mapCenter}
-                  center={mapCenter}
                   defaultZoom={mapZoom}
-                  zoom={mapZoom}
                   mapId="DEMO_MAP_ID"
                   internalUsageAttributionIds={['gmp_mcp_codeassist_v1_aistudio']}
                   className="w-full h-full"
                   disableDefaultUI={false}
                 >
+                  <MapUpdater center={mapCenter} zoom={mapZoom} />
                   {filteredLeads.map((lead) => {
                     const isSelected = activeMarkerLead?.id === lead.id;
                     const pinColor = !lead.hasWebsite ? '#ef4444' : lead.inCrm ? '#10b981' : '#f59e0b';
@@ -725,28 +771,39 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                       }}
                       onCloseClick={() => setActiveMarkerLead(null)}
                     >
-                      <div className="p-2 text-slate-900 max-w-xs">
-                        <div className="flex items-center justify-between gap-2">
-                          <h4 className="font-bold text-xs leading-tight text-slate-900">{activeMarkerLead.name}</h4>
-                          <span className="text-[10px] font-bold text-amber-600 flex items-center gap-0.5">
+                      <div className="p-1 w-[260px] text-slate-900 flex flex-col gap-1.5">
+                        <div className="flex items-start justify-between gap-2 pr-4">
+                          <h4 className="font-bold text-[13px] leading-tight text-slate-900">{activeMarkerLead.name}</h4>
+                          <span className="text-[11px] font-bold text-amber-600 flex items-center gap-0.5 shrink-0">
                             ★ {activeMarkerLead.rating}
                           </span>
                         </div>
-                        <p className="text-[11px] text-slate-600 mt-0.5">{activeMarkerLead.category} • 📍 {activeMarkerLead.distanceKm ?? 2} km do centro</p>
                         
-                        <div className="mt-2 pt-2 border-t border-slate-200 flex items-center gap-1.5">
+                        <div className="flex items-center gap-1 text-[11px] text-slate-600">
+                           <span className="font-medium">{activeMarkerLead.category}</span>
+                           <span>•</span>
+                           <span>📍 {activeMarkerLead.distanceKm ?? 2} km do centro</span>
+                        </div>
+                        
+                        {activeMarkerLead.address && (
+                          <p className="text-[11px] text-slate-500 leading-snug whitespace-normal break-words pr-2">
+                            {activeMarkerLead.address}
+                          </p>
+                        )}
+                        
+                        <div className="mt-1.5 pt-2.5 border-t border-slate-200 flex items-center gap-2">
                           {!activeMarkerLead.inCrm ? (
                             <button
                               onClick={() => {
                                 addLeadToCrm(activeMarkerLead.id);
                                 setActiveMarkerLead(null);
                               }}
-                              className="px-2.5 py-1 text-[11px] font-semibold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
+                              className="flex-1 px-2 py-1.5 text-[11px] font-bold bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center"
                             >
-                              + Adicionar ao CRM
+                              + Adicionar
                             </button>
                           ) : (
-                            <span className="text-[10px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-0.5 rounded">
+                            <span className="flex-1 text-[11px] font-semibold text-emerald-700 bg-emerald-100 px-2 py-1.5 rounded-lg flex items-center justify-center">
                               ✓ No CRM
                             </span>
                           )}
@@ -754,7 +811,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                             onClick={() => {
                               setSelectedLeadForModal(activeMarkerLead);
                             }}
-                            className="px-2 py-1 text-[11px] font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200"
+                            className="flex-1 px-2 py-1.5 text-[11px] font-medium bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 transition-colors flex items-center justify-center"
                           >
                             Ver Detalhes
                           </button>
@@ -817,8 +874,12 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
                               <MapPin className="w-3.5 h-3.5" />
                             </div>
 
-                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-9 px-2 py-0.5 rounded-md bg-slate-900 text-[10px] font-bold text-white whitespace-nowrap border border-white/20 shadow-xl pointer-events-none z-30">
-                              {lead.name} ({lead.rating}★) • {lead.distanceKm} km
+                            <div className="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-12 px-2 py-1 rounded-md bg-slate-900 text-[10px] text-white whitespace-nowrap border border-white/20 shadow-xl pointer-events-none z-30 flex flex-col gap-0.5">
+                              <div className="font-bold flex items-center gap-1">
+                                {lead.name} <span className="text-amber-400">({lead.rating}★)</span>
+                              </div>
+                              <div className="text-slate-300 font-normal">{lead.address || lead.category}</div>
+                              <div className="text-sky-300 font-bold">{lead.distanceKm} km do centro</div>
                             </div>
                           </div>
                         </div>
@@ -1028,7 +1089,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({ onSe
               </div>
             ) : (
               <div className="space-y-2 overflow-y-auto max-h-72 pr-1">
-                {filteredLeads.slice(0, 8).map((lead) => (
+                {filteredLeads.map((lead) => (
                   <div
                     key={lead.id}
                     onClick={() => setActiveMarkerLead(lead)}

@@ -387,17 +387,29 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       try {
         const parsedLeads = JSON.parse(saved) as Lead[];
         const idSet = new Set<string>();
-        const mapped = parsedLeads.map(lead => {
+        const nameSet = new Set<string>();
+        const mapped: Lead[] = [];
+
+        parsedLeads.forEach(lead => {
+          const normName = (lead.name || '').toLowerCase().trim();
+          if (nameSet.has(normName)) {
+            return; // Skip duplicate by name
+          }
+          nameSet.add(normName);
+
           let id = lead.id;
           while (idSet.has(id)) {
             id = id + '-' + Math.random().toString(36).substring(2, 7);
           }
           idSet.add(id);
-          return { ...lead, id };
+          mapped.push({ ...lead, id });
         });
-        // Check if new default leads (such as lead-15 and lead-16 in Caiçaras/Alto Caiçaras) are missing and append them
+
+        // Check if new default leads are missing and append them (also avoiding name collisions)
         const existingIds = new Set(mapped.map(l => l.id));
-        const missingDefaults = INITIAL_LEADS.filter(l => !existingIds.has(l.id));
+        const missingDefaults = INITIAL_LEADS.filter(l => 
+          !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim())
+        );
         return missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
       } catch (e) {
         console.error('Error loading saved leads', e);
@@ -624,23 +636,46 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   };
 
   const addCustomLead = (newLeadData: Omit<Lead, 'id' | 'createdAt'>) => {
-    const uniqueId = 'lead-custom-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
-    const newLead: Lead = {
-      ...newLeadData,
-      id: uniqueId,
-      createdAt: new Date().toISOString(),
-      audit: {
-        speedScore: 30,
-        loadingTimeSeconds: 6.0,
-        mobileFriendly: false,
-        hasSsl: false,
-        hasWhatsappButton: false,
-        seoScore: 45,
-        issues: ['Site não responsivo para celular', 'Sem certificado SSL', 'Sem botão WhatsApp'],
-        opportunities: ['Redesenho com agendamento direto']
+    setLeads(prev => {
+      // Evitar duplicidade de negócios com o mesmo nome exato ou nomes muito parecidos (ex: mesma franquia)
+      const isDuplicate = prev.some(l => {
+        const name1 = (l.name || '').toLowerCase().trim();
+        const name2 = (newLeadData.name || '').toLowerCase().trim();
+        if (name1 === name2) return true;
+        
+        // Verificação por prefixo (se as primeiras 3 palavras forem iguais, assumimos que é a mesma empresa repetida no mock)
+        const words1 = name1.split(' ');
+        const words2 = name2.split(' ');
+        if (words1.length >= 3 && words2.length >= 3) {
+          if (words1[0] === words2[0] && words1[1] === words2[1] && words1[2] === words2[2]) {
+            return true;
+          }
+        }
+        return false;
+      });
+
+      if (isDuplicate) {
+        return prev;
       }
-    };
-    setLeads(prev => [newLead, ...prev]);
+      
+      const uniqueId = 'lead-custom-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
+      const newLead: Lead = {
+        ...newLeadData,
+        id: uniqueId,
+        createdAt: new Date().toISOString(),
+        audit: {
+          speedScore: 30,
+          loadingTimeSeconds: 6.0,
+          mobileFriendly: false,
+          hasSsl: false,
+          hasWhatsappButton: false,
+          seoScore: 45,
+          issues: ['Site não responsivo para celular', 'Sem certificado SSL', 'Sem botão WhatsApp'],
+          opportunities: ['Redesenho com agendamento direto']
+        }
+      };
+      return [newLead, ...prev];
+    });
   };
 
   const exportLeadsExcel = (leadsToExport?: Lead[], customFileName?: string) => {

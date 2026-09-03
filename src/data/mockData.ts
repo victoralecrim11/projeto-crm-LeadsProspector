@@ -46,6 +46,38 @@ export const INITIAL_SETUP_CONFIG: HostGatorSetupConfig = {
 
 export const INITIAL_LEADS: Lead[] = [
   {
+    id: 'lead-mateus-guerra',
+    name: 'Barbearia Mateus Guerra',
+    category: 'Barbearia',
+    niche: 'Barbearia',
+    temperature: 'quente',
+    score: 95,
+    rating: 5.0,
+    reviewsCount: 120,
+    phone: '(31) 98807-6001',
+    whatsapp: '5531988076001',
+    email: '',
+    city: 'Belo Horizonte',
+    state: 'MG',
+    neighborhood: 'Alto Caiçaras',
+    address: 'R. Itaguaí, 450 - Lj 3 - Alto Caiçaras, Belo Horizonte - MG, 30775-110',
+    distanceKm: 0.8,
+    hasWebsite: false,
+    websiteUrl: '',
+    inCrm: false,
+    createdAt: '2026-09-02T10:00:00Z',
+    audit: {
+      speedScore: 0,
+      loadingTimeSeconds: 0,
+      mobileFriendly: false,
+      hasSsl: false,
+      hasWhatsappButton: false,
+      seoScore: 0,
+      issues: ['Empresa sem nenhum website', 'Sem presença digital profissional'],
+      opportunities: ['Criação de Site Institucional com Agendamento', 'Link no Google Meu Negócio']
+    }
+  },
+  {
     id: 'lead-1',
     name: 'Boy Barbearia Oficial',
     category: 'Barbearia Premium',
