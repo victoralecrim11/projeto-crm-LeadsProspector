@@ -1,6 +1,6 @@
 # 📋 PROSPECTOR - Relatório Completo do Projeto & Histórico de Evolução
 
-> **Versão:** 2.1  
+> **Versão:** 2.2  
 > **Status:** Operacional / Em Produção (Compilação & Tipagem 100% Validadas)  
 > **Responsável / Closer Líder:** Victor Alecrim  
 
@@ -48,8 +48,12 @@ O PROSPECTOR resolve essa cadeia de ponta a ponta em um único ambiente integrad
 
 ### 🗺️ 3.1. Google Maps Prospector (`GoogleMapsProspector.tsx` / `LeadsProspectorView.tsx`)
 - **Varredura Geográfica Inteligente:** Simula e conecta varreduras por nicho (Barbearias, Clínicas, Odontologia, Restaurantes, etc.) e localidade.
-- **Filtro de Raio Paramétrico:** Controle dinâmico de raio com atalhos rápidos (5 km, 10 km, **19 km**, 30 km).
-- **Auditoria Instantânea de Oportunidades:** Cada negócio encontrado exibe selos de diagnóstico (Sem SSL, Não Responsivo, Carregamento Lento, Ausência de WhatsApp).
+- **Filtros Avançados de Prospecção:**
+  - Filtro de Raio Paramétrico com atalhos rápidos (5 km, 10 km, 19 km, 30 km).
+  - Filtro por status de auditoria: Todos / Auditados / Não Auditados / Já no CRM / Fora do CRM.
+  - Filtro por faixa de preço estimada (Setup R$) com slider duplo e presets rápidos (Econômico, Padrão, Premium).
+  - Filtro por avaliação mínima (4.8+ estrelas) e status de site (com/sem website).
+- **InfoWindow Interativo:** Popup de detalhes do lead com nome, avaliação, categoria, distância, endereço e botões de ação (+ Adicionar, Ver Detalhes), abrindo corretamente via anchor do AdvancedMarker.
 - **Conversão em 1 Clique:** Envio imediato do lead qualificado para o CRM com estimativa de valor de fechamento.
 
 ### 📊 3.2. Dashboard Estratégico (`DashboardView.tsx`)
@@ -59,15 +63,16 @@ O PROSPECTOR resolve essa cadeia de ponta a ponta em um único ambiente integrad
 
 ### 📌 3.3. Funil de Vendas Kanban (`CrmPipelineView.tsx`)
 - **Estágios do Funil:**
-  1. *Prospecção*
-  2. *Primeiro Contato Feito*
-  3. *Auditoria Enviada*
-  4. *Redesenho Apresentado*
-  5. *Proposta Comercial*
-  6. *Fechado / Ganho*
-  7. *Perdido*
+  1. *Novo Lead*
+  2. *Auditado*
+  3. *Redesenhado*
+  4. *Proposta Enviada*
+  5. *Follow-up Ativo*
+  6. *Em Negociação*
+  7. *Fechado / Ganho*
 - **Ações Rápidas no Card:** Botão direto para WhatsApp com mensagem personalizada de pitch, envio de e-mail e abertura de detalhes do lead.
 - **Totalizador por Estágio:** Cálculo em tempo real do valor financeiro acumulado em cada coluna do funil.
+- **Badges de Atenção Imediata:** Indicadores visuais por coluna e cards destacam leads com follow-up vencido ou sem resposta há mais de `followUpAlertDays` dias, com ícone de sino animado e barra de alerta.
 
 ### ⚡ 3.4. Comparador Interativo Antes & Depois (`RedesenhoView.tsx`)
 - **Tela Dividida com Slider Interativo:** Apresenta visualmente o contraste chocante entre o site antigo do cliente (amador, sem responsividade) e a nova versão premium criada pela agência.
@@ -114,6 +119,15 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
 │ [Fase 6] Redesenho e Correção de Contraste no Rodapé da Barra Lateral       │
 │ [Fase 7] Ocultação do Menu Hambúrguer em Resoluções Desktop (lg:hidden)     │
 │ [Fase 8] Implementação do Slider Físico Interativo no "Antes e Depois"      │
+│ [Fase 9] Blindagem de Persistência para Chaves de API e Configurações       │
+│ [Fase 10] Correção de Layout do Botão de Exclusão nos Provedores de IA      │
+│ [Fase 11] Bairros no Dropdown do Google Maps Prospector                      │
+│ [Fase 12] Integração Global de Bairros via API Dinâmica (IBGE + OSM)        │
+│ [Fase 13] Exportação de Base em Planilha Excel Nativa                       │
+│ [Fase 14] Validação e Workflow de Rascunho para E-mails                     │
+│ [Fase 15] Melhorias Gerais de UI e Acessibilidade                           │
+│ [Fase 16] Correção do InfoWindow do Google Maps + Novos Filtros Avançados   │
+│ [Fase 17] Sistema de Badges de Atenção e Follow-up no Pipeline Kanban       │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -217,14 +231,50 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
   - Correção no estilo de ponteiros do mouse (`cursor-pointer`) nas tabelas, itens clicáveis e modais, fortalecendo as micro-interações da plataforma.
   - Varredura e exclusão de arquivos de debug e temporários que poluíam a árvore de projeto, assegurando a organização estrutural.
 
+#### 16. Correção do InfoWindow do Google Maps + Novos Filtros Avançados
+- **Causa Raiz:** O componente `<InfoWindow>` da biblioteca `@vis.gl/react-google-maps` (v1.9.0) **exige** a propriedade `anchor` vinculada a um `AdvancedMarker` para abrir. O código original utilizava apenas `position`, que é ignorada pela API quando não há anchor. Como `anchor` ficava `null`/`undefined`, o efeito interno retornava imediatamente sem abrir a janela.
+- **Solução em `GoogleMapsProspector.tsx`:**
+  - Criada ref dedicada via `useAdvancedMarkerRef()` para capturar a instância do `AdvancedMarker` do lead selecionado.
+  - O marcador ativo recebe `ref={isSelected ? activeMarkerRef : undefined}` para garantir que apenas o marker selecionado seja anexado.
+  - O `<InfoWindow>` agora recebe `anchor={activeMarker}`, desbloqueando a abertura condicional.
+  - Removido `overflow-hidden` do container externo do mapa para evitar corte da seta (pointer) do InfoWindow.
+  - O conteúdo do InfoWindow foi migrado de classes Tailwind para **estilos inline**, pois a Google Maps injeta estilos globais (`.gm-style`, `iw*`) que sobrescrevem `className` do React.
+  - Adicionadas props `minWidth={280}`, `maxWidth={320}` e `pixelOffset={[0, -8]}` para posicionamento consistente.
+
+- **Novos Filtros Avançados Implementados:**
+  - **Status de Auditoria:** dropdown com opções `Todos` / `Auditados` (possui `audit`) / `Não Auditados` (sem `audit`) / `Já no CRM` (`inCrm`) / `Fora do CRM` (não está no CRM).
+  - **Faixa de Preço Estimada (Setup R$):** slider duplo `minWidth` / `maxWidth` com range 0–5000 e presets rápidos (`Econômico`, `Padrão`, `Premium`, `Reset`).
+  - Novos estados: `auditStatusFilter`, `priceMin`, `priceMax`.
+  - Importados ícones `ShieldCheck` e `DollarSign` do `lucide-react`.
+
+#### 17. Sistema de Badges de Atenção e Follow-up no Pipeline Kanban
+- **Objetivo:** Identificar visualmente leads que precisam de atenção imediata ou follow-up pendente diretamente nas colunas do Kanban, reduzindo o risco de negociações estagnadas.
+- **Implementação em `CrmPipelineView.tsx`:**
+  - Criada função `needsAttention(lead)` que retorna `true` quando:
+    - `nextFollowUpDate` está vencida (data ≤ hoje).
+    - `daysWithoutResponse` ≥ `followUpAlertDays` (configurável em `crmSettings`, padrão 3 dias).
+    - Ignora leads `convertido` e `perdido`.
+  - Computado via `useMemo` o mapeamento `stageAttentionCounts` por estágio do funil.
+  - **Badges nas colunas:** quando `attentionCount > 0`, exibe badge vermelho pulsante (`animate-ping`) com a contagem de leads urgentes naquela etapa.
+  - **Indicação visual nos cards:**
+    - Borda vermelha (`border-rose-400/60`), sombra (`shadow-rose-500/10`) e anel (`ring-rose-400/30`).
+    - Ícone `Bell` animado no canto superior direito do card.
+    - Barra de alerta `AlertCircle` exibindo o motivo: "Follow-up vencido" ou "Sem resposta há N dia(s)".
+  - Importados `AlertCircle` e `Bell` do `lucide-react`.
+
 ---
 
 ## 📈 5. Estado Atual e Qualidade de Código
 
 - **Build / Compilação:** 100% aprovado (`npm run build` executado com sucesso).
 - **Linter & Tipagem:** 0 erros (`tsc --noEmit` aprovado sem nenhuma violação de tipos).
+- **Funcionalidades Recentemente Validadas:**
+  - InfoWindow do Google Maps abrindo corretamente ao clicar nos marcadores avançados.
+  - Filtros avançados de prospecção: status de auditoria e faixa de preço estimada operacionais.
+  - Sistema de alertas visuais no Pipeline Kanban com badges de atenção imediata.
 - **Acessibilidade:** Suporte a toque ergonômico no mobile (alvos de toque >= 44px), navegação por teclado e contraste de cores validado nos modos Claro e Escuro.
 - **Integridade dos Dados:** Todas as alterações no CRM (leads, propostas, notas) são persistidas localmente de forma resiliente.
+- **Observabilidade Visual:** Indicadores de atenção e follow-up pendente diretamente nas colunas do funil de vendas.
 
 ---
 
