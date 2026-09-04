@@ -418,13 +418,17 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
           mapped.push({ ...lead, id });
         });
 
+        // If not using seed demo, remove any leads that match the exact SEED_LEADS IDs
+        if (!shouldUseSeedDemo()) {
+          const seedIds = new Set(SEED_LEADS.map(l => l.id));
+          return mapped.filter(l => !seedIds.has(l.id));
+        }
+
         // Check if new default leads are missing and append them (also avoiding name collisions)
         const existingIds = new Set(mapped.map(l => l.id));
-        const missingDefaults = shouldUseSeedDemo()
-          ? SEED_LEADS.filter(l => 
-              !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim())
-            )
-          : [];
+        const missingDefaults = SEED_LEADS.filter(l => 
+            !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim())
+          );
         return missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
       } catch (e) {
         console.error('Error loading saved leads', e);
@@ -437,7 +441,12 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Appointment[];
+        if (!shouldUseSeedDemo()) {
+          const seedIds = new Set(SEED_APPOINTMENTS.map(a => a.id));
+          return parsed.filter(a => !seedIds.has(a.id));
+        }
+        return parsed;
       } catch (e) {
         console.error('Error loading appointments', e);
       }
@@ -449,7 +458,12 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem(STORAGE_KEYS.PROJECTS);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as Project[];
+        if (!shouldUseSeedDemo()) {
+          const seedIds = new Set(SEED_PROJECTS.map(p => p.id));
+          return parsed.filter(p => !seedIds.has(p.id));
+        }
+        return parsed;
       } catch (e) {
         console.error('Error loading projects', e);
       }
@@ -461,7 +475,12 @@ export const CrmProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
     if (saved) {
       try {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved) as AppNotification[];
+        if (!shouldUseSeedDemo()) {
+          const seedIds = new Set(SEED_NOTIFICATIONS.map(n => n.id));
+          return parsed.filter(n => !seedIds.has(n.id));
+        }
+        return parsed;
       } catch (e) {
         console.error('Error loading notifications', e);
       }

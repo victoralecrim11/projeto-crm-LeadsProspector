@@ -1055,58 +1055,62 @@ const [searchQuery, setSearchQuery] = useState<string>("");
           </div>
         </div>
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         {/* Map Container */}
-        <div className="lg:col-span-8 glass-panel p-2 rounded-2xl border border-white/10 relative min-h-[460px] flex flex-col">
-          {/* Map Header Status Overlay */}
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/15 text-xs shadow-lg">
-            <div
-              className={`w-2.5 h-2.5 rounded-full ${radarPulse ? "bg-sky-400 animate-ping" : "bg-emerald-400"}`}
-            />
-            <span className="font-semibold text-white">{selectedCity}</span>
-            <span className="text-slate-400">|</span>
-            <span className="text-sky-300 font-medium">
-              {filteredLeads.length} alvos ativos
-            </span>
-            {lastScanSource && (
-              <span
-                className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
-                  lastScanSource === "real"
-                    ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
-                    : lastScanSource === "expanded"
-                    ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
-                    : "bg-rose-500/20 text-rose-300 border-rose-400/30"
-                }`}
-                title={
-                  lastScanSource === "real"
-                    ? "Dados reais do OpenStreetMap"
-                    : lastScanSource === "expanded"
-                    ? "Raio expandido (2x) - Dados reais do OpenStreetMap"
-                    : "Dados demonstrativos (fallback)"
-                }
-              >
-                {lastScanSource === "real"
-                  ? "✓ Real OSM"
-                  : lastScanSource === "expanded"
-                  ? "⟳ Expandido"
-                  : "⚠ Demo"}
+        <div className="xl:col-span-8 glass-panel p-2 rounded-2xl border border-white/10 relative min-h-[460px] flex flex-col">
+          {/* Map Header Overlays (Status & Notice) */}
+          <div className="absolute top-4 left-4 right-4 z-10 flex flex-col items-start gap-2 pointer-events-none">
+            {/* Status Overlay */}
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-slate-950/85 backdrop-blur-md border border-white/15 text-xs shadow-lg pointer-events-auto">
+              <div
+                className={`w-2.5 h-2.5 rounded-full ${radarPulse ? "bg-sky-400 animate-ping" : "bg-emerald-400"}`}
+              />
+              <span className="font-semibold text-white">{selectedCity}</span>
+              <span className="text-slate-400">|</span>
+              <span className="text-sky-300 font-medium">
+                {filteredLeads.length} alvos ativos
               </span>
+              {lastScanSource && (
+                <span
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-bold border ${
+                    lastScanSource === "real"
+                      ? "bg-emerald-500/20 text-emerald-300 border-emerald-400/30"
+                      : lastScanSource === "expanded"
+                      ? "bg-amber-500/20 text-amber-300 border-amber-400/30"
+                      : "bg-rose-500/20 text-rose-300 border-rose-400/30"
+                  }`}
+                  title={
+                    lastScanSource === "real"
+                      ? "Dados reais do OpenStreetMap"
+                      : lastScanSource === "expanded"
+                      ? "Raio expandido (2x) - Dados reais do OpenStreetMap"
+                      : "Dados demonstrativos (fallback)"
+                  }
+                >
+                  {lastScanSource === "real"
+                    ? "✓ Real OSM"
+                    : lastScanSource === "expanded"
+                    ? "⟳ Expandido"
+                    : "⚠ Demo"}
+                </span>
+              )}
+            </div>
+
+            {/* Scan Notice */}
+            {scanNotice && (
+              <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/90 backdrop-blur-md border border-amber-400/50 text-slate-900 text-xs shadow-lg max-w-md pointer-events-auto">
+                <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                <div className="flex-1 font-medium leading-snug">{scanNotice}</div>
+                <button
+                  onClick={() => setScanNotice(null)}
+                  className="text-slate-700 hover:text-slate-900 transition-colors"
+                  aria-label="Fechar aviso"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              </div>
             )}
           </div>
-
-          {scanNotice && (
-            <div className="mt-2 flex items-start gap-2 px-3 py-2 rounded-lg bg-amber-500/10 border border-amber-400/30 text-amber-200 text-xs">
-              <Info className="w-4 h-4 mt-0.5 flex-shrink-0" />
-              <div className="flex-1 leading-snug">{scanNotice}</div>
-              <button
-                onClick={() => setScanNotice(null)}
-                className="text-amber-200/70 hover:text-amber-100 transition-colors"
-                aria-label="Fechar aviso"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          )}
 
           {/* Google Maps View */}
           <div className="w-full flex-1 min-h-[440px] rounded-xl overflow-hidden relative bg-slate-900">
@@ -1423,7 +1427,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
         </div>
 
         {/* Side Prospect Card / Selection Panel */}
-        <div className="lg:col-span-4 flex flex-col gap-4">
+        <div className="xl:col-span-4 flex flex-col gap-4">
           {activeMarkerLead ? (
             <div className="glass-panel p-5 rounded-2xl border border-sky-400/40 shadow-2xl space-y-4 animate-in fade-in duration-150">
               <div className="flex items-start justify-between">
@@ -1475,11 +1479,11 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                   </span>
                 </div>
 
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-slate-400 shrink-0">
+                <div className="flex flex-col gap-1">
+                  <span className="text-slate-400">
                     Logradouro / Rua:
                   </span>
-                  <span className="font-medium text-slate-200 text-right text-[11px] break-words">
+                  <span className="font-medium text-slate-200 text-[11px] break-words">
                     {activeMarkerLead.address}
                   </span>
                 </div>

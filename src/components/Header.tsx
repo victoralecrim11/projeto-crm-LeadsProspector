@@ -104,7 +104,7 @@ export const Header: React.FC = () => {
         </button>
 
         <div className="min-w-0 flex-1">
-          <h1 className="text-base sm:text-lg lg:text-2xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{title}</h1>
+          <h1 className="text-base sm:text-lg lg:text-xl font-bold text-slate-900 dark:text-white tracking-tight truncate">{title}</h1>
           <p className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 font-medium mt-0.5 truncate hidden md:block">{subtitle}</p>
         </div>
       </div>
