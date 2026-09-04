@@ -29,7 +29,7 @@ export const SEED_CRM_SETTINGS: CrmSettingsConfig = {
     }
   ],
   aiSystemPrompt: 'Você é um Copywriter Especialista em Conversão. Sua missão é criar textos magnéticos, focados em dores e desejos, para sites de negócios locais (barbearias, dentistas, estéticas). Crie títulos curtos e de impacto.',
-  useSeedDemo: true,
+  useSeedDemo: false,
 };
 
 export const SEED_SETUP_CONFIG: HostGatorSetupConfig = {

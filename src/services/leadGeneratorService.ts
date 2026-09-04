@@ -138,7 +138,7 @@ const DEFAULT_STREETS = [
 // Approximate centroids (lat, lng) for BH neighborhoods — used to scatter
 // synthetic leads around a real geographic point instead of dropping them
 // at the city center. Values come from public OpenStreetMap Nominatim data.
-const NEIGHBORHOOD_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+export const NEIGHBORHOOD_CENTROIDS: Record<string, { lat: number; lng: number }> = {
   'alipio de melo': { lat: -19.8763, lng: -43.9989 },
   'caicaras': { lat: -19.8847, lng: -43.9716 },
   'alto caicaras': { lat: -19.8768, lng: -43.9692 },

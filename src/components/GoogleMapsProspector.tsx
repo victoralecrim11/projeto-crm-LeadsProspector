@@ -1,4 +1,4 @@
-﻿import React, {
+import React, {
   useState,
   useMemo,
   useEffect,
@@ -49,6 +49,7 @@ import {
 import {
   matchesNiche,
   generateRealisticLeadsForLocation,
+  NEIGHBORHOOD_CENTROIDS,
 } from "../services/leadGeneratorService";
 import { fetchLeadsFromOverpass } from "../services/overpassService";
 
@@ -71,59 +72,19 @@ function MapUpdater({
 
 // Opens Google Maps in a new tab showing the real business listing.
 // Strategy:
-//   1. With API + coords: PlacesService.findPlaceFromQuery (name only) -> exact place_id ficha
-//   2. Fallback with coords: open Maps centered on coordinates -> user sees real neighborhood
-//   3. No coords: simple name search
+//   1. Drop a pin exactly at the coordinates (if available) using the Search API format
+//   2. Fallback to name search if no coordinates are available
 function openGoogleMapsPlace(
-  lead: { name: string; address?: string; geoLat?: number; geoLng?: number },
-  apiKey?: string,
+  lead: { name: string; address?: string; geoLat?: number; geoLng?: number }
 ) {
   const nameQuery = lead.name.trim();
   const hasCoords = !!(lead.geoLat && lead.geoLng);
 
-  // With API + coordinates: resolve the exact place_id via PlacesService
-  if (apiKey && hasCoords && window.google?.maps?.places?.PlacesService) {
-    try {
-      const attrDiv = document.createElement('div');
-      const service = new window.google.maps.places.PlacesService(attrDiv);
-      service.findPlaceFromQuery(
-        {
-          query: nameQuery,
-          fields: ['place_id'],
-          locationBias: { lat: lead.geoLat!, lng: lead.geoLng! } as google.maps.LatLngLiteral,
-        },
-        (results, status) => {
-          if (
-            status === window.google.maps.places.PlacesServiceStatus.OK &&
-            results?.[0]?.place_id
-          ) {
-            // Opens the exact Google Maps listing for this place
-            window.open(
-              `https://www.google.com/maps/place/?q=place_id:${results[0].place_id}`,
-              '_blank',
-              'noopener,noreferrer',
-            );
-          } else {
-            // Simulated/fictitious lead not found in Google Maps:
-            // Center the map on the exact coordinates so user sees the real neighborhood
-            window.open(
-              `https://www.google.com/maps/@${lead.geoLat},${lead.geoLng},17z`,
-              '_blank',
-              'noopener,noreferrer',
-            );
-          }
-        },
-      );
-      return;
-    } catch {
-      // fall through to coordinate fallback
-    }
-  }
-
-  // Has coordinates but no API: center map on exact location
   if (hasCoords) {
+    // Drops a red pin at the exact coordinates.
+    // If there is a real Google Place there, its icon will be right next to the pin.
     window.open(
-      `https://www.google.com/maps/@${lead.geoLat},${lead.geoLng},17z`,
+      `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`,
       '_blank',
       'noopener,noreferrer',
     );
@@ -242,6 +203,31 @@ const [searchQuery, setSearchQuery] = useState<string>("");
   // on the map preview but are NEVER persisted to localStorage / CRM.
   // Only real OSM leads (dataSource === 'real') reach the CRM via addCustomLead.
   const [previewLeads, setPreviewLeads] = useState<Lead[]>([]);
+
+  // Reverse Geocoding for InfoWindow
+  useEffect(() => {
+    if (!activeMarkerLead || !activeMarkerLead.geoLat || !activeMarkerLead.geoLng) return;
+    
+    // Only attempt geocoding if the address is missing or too generic (e.g., just the city name)
+    const isMissingAddress = !activeMarkerLead.address || activeMarkerLead.address.length < 15 || !activeMarkerLead.address.includes(',');
+    
+    if (isMissingAddress && window.google?.maps?.Geocoder) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: { lat: activeMarkerLead.geoLat, lng: activeMarkerLead.geoLng } }, (results, status) => {
+        if (status === 'OK' && results && results[0]) {
+          const newAddress = results[0].formatted_address;
+          setActiveMarkerLead(prev => prev ? { ...prev, address: newAddress } : null);
+          
+          if (activeMarkerLead.dataSource === 'synthetic') {
+             setPreviewLeads(prev => prev.map(p => p.id === activeMarkerLead.id ? { ...p, address: newAddress } : p));
+          } else {
+             // For real OSM leads, we only update the local active marker. 
+             // To persist to CRM, it will be added with the enriched address when "+ Adicionar" is clicked.
+          }
+        }
+      });
+    }
+  }, [activeMarkerLead]);
 
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
@@ -548,7 +534,14 @@ const [searchQuery, setSearchQuery] = useState<string>("");
       const stateName = selectedCity.split(" - ")[1] || "MG";
 
       // Parse coordinates for Overpass search
-      const coords = CITY_COORDINATES[selectedCity] || CITY_COORDINATES["Belo Horizonte - MG"];
+      let coords = CITY_COORDINATES[selectedCity] || CITY_COORDINATES["Belo Horizonte - MG"];
+      if (selectedNeighborhood !== "Todos os Bairros") {
+        const normBairro = normalizeStr(selectedNeighborhood);
+        if (NEIGHBORHOOD_CENTROIDS[normBairro]) {
+          coords = NEIGHBORHOOD_CENTROIDS[normBairro];
+        }
+      }
+
       if (!coords) {
         throw new Error("City coordinates not found");
       }
@@ -570,6 +563,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
         console.log(`[handleScan] Found ${overpassLeads.length} real leads via Overpass`);
         addCustomLeads(overpassLeads.map(l => ({
           ...l,
+          neighborhood: l.neighborhood || (selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : ""),
           inCrm: false,
           temperature: 'quente' as const,
         })));
@@ -599,6 +593,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
           console.log(`[handleScan] Found ${expandedLeads.length} leads with expanded radius (${expandedRadius}km)`);
           addCustomLeads(expandedLeads.map(l => ({
             ...l,
+            neighborhood: l.neighborhood || (selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : ""),
             inCrm: false,
             temperature: 'morno' as const,
           })));
@@ -645,195 +640,10 @@ const [searchQuery, setSearchQuery] = useState<string>("");
     }
   };
 
-  // Dynamic Scan: creates realistic leads in the selected city, neighborhood, or custom query street/name
-  const handleSimulateScan = (overrideQuery?: string | unknown) => {
-    setIsScanning(true);
-    setRadarPulse(true);
-
-    const activeQuery =
-      typeof overrideQuery === "string" ? overrideQuery : searchQuery;
-    const cleanQuery = (activeQuery || "").trim();
-
-    setTimeout(() => {
-      const cityName = selectedCity.split(" - ")[0];
-      const stateName = selectedCity.split(" - ")[1] || "MG";
-
-      // Determine neighborhood from selection or query
-      let detectedBairro: string | undefined;
-      if (cleanQuery) {
-        detectedBairro = currentCityNeighborhoods.find(
-          (b) =>
-            normalizeStr(b).includes(normalizeStr(cleanQuery)) ||
-            normalizeStr(cleanQuery).includes(normalizeStr(b)),
-        );
-      }
-
-      let targetNeighborhood =
-        selectedNeighborhood !== "Todos os Bairros"
-          ? selectedNeighborhood
-          : detectedBairro ||
-          currentCityNeighborhoods[
-          Math.floor(Math.random() * currentCityNeighborhoods.length)
-          ];
-
-      // Determine Category / Niche
-      let targetCat =
-        selectedNiche !== "Todos os Nichos"
-          ? selectedNiche
-          : "Estética & Beleza";
-      if (cleanQuery) {
-        if (/barba|cabel|fade|barber/i.test(cleanQuery))
-          targetCat = "Barbearia";
-        else if (/dent|odonto|sorris/i.test(cleanQuery))
-          targetCat = "Clínica Odontológica";
-        else if (/pizz|restaurante|burger|delivery/i.test(cleanQuery))
-          targetCat = "Restaurante & Pizzaria";
-        else if (/advoc|jurid|direito/i.test(cleanQuery))
-          targetCat = "Advocacia";
-        else if (/pet|vet|animal/i.test(cleanQuery))
-          targetCat = "Pet Shop & Veterinária";
-        else if (/mecan|auto|oficina|carro/i.test(cleanQuery))
-          targetCat = "Oficina Mecânica";
-        else if (/estet|beleza|laser|spa/i.test(cleanQuery))
-          targetCat = "Estética & Beleza";
-      }
-
-      // Determine street name from query or realistic streets
-      const defaultStreets = [
-        targetNeighborhood === "Caiçaras"
-          ? "Av. Dom Pedro II"
-          : targetNeighborhood === "Alto Caiçaras"
-            ? "Rua Belmiro Braga"
-            : "Av. Principal",
-        targetNeighborhood === "Caiçaras"
-          ? "Rua Rosinha Sigaud"
-          : "Rua das Flores",
-        "Av. Central",
-        "Rua São Paulo",
-        "Av. Getúlio Vargas",
-        "Rua da Bahia",
-        "Av. Afonso Pena",
-        "Rua do Ouro",
-      ];
-      const streetName =
-        cleanQuery &&
-          !cleanQuery.includes(" ") &&
-          cleanQuery.length > 3 &&
-          !detectedBairro
-          ? `Rua ${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)}`
-          : defaultStreets[Math.floor(Math.random() * defaultStreets.length)];
-
-      const maxRad = Math.max(2, searchRadius);
-      const generatedDistance1 = Number(
-        (Math.random() * (maxRad * 0.45) + 0.6).toFixed(1),
-      );
-      const generatedDistance2 = Number(
-        Math.min(
-          maxRad * 0.9,
-          generatedDistance1 + Math.random() * 2 + 0.5,
-        ).toFixed(1),
-      );
-
-      // Build 2 tailored leads
-      const getPrefixes = (cat: string) => {
-        const options: Record<string, string[][]> = {
-          Barbearia: [
-            ["Barbearia Imperial", "Vintage Barber Club"],
-            ["Studio Alfa Barbearia", "Roots Barber Shop"],
-            ["Barbearia Dom", "Navalha de Ouro Barbearia"],
-          ],
-          "Clínica Odontológica": [
-            ["Centro Odontológico Dr.", "Odonto Prime Especializada"],
-            ["Clínica Sorriso", "Instituto Odontológico"],
-            ["Implanto Odontologia", "Sorriso & Saúde Clínica"],
-          ],
-          "Restaurante & Pizzaria": [
-            ["Pizzaria & Forno", "Trattoria & Gastronomia"],
-            ["Bistrô Sabor", "Churrascaria & Grill"],
-            ["Cantina Italiana", "Gourmet & Cia Restaurante"],
-          ],
-          Advocacia: [
-            ["Advocacia & Associados", "Melo & Silva Advogados"],
-            ["Escritório Jurídico", "Soluções Jurídicas"],
-            ["Consultoria & Advocacia", "Direito & Cidadania"],
-          ],
-          "Oficina Mecânica": [
-            ["Auto Center & Mecânica", "Precision Car Service"],
-            ["Oficina Motor Tech", "Pit Stop Automotivo"],
-            ["Mecânica de Alta Performance", "Centro Automotivo Especializado"],
-          ],
-          "Pet Shop & Veterinária": [
-            ["Clínica Veterinária & Pet", "Pet Care & Spa"],
-            ["Hospital Veterinário 24h", "Amigo Fiel Pet Shop"],
-            ["Bichos & Mimos", "Espaço Animal Veterinária"],
-          ],
-          "Estética & Beleza": [
-            ["Studio de Estética & Laser", "Espaço VIP Harmonia"],
-            ["Clínica Dermatofuncional", "Centro de Beleza"],
-            ["Spa & Estética Avançada", "Renova Estética Facial"],
-          ],
-        };
-        const choices = options[cat] || options["Estética & Beleza"];
-        return choices[Math.floor(Math.random() * choices.length)];
-      };
-
-      const businessPrefixes = getPrefixes(targetCat);
-
-      const businessName1 =
-        cleanQuery &&
-          cleanQuery.length > 2 &&
-          !detectedBairro &&
-          !cleanQuery.toLowerCase().startsWith("rua") &&
-          !cleanQuery.toLowerCase().startsWith("av")
-          ? `${cleanQuery.charAt(0).toUpperCase() + cleanQuery.slice(1)} - ${targetNeighborhood}`
-          : `${businessPrefixes[0]} ${targetNeighborhood}`;
-
-      const businessName2 = `${businessPrefixes[1]} ${cityName}`;
-
-      // Add Lead 1
-      addCustomLead({
-        name: businessName1,
-        category: targetCat,
-        niche: targetCat,
-        temperature: "quente",
-        score: Math.floor(88 + Math.random() * 10),
-        rating: 4.9,
-        reviewsCount: Math.floor(45 + Math.random() * 160),
-        phone: "(31) 9" + Math.floor(80000000 + Math.random() * 19999999),
-        whatsapp: "(31) 9" + Math.floor(80000000 + Math.random() * 19999999),
-        city: cityName,
-        state: stateName,
-        neighborhood: targetNeighborhood,
-        address: `${streetName}, ${Math.floor(100 + Math.random() * 1800)} - ${targetNeighborhood}, ${cityName}`,
-        distanceKm: generatedDistance1,
-        hasWebsite: false,
-        inCrm: false,
-      });
-
-      // Add Lead 2
-      addCustomLead({
-        name: businessName2,
-        category: targetCat,
-        niche: targetCat,
-        temperature: "quente",
-        score: Math.floor(82 + Math.random() * 15),
-        rating: 5.0,
-        reviewsCount: Math.floor(70 + Math.random() * 120),
-        phone: "(31) 9" + Math.floor(80000000 + Math.random() * 19999999),
-        whatsapp: "(31) 9" + Math.floor(80000000 + Math.random() * 19999999),
-        city: cityName,
-        state: stateName,
-        neighborhood: targetNeighborhood,
-        address: `${streetName}, ${Math.floor(100 + Math.random() * 1800)} - ${targetNeighborhood}, ${cityName}`,
-        distanceKm: generatedDistance2,
-        hasWebsite: false,
-        inCrm: false,
-      });
-
-      setIsScanning(false);
-      setRadarPulse(false);
-    }, 900);
-  };
+  // NOTE: a legacy `handleSimulateScan` random-name generator used to live here.
+  // It was dead code (never wired to any button — `handleScan` above is the single
+  // source of truth for lead generation) and has been removed so no code path can
+  // ever inject leads without the user explicitly triggering a scan.
 
   // Routes a scanned lead to the right destination:
   //   - real OSM leads: persisted via addCustomLead (CRM / localStorage)
@@ -882,12 +692,13 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                   Radar Google Maps Platform
                 </h2>
                 <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full shrink-0">
-                  Places API v2
+                  OpenStreetMap Real-Time
                 </span>
               </div>
               <p className="text-xs text-slate-300 truncate sm:whitespace-normal">
-                Auditoria geográfica em tempo real: encontre empresas com notas
-                altas no Maps e sem site moderno
+                Auditoria geográfica em tempo real: busca negócios reais via
+                OpenStreetMap e exibe no Google Maps — empresas com notas
+                altas e sem site moderno
               </p>
             </div>
           </div>
@@ -1321,7 +1132,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                           setActiveMarkerLead(lead);
                           setInfoWindowAnchor(anchor);
                         }}
-                        onOpenMaps={() => openGoogleMapsPlace(lead, apiKey)}
+                        onOpenMaps={() => openGoogleMapsPlace(lead)}
                       />
                     </React.Fragment>
                   ))}
@@ -1470,7 +1281,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                           </div>
                           {/* Row 2: Ver no Maps */}
                           <button
-                            onClick={() => openGoogleMapsPlace(activeMarkerLead, apiKey)}
+                            onClick={() => openGoogleMapsPlace(activeMarkerLead)}
                             style={{ width: "100%", padding: "6px 8px", fontSize: "11px", fontWeight: 500, background: "#e0f2fe", color: "#0369a1", border: "1px solid #bae6fd", borderRadius: "8px", cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: "4px" }}
                           >
                             📍 Ver localização no Maps

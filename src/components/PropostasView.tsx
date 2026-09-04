@@ -1,14 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { 
-  FileText, 
-  Send, 
-  Sparkles, 
-  Copy, 
-  Check, 
-  Mail, 
-  ExternalLink, 
-  ShieldCheck, 
-  CheckCircle2, 
+import {
+  FileText,
+  Send,
+  Sparkles,
+  Copy,
+  Check,
+  Mail,
+  ExternalLink,
+  ShieldCheck,
+  CheckCircle2,
   ArrowRight,
   TrendingUp,
   Clock,
@@ -32,6 +32,7 @@ import {
 import { useCrm, safeStorage } from '../context/CrmContext';
 import { downloadProposalPdf } from '../utils/pdfGenerator';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
+import { generateAiContent } from '../services/aiService';
 
 const PROPOSAL_STORAGE_KEY = 'leadsite_crm_proposals_autosave_v2';
 
@@ -62,11 +63,11 @@ interface ProposalStoreData {
 }
 
 export const PropostasView: React.FC = () => {
-  const { 
-    leads, 
-    setupConfig, 
+  const {
+    leads,
+    setupConfig,
     crmSettings,
-    updateLeadStage, 
+    updateLeadStage,
     generateProposalForLead,
     setActivePage,
     setEmailModalLead
@@ -175,6 +176,7 @@ export const PropostasView: React.FC = () => {
     if (savedData?.activeDraft?.savedAt) return savedData.activeDraft.savedAt;
     return new Date().toLocaleTimeString('pt-BR');
   });
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [isSavedPulse, setIsSavedPulse] = useState(false);
   const [hasRestoredNotice, setHasRestoredNotice] = useState(Boolean(savedData?.activeDraft));
   const [copiedEmail, setCopiedEmail] = useState(false);
@@ -300,15 +302,15 @@ export const PropostasView: React.FC = () => {
 
     return () => clearTimeout(timer);
   }, [
-    selectedLeadId, 
-    templateType, 
-    subject, 
-    emailBody, 
-    whatsappScript, 
-    dealValue, 
-    mrrValue, 
-    validityDays, 
-    proposalNotes, 
+    selectedLeadId,
+    templateType,
+    subject,
+    emailBody,
+    whatsappScript,
+    dealValue,
+    mrrValue,
+    validityDays,
+    proposalNotes,
     currentLead
   ]);
 
@@ -361,6 +363,35 @@ export const PropostasView: React.FC = () => {
     window.open(url, '_blank');
   };
 
+  const handleEnhanceWithAI = async (targetField: 'email' | 'whatsapp') => {
+    if (!currentLead) return;
+    setIsGeneratingAi(true);
+
+    try {
+      const prompt = targetField === 'email'
+        ? `Reescreva este e-mail comercial tornando-o mais persuasivo e focado em conversão. 
+         Empresa alvo: ${currentLead.name} (Nicho: ${currentLead.category}). 
+         O e-mail atual é: "${emailBody}"`
+        : `Reescreva esta mensagem de WhatsApp deixando-a mais magnética e curta. 
+         Empresa alvo: ${currentLead.name}. 
+         Mensagem atual: "${whatsappScript}"`;
+
+      // Chama o roteador universal (que vai decidir se usa Ollama, Gemini, etc.)
+      const generatedCopy = await generateAiContent(crmSettings, prompt);
+
+      if (targetField === 'email') {
+        setEmailBody(generatedCopy);
+      } else {
+        setWhatsappScript(generatedCopy);
+      }
+
+    } catch (error: any) {
+      alert(error.message || 'Falha ao gerar texto com IA. Verifique suas configurações.');
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
@@ -377,11 +408,10 @@ export const PropostasView: React.FC = () => {
 
           {/* Auto-save Status Indicator */}
           <div className="flex flex-wrap items-center gap-2 pt-1.5">
-            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${
-              isSavedPulse 
-                ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/50 scale-105' 
-                : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
-            }`}>
+            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all ${isSavedPulse
+              ? 'bg-emerald-500/25 text-emerald-200 border border-emerald-400/50 scale-105'
+              : 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+              }`}>
               <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
               <span>Salvamento automático ativo • Salvo no navegador às {lastSavedTime}</span>
             </div>
@@ -441,8 +471,8 @@ export const PropostasView: React.FC = () => {
             <CheckCircle2 className="w-4 h-4 text-indigo-400 shrink-0" />
             <span>Rascunho de proposta recuperado automaticamente do <strong>localStorage</strong>. Suas edições foram preservadas com sucesso.</span>
           </div>
-          <button 
-            onClick={() => setHasRestoredNotice(false)} 
+          <button
+            onClick={() => setHasRestoredNotice(false)}
             className="text-slate-400 hover:text-white p-1"
             title="Dispensar aviso"
           >
@@ -564,25 +594,22 @@ export const PropostasView: React.FC = () => {
               <div className="grid grid-cols-3 gap-2">
                 <button
                   onClick={() => handleTemplateTypeChange('cold')}
-                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                    templateType === 'cold' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
-                  }`}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${templateType === 'cold' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
+                    }`}
                 >
                   Abordagem Fria
                 </button>
                 <button
                   onClick={() => handleTemplateTypeChange('technical')}
-                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                    templateType === 'technical' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
-                  }`}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${templateType === 'technical' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
+                    }`}
                 >
                   Auditoria Técnica
                 </button>
                 <button
                   onClick={() => handleTemplateTypeChange('whatsapp')}
-                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${
-                    templateType === 'whatsapp' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
-                  }`}
+                  className={`p-2.5 rounded-xl text-xs font-semibold border transition-all text-center ${templateType === 'whatsapp' ? 'bg-indigo-600 text-white border-indigo-400/30 shadow-md' : 'glass-panel text-slate-400 hover:text-white border-white/10'
+                    }`}
                 >
                   WhatsApp Curto
                 </button>
@@ -665,9 +692,21 @@ export const PropostasView: React.FC = () => {
 
               {/* Editable Body Field */}
               <div className="space-y-1.5">
-                <div className="flex items-center justify-between text-[11px]">
+                <div className="flex items-center justify-between text-[11px] mb-1">
                   <span className="font-bold text-slate-300 uppercase">Corpo da Mensagem (Editável):</span>
-                  <span className="text-slate-400">{emailBody.split(/\s+/).filter(Boolean).length} palavras</span>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => handleEnhanceWithAI('email')}
+                      disabled={isGeneratingAi}
+                      className="flex items-center gap-1.5 px-2.5 py-1 bg-indigo-500/20 text-indigo-300 hover:bg-indigo-500/30 rounded-lg border border-indigo-400/30 transition-all disabled:opacity-50"
+                    >
+                      <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAi ? 'animate-spin' : ''}`} />
+                      <span>{isGeneratingAi ? 'Gerando...' : 'Melhorar com IA'}</span>
+                    </button>
+                    <span className="text-slate-400 hidden sm:inline">
+                      {emailBody.split(/\s+/).filter(Boolean).length} palavras
+                    </span>
+                  </div>
                 </div>
                 <textarea
                   rows={9}
@@ -703,15 +742,25 @@ export const PropostasView: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <MessageSquare className="w-4 h-4 text-emerald-400" />
-                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Script Direto para WhatsApp (Editável)</span>
+                  <span className="text-xs font-bold text-slate-300 uppercase tracking-wider">Script para WhatsApp</span>
                 </div>
-                <button
-                  onClick={handleCopyWhatsapp}
-                  className="flex items-center gap-1 px-2.5 py-1 glass-panel hover:bg-white/10 text-xs text-slate-300 rounded-lg border border-white/10 transition-all"
-                >
-                  {copiedWhatsapp ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                  <span>{copiedWhatsapp ? 'Copiado!' : 'Copiar Texto'}</span>
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => handleEnhanceWithAI('whatsapp')}
+                    disabled={isGeneratingAi}
+                    className="flex items-center gap-1.5 px-2.5 py-1 bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 rounded-lg border border-emerald-400/30 transition-all disabled:opacity-50"
+                  >
+                    <Sparkles className={`w-3.5 h-3.5 ${isGeneratingAi ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isGeneratingAi ? 'Gerando...' : 'Melhorar com IA'}</span>
+                  </button>
+                  <button
+                    onClick={handleCopyWhatsapp}
+                    className="flex items-center gap-1 px-2.5 py-1 glass-panel hover:bg-white/10 text-xs text-slate-300 rounded-lg border border-white/10 transition-all"
+                  >
+                    {copiedWhatsapp ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+                    <span className="hidden sm:inline">{copiedWhatsapp ? 'Copiado!' : 'Copiar Texto'}</span>
+                  </button>
+                </div>
               </div>
 
               <textarea
@@ -790,22 +839,20 @@ export const PropostasView: React.FC = () => {
 
             {/* Document Sheet Body (White Paper Canvas Preview) */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-8 bg-slate-950/80 flex justify-center items-start">
-              <div 
-                className={`w-full max-w-2xl rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 border select-text transition-colors duration-300 transform-gpu h-max min-h-min break-words whitespace-pre-wrap ${
-                  pdfTheme === 'light' 
-                    ? 'bg-white text-slate-900 border-slate-200' 
-                    : 'bg-slate-900 text-slate-200 border-slate-700 shadow-sky-900/10'
-                }`}
-                style={{ 
-                  transform: `scale(${pdfZoom})`, 
+              <div
+                className={`w-full max-w-2xl rounded-xl shadow-2xl p-6 sm:p-8 space-y-6 border select-text transition-colors duration-300 transform-gpu h-max min-h-min break-words whitespace-pre-wrap ${pdfTheme === 'light'
+                  ? 'bg-white text-slate-900 border-slate-200'
+                  : 'bg-slate-900 text-slate-200 border-slate-700 shadow-sky-900/10'
+                  }`}
+                style={{
+                  transform: `scale(${pdfZoom})`,
                   transformOrigin: 'top center',
-                  marginBottom: `${(pdfZoom - 1) * 100}%` 
+                  marginBottom: `${(pdfZoom - 1) * 100}%`
                 }}
               >
                 {/* PDF Document Header */}
-                <div className={`-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 p-6 flex items-center justify-between border-b-2 rounded-t-xl transition-colors ${
-                  pdfTheme === 'light' ? 'bg-slate-900 text-white border-sky-400' : 'bg-slate-950 text-slate-100 border-sky-500'
-                }`}>
+                <div className={`-mx-6 sm:-mx-8 -mt-6 sm:-mt-8 p-6 flex items-center justify-between border-b-2 rounded-t-xl transition-colors ${pdfTheme === 'light' ? 'bg-slate-900 text-white border-sky-400' : 'bg-slate-950 text-slate-100 border-sky-500'
+                  }`}>
                   <div>
                     <h2 className="text-lg sm:text-xl font-extrabold tracking-tight text-white uppercase">{setupConfig.agencyName || 'Nexus Digital Studio'}</h2>
                     <p className="text-[10px] text-slate-300 tracking-wider uppercase mt-0.5">Soluções Digitais & Desenvolvimento Web de Alta Performance</p>
@@ -820,9 +867,8 @@ export const PropostasView: React.FC = () => {
                 </div>
 
                 {/* Recipient Client Box */}
-                <div className={`p-4 rounded-xl border transition-colors ${
-                  pdfTheme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'
-                }`}>
+                <div className={`p-4 rounded-xl border transition-colors ${pdfTheme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'
+                  }`}>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Cliente & Destinatário</span>
                   <h3 className={`text-base font-bold ${pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{currentLead.name}</h3>
                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5 text-xs ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
@@ -835,9 +881,8 @@ export const PropostasView: React.FC = () => {
 
                 {/* 1. Diagnóstico */}
                 <div className="space-y-2">
-                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 flex items-center gap-1.5 ${
-                    pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
-                  }`}>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 flex items-center gap-1.5 ${pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
+                    }`}>
                     <span>1. Diagnóstico Digital & Oportunidade de Mercado</span>
                   </h4>
                   <p className={`text-xs leading-relaxed ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
@@ -845,21 +890,18 @@ export const PropostasView: React.FC = () => {
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${
-                      pdfTheme === 'light' ? 'bg-red-50 border-red-200' : 'bg-red-950/30 border-red-900/50'
-                    }`}>
+                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-red-50 border-red-200' : 'bg-red-950/30 border-red-900/50'
+                      }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-red-700' : 'text-red-400'}`}>Velocidade Atual</span>
                       <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-red-950' : 'text-red-100'}`}>{currentLead.audit?.loadingTimeSeconds || 6.2}s (Lento)</strong>
                     </div>
-                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${
-                      pdfTheme === 'light' ? 'bg-emerald-50 border-emerald-200' : 'bg-emerald-950/30 border-emerald-900/50'
-                    }`}>
+                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-emerald-50 border-emerald-200' : 'bg-emerald-950/30 border-emerald-900/50'
+                      }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>Com Redesign</span>
                       <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-emerald-950' : 'text-emerald-100'}`}>0.7s (Ultra Rápido)</strong>
                     </div>
-                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${
-                      pdfTheme === 'light' ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-950/30 border-indigo-900/50'
-                    }`}>
+                    <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-950/30 border-indigo-900/50'
+                      }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-indigo-700' : 'text-indigo-400'}`}>Oportunidade</span>
                       <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-indigo-950' : 'text-indigo-100'}`}>{currentLead.score || 85}/100 no CRM</strong>
                     </div>
@@ -868,9 +910,8 @@ export const PropostasView: React.FC = () => {
 
                 {/* 2. Escopo dos Entregáveis */}
                 <div className="space-y-2">
-                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 ${
-                    pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
-                  }`}>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 ${pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
+                    }`}>
                     2. Escopo da Solução & Entregáveis
                   </h4>
                   <div className="space-y-2 text-xs">
@@ -882,9 +923,8 @@ export const PropostasView: React.FC = () => {
                       { title: 'Painel de Gestão & Suporte Técnico', desc: 'Backups diários, suporte prioritário e alterações técnicas solicitadas.' }
                     ].map((item, idx) => (
                       <div key={idx} className="flex items-start gap-2">
-                        <span className={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 ${
-                          pdfTheme === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-slate-700 text-slate-200'
-                        }`}>
+                        <span className={`w-4 h-4 rounded text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5 ${pdfTheme === 'light' ? 'bg-slate-200 text-slate-800' : 'bg-slate-700 text-slate-200'
+                          }`}>
                           {idx + 1}
                         </span>
                         <div>
@@ -897,9 +937,8 @@ export const PropostasView: React.FC = () => {
                 </div>
 
                 {/* 3. Prévia Online */}
-                <div className={`p-3 rounded-lg border text-xs transition-colors ${
-                  pdfTheme === 'light' ? 'bg-sky-50 border-sky-200' : 'bg-sky-950/30 border-sky-900/50'
-                }`}>
+                <div className={`p-3 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-sky-50 border-sky-200' : 'bg-sky-950/30 border-sky-900/50'
+                  }`}>
                   <span className={`text-[10px] font-bold uppercase block ${pdfTheme === 'light' ? 'text-sky-800' : 'text-sky-400'}`}>🌐 Prévia Demonstrativa Disponível Online</span>
                   <p className={`mt-0.5 ${pdfTheme === 'light' ? 'text-slate-700' : 'text-slate-300'}`}>Acesse a versão de demonstração desenvolvida exclusivamente para seu negócio:</p>
                   <span className="font-bold text-sky-500 font-mono text-[11px] mt-1 block">{previewUrl}</span>
@@ -907,14 +946,12 @@ export const PropostasView: React.FC = () => {
 
                 {/* 4. Investimento */}
                 <div className="space-y-2">
-                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 ${
-                    pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
-                  }`}>
+                  <h4 className={`text-xs font-bold uppercase tracking-wider border-b pb-1 ${pdfTheme === 'light' ? 'text-slate-900 border-slate-200' : 'text-slate-100 border-slate-700'
+                    }`}>
                     3. Investimento & Condições Comerciais
                   </h4>
-                  <div className={`p-3.5 rounded-xl border space-y-2 text-xs transition-colors ${
-                    pdfTheme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'
-                  }`}>
+                  <div className={`p-3.5 rounded-xl border space-y-2 text-xs transition-colors ${pdfTheme === 'light' ? 'bg-slate-50 border-slate-200' : 'bg-slate-800/50 border-slate-700'
+                    }`}>
                     <div className="flex items-center justify-between">
                       <div>
                         <strong className={pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}>Desenvolvimento, Redesign & Otimização (Setup)</strong>
@@ -924,9 +961,8 @@ export const PropostasView: React.FC = () => {
                         R$ {Number(dealValue).toLocaleString('pt-BR')},00
                       </span>
                     </div>
-                    <div className={`border-t pt-2 flex items-center justify-between ${
-                      pdfTheme === 'light' ? 'border-slate-200' : 'border-slate-700'
-                    }`}>
+                    <div className={`border-t pt-2 flex items-center justify-between ${pdfTheme === 'light' ? 'border-slate-200' : 'border-slate-700'
+                      }`}>
                       <div>
                         <strong className={pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}>Hospedagem Cloud, SSL & Manutenção (Mensal)</strong>
                         <p className={`text-[11px] ${pdfTheme === 'light' ? 'text-slate-500' : 'text-slate-400'}`}>Sem fidelidade. Suporte via WhatsApp e backups</p>
@@ -940,18 +976,16 @@ export const PropostasView: React.FC = () => {
 
                 {/* Signature Box */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 text-xs">
-                  <div className={`p-3 rounded-lg border transition-colors ${
-                    pdfTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/80 border-slate-700'
-                  }`}>
+                  <div className={`p-3 rounded-lg border transition-colors ${pdfTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/80 border-slate-700'
+                    }`}>
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">Agência Responsável</span>
                     <strong className={`block mt-0.5 ${pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}`}>{crmSettings.closerName || setupConfig.senderName}</strong>
                     <span className={`text-[11px] block ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>{crmSettings.closerEmail || setupConfig.senderEmail}</span>
                     <span className={`text-[11px] block ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>{crmSettings.closerPhone || '(31) 98877-6655'}</span>
                   </div>
 
-                  <div className={`p-3 rounded-lg border flex flex-col justify-between transition-colors ${
-                    pdfTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/80 border-slate-700'
-                  }`}>
+                  <div className={`p-3 rounded-lg border flex flex-col justify-between transition-colors ${pdfTheme === 'light' ? 'bg-slate-100 border-slate-200' : 'bg-slate-800/80 border-slate-700'
+                    }`}>
                     <span className="text-[10px] font-bold text-slate-500 uppercase block">Aceite da Proposta</span>
                     <div className={`border-b mt-6 mb-1 ${pdfTheme === 'light' ? 'border-slate-400' : 'border-slate-600'}`} />
                     <span className="text-[10px] text-slate-500 text-center">Assinatura: {currentLead.name}</span>
@@ -959,9 +993,8 @@ export const PropostasView: React.FC = () => {
                 </div>
 
                 {/* Footer Notice */}
-                <div className={`text-[10px] text-center pt-2 border-t ${
-                  pdfTheme === 'light' ? 'text-slate-400 border-slate-200' : 'text-slate-500 border-slate-700'
-                }`}>
+                <div className={`text-[10px] text-center pt-2 border-t ${pdfTheme === 'light' ? 'text-slate-400 border-slate-200' : 'text-slate-500 border-slate-700'
+                  }`}>
                   {setupConfig.agencyName || 'Nexus Digital Studio'} • Proposta confidencial válida por {validityDays} dias • Gerada em {new Date().toLocaleDateString('pt-BR')}
                 </div>
               </div>
