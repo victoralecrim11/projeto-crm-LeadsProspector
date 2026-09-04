@@ -135,6 +135,38 @@ const DEFAULT_STREETS = [
   'Av. Presidente Vargas'
 ];
 
+// Approximate centroids (lat, lng) for BH neighborhoods — used to scatter
+// synthetic leads around a real geographic point instead of dropping them
+// at the city center. Values come from public OpenStreetMap Nominatim data.
+const NEIGHBORHOOD_CENTROIDS: Record<string, { lat: number; lng: number }> = {
+  'alipio de melo': { lat: -19.8763, lng: -43.9989 },
+  'caicaras': { lat: -19.8847, lng: -43.9716 },
+  'alto caicaras': { lat: -19.8768, lng: -43.9692 },
+  'savassi': { lat: -19.9358, lng: -43.9382 },
+  'lourdes': { lat: -19.9321, lng: -43.9448 },
+  'centro': { lat: -19.9208, lng: -43.9410 },
+  'buritis': { lat: -19.9742, lng: -43.9650 },
+  'castelo': { lat: -19.8891, lng: -43.9924 },
+  'sion': { lat: -19.9488, lng: -43.9408 },
+  'pampulha': { lat: -19.8517, lng: -43.9781 },
+  'barreiro': { lat: -19.9790, lng: -44.0158 },
+  'venda nova': { lat: -19.8202, lng: -43.9554 },
+  'santa efigenia': { lat: -19.9101, lng: -43.9263 },
+  'santo agostinho': { lat: -19.9322, lng: -43.9511 },
+  'Funcionarios': { lat: -19.9346, lng: -43.9261 },
+  'serra': { lat: -19.9479, lng: -43.9272 },
+  'cidade jardim': { lat: -19.9461, lng: -43.9556 },
+  'floresta': { lat: -19.9158, lng: -43.9410 },
+  'jaragua': { lat: -19.8863, lng: -43.9924 },
+  'mangabeiras': { lat: -19.9502, lng: -43.9039 },
+  'belvedere': { lat: -19.9758, lng: -43.9452 },
+  'cidade nova': { lat: -19.8758, lng: -43.9358 },
+  'gloria': { lat: -19.8761, lng: -43.9221 },
+};
+
+// Default fallback: Praça da Liberdade, BH
+const FALLBACK_CENTROID = { lat: -19.9328, lng: -43.9388 };
+
 // Helper to test if lead matches selected niche query
 export function matchesNiche(leadNicheOrCat: string, targetNiche: string): boolean {
   if (!targetNiche || targetNiche === 'todos' || targetNiche === 'Todos os Nichos') return true;
@@ -238,6 +270,10 @@ export function generateRealisticLeadsForLocation(options: GenerateLeadsOptions)
   const names = businessNaming[targetCat] || businessNaming['Barbearia'];
   const phoneDdd = stateName === 'SP' ? '11' : stateName === 'RJ' ? '21' : stateName === 'PR' ? '41' : '31';
 
+  // Pick centroid for this neighborhood so synthetic leads scatter around a
+  // realistic geographic point rather than the city center
+  const centroid = NEIGHBORHOOD_CENTROIDS[normBairro] || FALLBACK_CENTROID;
+
   const leads: Omit<Lead, 'id' | 'createdAt'>[] = [];
 
   for (let i = 0; i < Math.min(count, names.length); i++) {
@@ -248,6 +284,23 @@ export function generateRealisticLeadsForLocation(options: GenerateLeadsOptions)
     const rating = Number((4.8 + Math.random() * 0.2).toFixed(1));
     const reviewsCount = Math.floor(40 + Math.random() * 180);
     const hasWebsite = Math.random() > 0.65; // most prospected local businesses lack site
+
+    // Scatter within ~1.2 km of the centroid (so the pin lands on the actual
+    // neighborhood instead of stacking at the city center)
+    const scatterAngle = Math.random() * 2 * Math.PI;
+    const scatterRadiusKm = 0.4 + Math.random() * 0.8;
+    const deltaLat = (scatterRadiusKm / 111) * Math.sin(scatterAngle);
+    const deltaLng = (scatterRadiusKm / 104) * Math.cos(scatterAngle);
+    const geoLat = centroid.lat + deltaLat;
+    const geoLng = centroid.lng + deltaLng;
+
+    // Compute Haversine distance from centroid for the badge
+    const distanceKm = Number(
+      Math.sqrt(
+        Math.pow((geoLat - centroid.lat) * 111, 2) +
+        Math.pow((geoLng - centroid.lng) * 104, 2),
+      ).toFixed(1),
+    );
 
     leads.push({
       name: names[i],
@@ -264,10 +317,14 @@ export function generateRealisticLeadsForLocation(options: GenerateLeadsOptions)
       state: stateName,
       neighborhood: cleanNeighborhood,
       address: `${street}, ${streetNumber} - ${cleanNeighborhood}, ${cityName}`,
-      distanceKm: Number((1.5 + (i * 1.8) + Math.random() * 1.2).toFixed(1)),
+      distanceKm,
       hasWebsite,
       websiteUrl: hasWebsite ? `https://${normalizeStr(names[i]).replace(/[^a-z0-9]/g, '')}.com.br` : undefined,
       inCrm: false,
+      geoLat,
+      geoLng,
+      dataSource: 'synthetic',
+      placeId: `synthetic/${normalizeStr(names[i]).replace(/[^a-z0-9]/g, '-')}-${i}-${Date.now().toString(36)}`,
       audit: {
         speedScore: hasWebsite ? Math.floor(25 + Math.random() * 25) : 0,
         loadingTimeSeconds: hasWebsite ? Number((5.0 + Math.random() * 3.5).toFixed(1)) : 0,

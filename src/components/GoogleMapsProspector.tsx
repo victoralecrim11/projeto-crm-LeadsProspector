@@ -238,6 +238,11 @@ const [searchQuery, setSearchQuery] = useState<string>("");
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
   const [infoWindowAnchor, setInfoWindowAnchor] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
 
+  // Synthetic (demo) leads stay in a separate ephemeral buffer so they show
+  // on the map preview but are NEVER persisted to localStorage / CRM.
+  // Only real OSM leads (dataSource === 'real') reach the CRM via addCustomLead.
+  const [previewLeads, setPreviewLeads] = useState<Lead[]>([]);
+
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
   // Dynamic neighborhoods powered by IBGE Localidades API, Curated baseline, CRM Leads & User additions
@@ -325,9 +330,20 @@ const [searchQuery, setSearchQuery] = useState<string>("");
     return 10;
   }, [searchRadius]);
 
+  // Merge CRM leads with ephemeral synthetic preview leads so the map shows
+  // every visible pin (real + demo). The dataSource field on each lead drives
+  // the badge/InfoWindow color.
+  const allVisibleLeads = useMemo(() => {
+    // Avoid double-rendering: if a preview lead happens to match a CRM lead
+    // by placeId, keep the CRM one (it has richer data).
+    const crmPlaceIds = new Set(leads.map((l) => l.placeId).filter(Boolean));
+    const dedupedPreviews = previewLeads.filter((p) => !p.placeId || !crmPlaceIds.has(p.placeId));
+    return [...leads, ...dedupedPreviews];
+  }, [leads, previewLeads]);
+
   // Generate coordinate offsets for leads based on city center for realistic geographic map placement
   const mappedLeads = useMemo(() => {
-    return leads.map((lead, index) => {
+    return allVisibleLeads.map((lead, index) => {
       // Deterministic distance in km if not already specified on lead
       const distanceKm =
         lead.distanceKm ?? Number((1.2 + ((index * 3.7) % 46)).toFixed(1));
@@ -346,7 +362,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
         geoLng: lng,
       };
     });
-  }, [leads, mapCenter]);
+  }, [allVisibleLeads, mapCenter]);
 
   // Multi-token Accent-insensitive Query
   const searchSuggestions: AutocompleteSuggestion[] = useMemo(() => {
@@ -521,6 +537,7 @@ const [searchQuery, setSearchQuery] = useState<string>("");
     setRadarPulse(true);
     setLastScanSource(null);
     setScanNotice(null);
+    setPreviewLeads([]); // clear previous demo buffer before each new scan
 
     const activeQuery =
       typeof overrideQuery === "string" ? overrideQuery : searchQuery;
@@ -818,10 +835,30 @@ const [searchQuery, setSearchQuery] = useState<string>("");
     }, 900);
   };
 
-  // Add missing addCustomLeads function
+  // Routes a scanned lead to the right destination:
+  //   - real OSM leads: persisted via addCustomLead (CRM / localStorage)
+  //   - synthetic demo leads: pushed to the ephemeral previewLeads buffer
+  //     so they appear on the map and InfoWindow but are NEVER saved.
   const addCustomLeads = (newLeads: Omit<Lead, 'id' | 'createdAt'>[]) => {
     newLeads.forEach((lead) => {
-      addCustomLead(lead);
+      if (lead.dataSource === 'synthetic') {
+        const id = `preview-${lead.placeId || lead.name}-${Math.random().toString(36).slice(2, 8)}`;
+        setPreviewLeads((prev) => {
+          if (prev.some((p) => p.name.toLowerCase() === lead.name.toLowerCase())) {
+            return prev;
+          }
+          return [
+            ...prev,
+            {
+              ...lead,
+              id,
+              createdAt: new Date().toISOString(),
+            } as Lead,
+          ];
+        });
+      } else {
+        addCustomLead(lead);
+      }
     });
   };
   
@@ -1327,6 +1364,24 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                           >
                             {activeMarkerLead.name}
                           </h4>
+                          {activeMarkerLead.dataSource === 'synthetic' && (
+                            <span
+                              title="Lead de demonstração — não persistido no CRM"
+                              style={{
+                                fontSize: "9px",
+                                fontWeight: 700,
+                                color: "#9f1239",
+                                background: "#fce7f3",
+                                border: "1px solid #fbcfe8",
+                                borderRadius: "4px",
+                                padding: "1px 5px",
+                                whiteSpace: "nowrap",
+                                letterSpacing: "0.04em",
+                              }}
+                            >
+                              ⚠ DEMO
+                            </span>
+                          )}
                           <span
                             style={{
                               fontSize: "11px",
@@ -1379,7 +1434,19 @@ const [searchQuery, setSearchQuery] = useState<string>("");
                             {!activeMarkerLead.inCrm ? (
                               <button
                                 onClick={() => {
-                                  addLeadToCrm(activeMarkerLead.id);
+                                  if (activeMarkerLead.dataSource === 'synthetic') {
+                                    // Promote demo lead to the real CRM with its full payload,
+                                    // then drop it from the ephemeral preview buffer.
+                                    addCustomLead({
+                                      ...activeMarkerLead,
+                                      inCrm: true,
+                                      crmStage: 'novo',
+                                      dataSource: 'synthetic',
+                                    } as Omit<Lead, 'id' | 'createdAt'>);
+                                    setPreviewLeads((prev) => prev.filter((p) => p.id !== activeMarkerLead.id));
+                                  } else {
+                                    addLeadToCrm(activeMarkerLead.id);
+                                  }
                                   setActiveMarkerLead(null);
                                   setInfoWindowAnchor(null);
                                 }}
