@@ -1,6 +1,6 @@
 # 📋 PROSPECTOR - Relatório Completo do Projeto & Histórico de Evolução
 
-> **Versão:** 2.2  
+> **Versão:** 2.3  
 > **Status:** Operacional / Em Produção (Compilação & Tipagem 100% Validadas)  
 > **Responsável / Closer Líder:** Victor Alecrim  
 
@@ -129,6 +129,9 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
 │ [Fase 16] Correção do InfoWindow do Google Maps + Novos Filtros Avançados   │
 │ [Fase 17] Sistema de Badges de Atenção e Follow-up no Pipeline Kanban       │
 │ [Fase 18] Integração de Dados Reais de Leads via OpenStreetMap (Overpass)   │
+│ [Fase 19] Refatoração mockData → seedData + Flag useSeedDemo                │
+│ [Fase 20] Refinamento UX do Scanner (scanNotice + badges DEMO)              │
+│ [Fase 21] Enriquecimento de Leads Sintéticos + Buffer de Preview no Mapa    │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -271,6 +274,54 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
   - **Interface Transparente no Prospector:** O `GoogleMapsProspector.tsx` passou a exibir badges (`✓ Real OSM`, `⟳ Expandido`, `⚠ Demo`) indicando visualmente se a listagem atual é proveniente de dados reais ou dados demonstrativos.
   - **Resiliência e Fallback:** Substituição do fluxo de `handleSimulateScan` por `handleScan` com suporte a timeouts e retorno silencioso caso a API gratuita falhe, mantendo a estabilidade.
 
+#### 19. Refatoração de `mockData.ts` → `seedData.ts` + Flag `useSeedDemo`
+- **Causa Raiz:** O arquivo `src/data/mockData.ts` carregava dados sintéticos como **estado inicial padrão** do CRM, misturando-se com dados reais e poluindo o pipeline de produção. A nomenclatura também era ambígua: `INITIAL_*` sugeria estado obrigatório, quando na verdade eram apenas dados de demo/onboarding.
+- **Solução:**
+  - **Renomeação Semântica com Preservação de Histórico:** `src/data/mockData.ts` → `src/data/seedData.ts` via `git mv` (98% similaridade detectada pelo Git). Todos os 7 exports renomeados:
+    - `INITIAL_LEADS` → `SEED_LEADS`
+    - `INITIAL_APPOINTMENTS` → `SEED_APPOINTMENTS`
+    - `INITIAL_PROJECTS` → `SEED_PROJECTS`
+    - `INITIAL_RANKING` → `SEED_RANKING`
+    - `INITIAL_NOTIFICATIONS` → `SEED_NOTIFICATIONS`
+    - `INITIAL_CRM_SETTINGS` → `SEED_CRM_SETTINGS`
+    - `INITIAL_SETUP_CONFIG` → `SEED_SETUP_CONFIG`
+  - **Flag `useSeedDemo` em `CrmSettingsConfig`:** Novo campo opcional `useSeedDemo?: boolean` adicionado em `src/types.ts`. Default `true` no seed (preserva demo/onboarding), pode ser desligado pelo usuário em produção.
+  - **Helper `shouldUseSeedDemo()` em `CrmContext.tsx`:** Lê o setting do `localStorage` com fallback seguro para o default. Todos os 8 `useState` initializers (`leads`, `appointments`, `projects`, `notifications`, `ranking`, etc.) agora consultam o helper antes de aplicar o seed.
+  - **Atualização de Imports:** `CrmContext.tsx` trocou `from '../data/mockData'` por `from '../data/seedData'` e todas as 7 referências `INITIAL_*` → `SEED_*`.
+  - **Validação:** `npx tsc --noEmit` passa sem erros. `grep "INITIAL_|mockData"` retorna zero matches em `src/`.
+
+#### 20. Refinamento UX do Scanner — `scanNotice` + Mensagens Contextuais
+- **Causa Raiz:** Quando o scanner Overpass não retornava dados suficientes e caía no fallback sintético, o usuário não era informado de que os leads exibidos eram fictícios, gerando confusão ao tentar localizá-los no Google Maps.
+- **Solução em `GoogleMapsProspector.tsx`:**
+  - **Novo state `scanNotice: string | null`:** Banner explicativo exibido quando o scan cai no fallback sintético.
+  - **Mensagens contextuais por cenário:**
+    - "Nenhum negócio encontrado no OpenStreetMap para esta região. Exibindo leads de demonstração para fins de preview — escaneie outra área para dados reais." (quando Overpass retorna 0 leads no raio normal e expandido)
+    - "Serviço OpenStreetMap indisponível no momento. Exibindo leads de demonstração — tente novamente em alguns minutos." (em caso de erro de rede/timeout)
+  - **Botão de fechar (`X`)** + ícone `Info` do `lucide-react` no banner.
+  - **Limpeza automática:** `setScanNotice(null)` é chamado quando o scan retorna dados reais (`'real'` ou `'expanded'`).
+  - **Visual consistente:** Banner em `bg-amber-500/10 border-amber-400/30 text-amber-200` alinhado ao tema de warning do app.
+
+#### 21. Enriquecimento de Leads Sintéticos + Buffer de Preview Isolado no Mapa
+- **Causa Raiz:** Três bugs distintos originados do `generateRealisticLeadsForLocation`:
+  1. **Tela em branco no Google Maps** (clique em marcador sintético abria o histórico pessoal do usuário) — leads sintéticos eram gerados **sem `geoLat/geoLng`**, fazendo o `openGoogleMapsPlace` abrir URL com coords undefined.
+  2. **Nomes fictícios sem correspondência no Google Maps** — templates hard-coded (`Pizzaria & Forno Artesanal`, `Bistrô Sabor & Lenha`, etc.) geravam leads que não existem no mundo real. Buscar "Rococco" no Google Maps não retornava nada.
+  3. **Leads sintéticos poluindo o CRM** — eram persistidos em `localStorage` via `addCustomLead`, contaminando a base real.
+- **Solução em `leadGeneratorService.ts`:**
+  - **Tabela `NEIGHBORHOOD_CENTROIDS`:** 21 centroides reais de bairros de BH (Alípio de Melo, Caiçaras, Alto Caiçaras, Buritis, Savassi, Lourdes, Centro, etc.) com lat/lng obtidos de OpenStreetMap Nominatim. `FALLBACK_CENTROID` aponta para Praça da Liberdade.
+  - **Dispersão geográfica:** Cada lead sintético recebe offset aleatório de 0.4-1.2 km em torno do centroide do bairro, com ângulo aleatório, garantindo que os pins caiam no bairro real (não empilhados no centro da cidade).
+  - **Haversine para `distanceKm`:** Distância calculada matematicamente a partir das coords reais, não mais via `Math.random()`.
+  - **Novos campos em cada lead sintético:** `geoLat`, `geoLng`, `dataSource: 'synthetic'`, `placeId: 'synthetic/<slug>-<idx>-<timestamp>'`.
+- **Solução em `GoogleMapsProspector.tsx`:**
+  - **Novo state `previewLeads: Lead[]`:** Buffer **efêmero e local** (não persistido) que recebe leads com `dataSource === 'synthetic'`. Limpo a cada novo `handleScan`.
+  - **Roteamento em `addCustomLeads`:** Baseado em `dataSource`:
+    - `dataSource === 'real'` → `addCustomLead` (persiste no CRM/localStorage)
+    - `dataSource === 'synthetic'` → `setPreviewLeads` (apenas no buffer de preview)
+  - **Dedupe por `placeId`:** `allVisibleLeads` mergea leads do CRM com `previewLeads`, removendo duplicatas por `placeId` (caso o usuário escaneie a mesma área duas vezes).
+  - **Badge `⚠ DEMO` no InfoWindow:** Rosa (`#fce7f3`/`#9f1239`) com tooltip "Lead de demonstração — não persistido no CRM". Aparece ao lado do nome quando `dataSource === 'synthetic'`.
+  - **Botão `+ Adicionar` inteligente:** Detecta se o lead é sintético e o **promove para o CRM real** via `addCustomLead({...activeMarkerLead, inCrm: true, crmStage: 'novo', dataSource: 'synthetic'})`, removendo-o do buffer de preview.
+  - **Abertura correta do Google Maps:** Como leads sintéticos agora têm `geoLat/geoLng` reais do bairro, o clique em "Ver localização no Maps" abre o Google Maps centrado no bairro correto (não mais no histórico pessoal do usuário).
+- **Validação:** `npx tsc --noEmit` passa sem erros. Os 3 problemas reportados (tela em branco, nomes errados, marcadores sem info) foram corrigidos.
+
 ---
 
 ## 📈 5. Estado Atual e Qualidade de Código
@@ -282,9 +333,14 @@ Abaixo está o registro cronológico detalhado de todas as intervenções técni
   - Filtros avançados de prospecção: status de auditoria e faixa de preço estimada operacionais.
   - Sistema de alertas visuais no Pipeline Kanban com badges de atenção imediata.
   - Varredura de leads utilizando dados reais e geolocalizados via Overpass API (OpenStreetMap).
+  - Buffer de preview isolado para leads sintéticos (não polui mais o CRM).
+  - Centroides reais de 21 bairros de Belo Horizonte (Alípio de Melo, Caiçaras, Buritis, etc.) usados para dispersão geográfica de leads demo.
+  - Banner `scanNotice` informa o usuário quando o scan cai no fallback sintético.
+  - Flag `useSeedDemo` permite alternar entre modo demo e modo de produção sem código.
 - **Acessibilidade:** Suporte a toque ergonômico no mobile (alvos de toque >= 44px), navegação por teclado e contraste de cores validado nos modos Claro e Escuro.
-- **Integridade dos Dados:** Todas as alterações no CRM (leads, propostas, notas) são persistidas localmente de forma resiliente.
-- **Observabilidade Visual:** Indicadores de atenção e follow-up pendente diretamente nas colunas do funil de vendas.
+- **Integridade dos Dados:** Todas as alterações no CRM (leads, propostas, notas) são persistidas localmente de forma resiliente. Leads sintéticos ficam isolados em buffer de preview e nunca são salvos no `localStorage` a menos que o usuário clique explicitamente em `+ Adicionar`.
+- **Observabilidade Visual:** Indicadores de atenção e follow-up pendente diretamente nas colunas do funil de vendas. Badges `✓ Real OSM` / `⟳ Expandido` / `⚠ Demo` permitem rastrear a origem de cada scan.
+- **Versionamento de Commits:** Todos os commits a partir de Setembro/2026 são documentados em **português**, com mensagens descritivas que incluem causa raiz, solução e validação.
 
 ---
 
