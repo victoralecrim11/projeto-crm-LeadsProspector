@@ -1,4 +1,4 @@
-﻿// src/services/overpassService.ts
+// src/services/overpassService.ts
 // Fetches real local business data from OpenStreetMap via the Overpass API.
 // Free, no API key required.
 
@@ -38,15 +38,13 @@ const NICHE_TO_OSM_TAGS: Record<string, { key: string; value: string }[]> = {
   ],
 };
 
-const ALL_BUSINESS_TAGS: { key: string; value: string }[] = [
-  { key: 'shop', value: 'hairdresser' },
-  { key: 'shop', value: 'barber' },
-  { key: 'amenity', value: 'dentist' },
-  { key: 'amenity', value: 'restaurant' },
-  { key: 'shop', value: 'beauty' },
-  { key: 'amenity', value: 'veterinary' },
-  { key: 'shop', value: 'car_repair' },
-];
+const ALL_BUSINESS_TAGS: { key: string; value: string }[] = Array.from(
+  new Set(
+    Object.values(NICHE_TO_OSM_TAGS)
+      .flat()
+      .map(t => JSON.stringify(t))
+  )
+).map(t => JSON.parse(t));
 
 export interface OverpassSearchOptions {
   lat: number;
@@ -66,7 +64,7 @@ interface OverpassElement {
 }
 
 function buildOverpassQuery(opts: OverpassSearchOptions): string {
-  const { lat, lng, radiusMeters, niche } = opts;
+  const { lat, lng, radiusMeters, niche, maxResults = 50 } = opts;
   const tags = niche && NICHE_TO_OSM_TAGS[niche]
     ? NICHE_TO_OSM_TAGS[niche]
     : ALL_BUSINESS_TAGS;
@@ -78,7 +76,7 @@ function buildOverpassQuery(opts: OverpassSearchOptions): string {
     .map(tag => `  way["${tag.key}"="${tag.value}"](around:${radiusMeters},${lat},${lng});`)
     .join('\n');
 
-  return `[out:json][timeout:20];\n(\n${nodeQueries}\n${wayQueries}\n);\nout body center 30;`;
+  return `[out:json][timeout:25];\n(\n${nodeQueries}\n${wayQueries}\n);\nout body center ${maxResults};`;
 }
 
 function buildAddress(tags: Record<string, string>, cityName: string): string {
@@ -108,11 +106,24 @@ function extractNeighborhood(tags: Record<string, string>): string {
   );
 }
 
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371; // Earth's radius in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
+}
+
 function osmElementToLead(
   element: OverpassElement,
   cityName: string,
   stateName: string,
-  niche: string,
+  fallbackNiche: string,
+  originLat: number,
+  originLng: number,
 ): Omit<Lead, 'id' | 'createdAt'> | null {
   const tags = element.tags || {};
   const name = tags['name'];
@@ -139,10 +150,25 @@ function osmElementToLead(
   const address = buildAddress(tags, cityName);
   const neighborhood = extractNeighborhood(tags);
 
+  let realCategory = fallbackNiche;
+  if (fallbackNiche === 'Negócio Local') {
+     for (const [n, reqTags] of Object.entries(NICHE_TO_OSM_TAGS)) {
+        for (const rt of reqTags) {
+           if (tags[rt.key] === rt.value) {
+              realCategory = n;
+              break;
+           }
+        }
+        if (realCategory !== 'Negócio Local') break;
+     }
+  }
+
+  const distanceKm = Number(calculateDistance(originLat, originLng, lat, lng).toFixed(1));
+
   return {
     name: name.trim(),
-    category: niche,
-    niche,
+    category: realCategory,
+    niche: realCategory,
     temperature: 'quente',
     score: 85 + Math.floor(Math.random() * 13),
     rating,
@@ -156,6 +182,7 @@ function osmElementToLead(
     address,
     geoLat: lat,
     geoLng: lng,
+    distanceKm,
     hasWebsite,
     websiteUrl: hasWebsite ? website : undefined,
     inCrm: false,
@@ -188,28 +215,58 @@ function osmElementToLead(
   };
 }
 
-const OVERPASS_ENDPOINTS = [
-  'https://overpass.private.coffee/api/interpreter',
-  'https://overpass-api.de/api/interpreter',
-];
+async function fetchFromProxy(query: string): Promise<any> {
+  // Etapa 1: Log de Pré-Requisição e Execução
+  console.log(`[OverpassService] Preparando consulta Overpass:\n${query}`);
+  
+  try {
+    const response = await fetch('/api/overpass', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ query }),
+    });
 
-const USER_AGENT = 'LeadsProspector-CRM/1.0 (https://github.com/victor/projeto-crm-LeadsProspector; contact@example.com)';
+    // Etapa 1: Log da Resposta Completa
+    console.log(`[OverpassService] Resposta HTTP - Status: ${response.status}, StatusText: ${response.statusText}`);
+    
+    if (!response.ok) {
+      let errorBody = '';
+      try {
+        const json = await response.json();
+        errorBody = JSON.stringify(json);
+      } catch (e) {
+        errorBody = await response.text();
+      }
+      
+      console.error(`[OverpassService] Erro bruto da API:`, errorBody);
+      
+      // Etapa 2: Refatorar o Tratamento de Erros
+      if (response.status === 504 || response.status === 502) {
+        throw new Error(`Timeout da API Overpass: Os servidores demoraram muito para responder ou estão indisponíveis (Status ${response.status}).`);
+      }
+      if (response.status === 400) {
+        throw new Error(`Erro de Requisição: A consulta enviada para o Overpass era inválida (Status 400).`);
+      }
+      
+      throw new Error(`Erro na API Overpass (Status ${response.status}): ${errorBody}`);
+    }
 
-async function fetchFromEndpoint(endpoint: string, query: string): Promise<Response> {
-  return fetch(endpoint, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/x-www-form-urlencoded',
-      'User-Agent': USER_AGENT,
-    },
-    body: `data=${encodeURIComponent(query)}`,
-    signal: AbortSignal.timeout(25000),
-  });
+    const data = await response.json();
+    console.log(`[OverpassService] Corpo bruto da resposta parseado com sucesso.`);
+    return data;
+  } catch (err) {
+    // Distinguir erro de rede no fetch do navegador (ex: erro de DNS, server down)
+    if (err instanceof TypeError && err.message.includes('Failed to fetch')) {
+      throw new Error("Erro de Rede: Não foi possível alcançar o servidor proxy interno (Verifique se o backend está rodando).");
+    }
+    throw err;
+  }
 }
 
 /**
  * Fetches real local businesses from OpenStreetMap/Overpass.
- * Tries multiple endpoints with proper User-Agent. Never throws — returns [] on any error.
  */
 export async function fetchLeadsFromOverpass(
   opts: OverpassSearchOptions,
@@ -219,37 +276,33 @@ export async function fetchLeadsFromOverpass(
   const niche = opts.niche && opts.niche !== 'Todos os Nichos' ? opts.niche : '';
   const maxResults = opts.maxResults ?? 30;
 
-  const query = buildOverpassQuery({ ...opts, niche: niche || undefined });
+  const query = buildOverpassQuery({ ...opts, niche: niche || undefined, maxResults });
 
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    try {
-      const response = await fetchFromEndpoint(endpoint, query);
+  try {
+    const data = await fetchFromProxy(query);
+    const elements: OverpassElement[] = data.elements || [];
 
-      if (!response.ok) {
-        console.warn(`[OverpassService] ${endpoint} HTTP ${response.status}`);
-        continue;
-      }
-
-      const data = await response.json();
-      const elements: OverpassElement[] = data.elements || [];
-
-      const leads: Omit<Lead, 'id' | 'createdAt'>[] = [];
-
-      for (const el of elements) {
-        if (leads.length >= maxResults) break;
-        const lead = osmElementToLead(el, cityName, stateName, niche || 'Negócio Local');
-        if (lead) leads.push(lead);
-      }
-
-      if (leads.length > 0) {
-        console.log(`[OverpassService] Success via ${endpoint}: ${leads.length} leads`);
-        return leads;
-      }
-    } catch (err) {
-      console.warn(`[OverpassService] ${endpoint} failed:`, err);
+    // Etapa 2: Tratar Resultado Vazio explicitamente
+    if (elements.length === 0) {
+      console.log("[OverpassService] Resultado Vazio: O Overpass retornou Status 200, mas 0 elementos foram encontrados nesta região.");
+      return [];
     }
-  }
+    
+    console.log(`[OverpassService] Sucesso: ${elements.length} elementos brutos recebidos da API.`);
 
-  console.warn('[OverpassService] All endpoints failed, will use synthetic fallback');
-  return [];
+    const leads: Omit<Lead, 'id' | 'createdAt'>[] = [];
+
+    for (const el of elements) {
+      if (leads.length >= maxResults) break;
+      const lead = osmElementToLead(el, cityName, stateName, niche || 'Negócio Local', opts.lat, opts.lng);
+      if (lead) leads.push(lead);
+    }
+
+    console.log(`[OverpassService] Conversão finalizada: ${leads.length} leads qualificados gerados.`);
+    return leads;
+  } catch (err) {
+    const error = err as Error;
+    console.error(`[OverpassService] Falha na execução:`, error.message);
+    throw error;
+  }
 }

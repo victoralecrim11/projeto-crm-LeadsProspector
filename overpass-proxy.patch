@@ -1,0 +1,48 @@
+--- server.ts
++++ server.ts
+@@ -21,6 +21,39 @@
+     res.json({ status: "ok" });
+   });
+ 
++  // Overpass API Proxy Route
++  app.post("/api/overpass", async (req, res) => {
++    try {
++      const { query } = req.body;
++      if (!query) {
++         return res.status(400).json({ error: "Missing query" });
++      }
++      
++      const USER_AGENT = 'LeadsProspector-CRM/1.0 (https://github.com/victor/projeto-crm-LeadsProspector; contact@example.com)';
++      const OVERPASS_ENDPOINTS = [
++        'https://overpass.private.coffee/api/interpreter',
++        'https://overpass-api.de/api/interpreter',
++      ];
++
++      for (const endpoint of OVERPASS_ENDPOINTS) {
++        try {
++          const response = await fetch(endpoint, {
++            method: 'POST',
++            headers: {
++              'Content-Type': 'application/x-www-form-urlencoded',
++              'User-Agent': USER_AGENT,
++            },
++            body: `data=${encodeURIComponent(query)}`,
++            signal: AbortSignal.timeout(25000),
++          });
++          if (response.ok) {
++            const data = await response.json();
++            return res.json(data);
++          }
++        } catch (err) {
++          console.warn(`[Proxy] Endpoint ${endpoint} failed:`, err);
++        }
++      }
++      res.status(502).json({ error: "All Overpass endpoints failed or timed out" });
++    } catch (error) {
++      console.error("Overpass Proxy Error:", error);
++      res.status(500).json({ error: "Failed to fetch from Overpass" });
++    }
++  });
++
+   // IA Generation Route using Gemini 1.5 Pro
+   app.post("/api/generate-site", async (req, res) => {
