@@ -13,7 +13,7 @@ import {
   Send,
   UserCheck
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 
 export const ContratosView: React.FC = () => {

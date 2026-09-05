@@ -6,7 +6,7 @@ import {
   Sparkles, 
   Crown
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 
 export const UpgradeModal: React.FC = () => {
   const { isUpgradeModalOpen, setIsUpgradeModalOpen } = useCrm();

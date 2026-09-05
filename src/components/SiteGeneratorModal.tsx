@@ -16,7 +16,7 @@ import {
   ShieldCheck,
   Zap
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 
 export const SiteGeneratorModal: React.FC = () => {
@@ -64,6 +64,7 @@ export const SiteGeneratorModal: React.FC = () => {
       previewUrl: `https://${currentLead.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.leadsite.app`,
       domain: `${currentLead.name.toLowerCase().replace(/[^a-z0-9]/g, '')}.com.br`,
       monthlyRevenue: 250,
+      slug: currentLead.name.toLowerCase().replace(/[^a-z0-9]/g, '-')
     });
     setIsSaved(true);
     setTimeout(() => {

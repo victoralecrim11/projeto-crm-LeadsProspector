@@ -78,6 +78,8 @@ export const SEED_LEADS: Lead[] = [
       opportunities: ['Criação de Site Institucional com Agendamento', 'Link no Google Meu Negócio']
     },
     placeId: 'seed/lead-mateus-guerra',
+    geoLat: -19.8768,
+    geoLng: -43.9692,
     dataSource: 'synthetic'
   },
   {
@@ -174,6 +176,8 @@ export const SEED_LEADS: Lead[] = [
       pdfGenerated: true
     },
     placeId: 'seed/lead-1',
+    geoLat: -19.9208,
+    geoLng: -43.941,
     dataSource: 'synthetic'
   },
   {
@@ -252,6 +256,8 @@ export const SEED_LEADS: Lead[] = [
       openedAt: '2026-08-31T18:05:00Z'
     },
     placeId: 'seed/lead-2',
+    geoLat: -19.9358,
+    geoLng: -43.9382,
     dataSource: 'synthetic'
   },
   {
@@ -328,6 +334,8 @@ export const SEED_LEADS: Lead[] = [
       openedAt: '2026-08-29T09:40:00Z'
     },
     placeId: 'seed/lead-3',
+    geoLat: -19.9321,
+    geoLng: -43.9448,
     dataSource: 'synthetic'
   },
   {
@@ -394,6 +402,8 @@ export const SEED_LEADS: Lead[] = [
       pdfGenerated: true
     },
     placeId: 'seed/lead-4',
+    geoLat: -19.9101,
+    geoLng: -43.9263,
     dataSource: 'synthetic'
   },
   {
@@ -456,6 +466,8 @@ export const SEED_LEADS: Lead[] = [
       ]
     },
     placeId: 'seed/lead-5',
+    geoLat: -19.9742,
+    geoLng: -43.965,
     dataSource: 'synthetic'
   },
   {
@@ -516,6 +528,8 @@ export const SEED_LEADS: Lead[] = [
       ]
     },
     placeId: 'seed/lead-6',
+    geoLat: -19.9322,
+    geoLng: -43.9511,
     dataSource: 'synthetic'
   },
   {
@@ -538,6 +552,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T14:00:00Z',
     placeId: 'seed/lead-7',
+    geoLat: -19.8517,
+    geoLng: -43.9781,
     dataSource: 'synthetic'
   },
   {
@@ -560,6 +576,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T15:30:00Z',
     placeId: 'seed/lead-8',
+    geoLat: -19.8891,
+    geoLng: -43.9924,
     dataSource: 'synthetic'
   },
   {
@@ -582,6 +600,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T16:00:00Z',
     placeId: 'seed/lead-9',
+    geoLat: -19.8202,
+    geoLng: -43.9554,
     dataSource: 'synthetic'
   },
   {
@@ -604,6 +624,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T17:00:00Z',
     placeId: 'seed/lead-10',
+    geoLat: -19.9758,
+    geoLng: -43.9452,
     dataSource: 'synthetic'
   },
   {
@@ -626,6 +648,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T18:00:00Z',
     placeId: 'seed/lead-11',
+    geoLat: -19.979,
+    geoLng: -44.0158,
     dataSource: 'synthetic'
   },
   {
@@ -648,6 +672,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T19:00:00Z',
     placeId: 'seed/lead-12',
+    geoLat: -19.9412,
+    geoLng: -44.0321,
     dataSource: 'synthetic'
   },
   {
@@ -670,6 +696,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T20:00:00Z',
     placeId: 'seed/lead-13',
+    geoLat: -19.9678,
+    geoLng: -44.1985,
     dataSource: 'synthetic'
   },
   {
@@ -692,6 +720,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T21:00:00Z',
     placeId: 'seed/lead-14',
+    geoLat: -19.6312,
+    geoLng: -43.8912,
     dataSource: 'synthetic'
   },
   {
@@ -714,6 +744,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T21:30:00Z',
     placeId: 'seed/lead-15',
+    geoLat: -19.8847,
+    geoLng: -43.9716,
     dataSource: 'synthetic'
   },
   {
@@ -736,6 +768,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-01T22:00:00Z',
     placeId: 'seed/lead-16',
+    geoLat: -19.8768,
+    geoLng: -43.9692,
     dataSource: 'synthetic'
   },
   {
@@ -776,6 +810,8 @@ export const SEED_LEADS: Lead[] = [
       ]
     },
     placeId: 'seed/lead-17',
+    geoLat: -19.8755,
+    geoLng: -43.9975,
     dataSource: 'synthetic'
   },
   {
@@ -798,6 +834,8 @@ export const SEED_LEADS: Lead[] = [
     inCrm: false,
     createdAt: '2026-09-02T10:15:00Z',
     placeId: 'seed/lead-18',
+    geoLat: -19.8763,
+    geoLng: -43.9989,
     dataSource: 'synthetic'
   }
 ];

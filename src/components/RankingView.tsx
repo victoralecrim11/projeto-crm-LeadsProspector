@@ -9,7 +9,7 @@ import {
   Zap, 
   Users 
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 
 export const RankingView: React.FC = () => {
   const { ranking } = useCrm();

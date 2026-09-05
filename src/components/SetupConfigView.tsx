@@ -12,7 +12,7 @@ import {
   RefreshCw,
   Sliders
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 
 export const SetupConfigView: React.FC = () => {
   const { setupConfig, updateSetupConfig } = useCrm();

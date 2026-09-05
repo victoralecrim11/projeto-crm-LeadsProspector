@@ -9,3 +9,4 @@ coverage/
 .kiro
 .kilo
 tsconfig.tsbuildinfo
+scratch/

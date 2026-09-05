@@ -19,7 +19,7 @@ import {
   Layers,
   X
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { Lead } from '../types';
 import { GoogleMapsProspector } from './GoogleMapsProspector';
 import { ManualLeadModal } from './ManualLeadModal';

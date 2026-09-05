@@ -28,7 +28,7 @@ import {
   Phone,
   Star
 } from 'lucide-react';
-import { useCrm } from '../../context/CrmContext';
+import { useCrm } from '../../hooks/useCrm';
 import { ActivePage, Lead } from '../../types';
 
 interface PaletteItem {

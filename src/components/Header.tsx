@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   Bell, 
   Search, 
@@ -13,25 +14,27 @@ import {
   Settings,
   Menu
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
+import { useUiStore } from '../store/uiStore';
 
 export const Header: React.FC = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activePage = location.pathname.substring(1) || 'dashboard';
+
   const { 
-    activePage, 
     notifications, 
     markNotificationAsRead, 
     markAllNotificationsAsRead, 
-    setActivePage,
-    setSelectedLeadForModal,
     leads,
-    setIsCreateSiteModalOpen,
-    setIsCommandPaletteOpen,
-    theme,
-    toggleTheme,
-    toggleMobileMenu,
-    sidebarCollapsed,
-    setSidebarCollapsed
   } = useCrm();
+
+  const theme = useUiStore(s => s.theme);
+  const toggleTheme = useUiStore(s => s.toggleTheme);
+  const toggleMobileMenu = useUiStore(s => s.toggleMobileMenu);
+  const setIsCreateSiteModalOpen = useUiStore(s => s.setIsCreateSiteModalOpen);
+  const setIsCommandPaletteOpen = useUiStore(s => s.setIsCommandPaletteOpen);
+  const setSelectedLeadForModal = useUiStore(s => s.setSelectedLeadForModal);
 
   const [isNotifOpen, setIsNotifOpen] = useState(false);
   const notifRef = useRef<HTMLDivElement>(null);
@@ -113,7 +116,7 @@ export const Header: React.FC = () => {
         {/* Quick Action Button */}
         {activePage === 'crm' && (
           <button
-            onClick={() => setActivePage('leads')}
+            onClick={() => navigate('/leads')}
             className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 rounded-xl shadow-lg shadow-indigo-500/25 border border-white/15 transition-all"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -123,7 +126,7 @@ export const Header: React.FC = () => {
 
         {activePage === 'leads' && (
           <button
-            onClick={() => setActivePage('crm')}
+            onClick={() => navigate('/crm')}
             className="hidden lg:flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-slate-100 bg-white/10 hover:bg-white/15 border border-white/15 rounded-xl shadow-sm transition-all"
           >
             <span>Ver Funil CRM</span>
@@ -172,7 +175,7 @@ export const Header: React.FC = () => {
 
         {/* Settings Quick Access */}
         <button
-          onClick={() => setActivePage('configuracoes')}
+          onClick={() => navigate('/configuracoes')}
           aria-label="Configurações do CRM"
           title="Configurações do CRM"
           className="p-2 text-slate-500 hover:text-slate-900 bg-slate-100 hover:bg-slate-200/80 border border-slate-200 dark:text-slate-200 dark:hover:text-white dark:bg-white/[0.06] dark:hover:bg-white/[0.12] dark:border-white/10 rounded-xl transition-all shadow-sm backdrop-blur-md cursor-pointer shrink-0"
@@ -261,4 +264,3 @@ export const Header: React.FC = () => {
     </header>
   );
 };
-

@@ -15,7 +15,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { Lead } from '../types';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { EmailService } from '../services/EmailService';
 
 export const EmailDispatchModal: React.FC = () => {

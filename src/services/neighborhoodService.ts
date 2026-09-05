@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import { safeStorage } from '../context/CrmContext';
+import { safeStorage } from '../utils/safeStorage';
 import { Lead } from '../types';
 
 // IBGE Municipality IDs for major supported Brazilian cities

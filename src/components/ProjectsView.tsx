@@ -12,7 +12,7 @@ import {
   Monitor,
   Eye
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { Project } from '../types';
 
 export const ProjectsView: React.FC = () => {

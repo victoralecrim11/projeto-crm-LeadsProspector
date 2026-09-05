@@ -1,4 +1,5 @@
 import React, { useRef, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Compass, 
@@ -21,19 +22,19 @@ import {
   Server,
   X
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useUiStore } from '../store/uiStore';
 import { ActivePage } from '../types';
 
 export const Sidebar: React.FC = () => {
-  const { 
-    activePage, 
-    setActivePage, 
-    sidebarCollapsed, 
-    setSidebarCollapsed,
-    setIsUpgradeModalOpen,
-    isMobileMenuOpen,
-    setIsMobileMenuOpen
-  } = useCrm();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const activePage = location.pathname.substring(1) as ActivePage || 'dashboard';
+
+  const sidebarCollapsed = useUiStore(s => s.sidebarCollapsed);
+  const setSidebarCollapsed = useUiStore(s => s.setSidebarCollapsed);
+  const isMobileMenuOpen = useUiStore(s => s.isMobileMenuOpen);
+  const setIsMobileMenuOpen = useUiStore(s => s.setIsMobileMenuOpen);
+  const setIsUpgradeModalOpen = useUiStore(s => s.setIsUpgradeModalOpen);
 
   const sidebarRef = useRef<HTMLElement>(null);
 
@@ -81,7 +82,7 @@ export const Sidebar: React.FC = () => {
   }, [isMobileMenuOpen, setIsMobileMenuOpen]);
 
   const handleNavClick = (pageId: ActivePage) => {
-    setActivePage(pageId);
+    navigate(`/${pageId}`);
     setIsMobileMenuOpen(false);
   };
 

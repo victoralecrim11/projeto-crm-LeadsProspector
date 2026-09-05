@@ -1,69 +1,39 @@
-import React from 'react';
-import { CrmProvider, useCrm } from './context/CrmContext';
+import React, { Suspense } from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
-import { DashboardView } from './components/DashboardView';
-import { LeadsProspectorView } from './components/LeadsProspectorView';
-import { RedesenhoView } from './components/RedesenhoView';
-import { VisualEditorView } from './components/VisualEditorView';
-import { PropostasView } from './components/PropostasView';
-import { CrmPipelineView } from './components/CrmPipelineView';
-import { FollowUpRadarView } from './components/FollowUpRadarView';
-import { ContratosView } from './components/ContratosView';
-import { AppointmentsView } from './components/AppointmentsView';
-import { ProjectsView } from './components/ProjectsView';
-import { SetupConfigView } from './components/SetupConfigView';
-import { CrmSettingsView } from './components/CrmSettingsView';
-import { RankingView } from './components/RankingView';
-import { CobrarClienteView, TemplatesView, AfiliadoView } from './components/ExtraViews';
 import { LeadDetailsModal } from './components/LeadDetailsModal';
 import { SiteGeneratorModal } from './components/SiteGeneratorModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { EmailDispatchModal } from './components/EmailDispatchModal';
 import { GlobalCommandPalette } from './components/common/GlobalCommandPalette';
 
+// Lazy load views for Code Splitting
+const DashboardView = React.lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
+const LeadsProspectorView = React.lazy(() => import('./components/LeadsProspectorView').then(m => ({ default: m.LeadsProspectorView })));
+const RedesenhoView = React.lazy(() => import('./components/RedesenhoView').then(m => ({ default: m.RedesenhoView })));
+const VisualEditorView = React.lazy(() => import('./components/VisualEditorView').then(m => ({ default: m.VisualEditorView })));
+const PropostasView = React.lazy(() => import('./components/PropostasView').then(m => ({ default: m.PropostasView })));
+const CrmPipelineView = React.lazy(() => import('./components/CrmPipelineView').then(m => ({ default: m.CrmPipelineView })));
+const FollowUpRadarView = React.lazy(() => import('./components/FollowUpRadarView').then(m => ({ default: m.FollowUpRadarView })));
+const ContratosView = React.lazy(() => import('./components/ContratosView').then(m => ({ default: m.ContratosView })));
+const AppointmentsView = React.lazy(() => import('./components/AppointmentsView').then(m => ({ default: m.AppointmentsView })));
+const ProjectsView = React.lazy(() => import('./components/ProjectsView').then(m => ({ default: m.ProjectsView })));
+const SetupConfigView = React.lazy(() => import('./components/SetupConfigView').then(m => ({ default: m.SetupConfigView })));
+const CrmSettingsView = React.lazy(() => import('./components/CrmSettingsView').then(m => ({ default: m.CrmSettingsView })));
+const RankingView = React.lazy(() => import('./components/RankingView').then(m => ({ default: m.RankingView })));
+const CobrarClienteView = React.lazy(() => import('./components/ExtraViews').then(m => ({ default: m.CobrarClienteView })));
+const TemplatesView = React.lazy(() => import('./components/ExtraViews').then(m => ({ default: m.TemplatesView })));
+const AfiliadoView = React.lazy(() => import('./components/ExtraViews').then(m => ({ default: m.AfiliadoView })));
+
+// A simple loading skeleton to show while downloading the chunk
+const ViewFallback = () => (
+  <div className="w-full h-full flex items-center justify-center min-h-[400px]">
+    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-500"></div>
+  </div>
+);
+
 const MainLayout: React.FC = () => {
-  const { activePage } = useCrm();
-
-  const renderActiveView = () => {
-    switch (activePage) {
-      case 'dashboard':
-        return <DashboardView />;
-      case 'leads':
-        return <LeadsProspectorView />;
-      case 'redesenhar':
-        return <RedesenhoView />;
-      case 'editor':
-        return <VisualEditorView />;
-      case 'propostas':
-        return <PropostasView />;
-      case 'crm':
-        return <CrmPipelineView />;
-      case 'followup':
-        return <FollowUpRadarView />;
-      case 'contratos':
-        return <ContratosView />;
-      case 'agendamentos':
-        return <AppointmentsView />;
-      case 'projetos':
-        return <ProjectsView />;
-      case 'cobrar':
-        return <CobrarClienteView />;
-      case 'setup':
-        return <SetupConfigView />;
-      case 'configuracoes':
-        return <CrmSettingsView />;
-      case 'ranking':
-        return <RankingView />;
-      case 'templates':
-        return <TemplatesView />;
-      case 'afiliado':
-        return <AfiliadoView />;
-      default:
-        return <DashboardView />;
-    }
-  };
-
   return (
     <div className="flex h-screen w-screen overflow-hidden mesh-bg text-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Sidebar */}
@@ -77,7 +47,28 @@ const MainLayout: React.FC = () => {
         {/* Scrollable View Content */}
         <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 min-w-0">
           <div className="max-w-7xl mx-auto w-full min-w-0">
-            {renderActiveView()}
+            <Suspense fallback={<ViewFallback />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardView />} />
+                <Route path="/leads" element={<LeadsProspectorView />} />
+                <Route path="/redesenhar" element={<RedesenhoView />} />
+                <Route path="/editor" element={<VisualEditorView />} />
+                <Route path="/propostas" element={<PropostasView />} />
+                <Route path="/crm" element={<CrmPipelineView />} />
+                <Route path="/followup" element={<FollowUpRadarView />} />
+                <Route path="/contratos" element={<ContratosView />} />
+                <Route path="/agendamentos" element={<AppointmentsView />} />
+                <Route path="/projetos" element={<ProjectsView />} />
+                <Route path="/cobrar" element={<CobrarClienteView />} />
+                <Route path="/setup" element={<SetupConfigView />} />
+                <Route path="/configuracoes" element={<CrmSettingsView />} />
+                <Route path="/ranking" element={<RankingView />} />
+                <Route path="/templates" element={<TemplatesView />} />
+                <Route path="/afiliado" element={<AfiliadoView />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
           </div>
         </main>
       </div>
@@ -94,9 +85,8 @@ const MainLayout: React.FC = () => {
 
 export default function App() {
   return (
-    <CrmProvider>
+    <BrowserRouter>
       <MainLayout />
-    </CrmProvider>
+    </BrowserRouter>
   );
 }
-

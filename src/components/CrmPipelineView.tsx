@@ -17,7 +17,7 @@ import {
   AlertCircle,
   Bell
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { Lead, LeadStatus } from '../types';
 
 export const CrmPipelineView: React.FC = () => {

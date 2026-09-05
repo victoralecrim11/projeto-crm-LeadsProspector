@@ -1,5 +1,5 @@
 {
-  "name": "react-example",
+  "name": "CRM-Prospector",
   "private": true,
   "version": "0.0.0",
   "type": "module",
@@ -29,8 +29,10 @@
     "motion": "^12.23.24",
     "react": "^19.0.1",
     "react-dom": "^19.0.1",
+    "react-router-dom": "^7.18.3",
     "vite": "^6.2.3",
-    "xlsx": "^0.18.5"
+    "xlsx": "^0.18.5",
+    "zustand": "^5.0.15"
   },
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.63.1",
@@ -39,6 +41,7 @@
     "@types/node": "^22.14.0",
     "autoprefixer": "^10.4.21",
     "esbuild": "^0.25.0",
+    "lightningcss": "^1.33.0",
     "tailwindcss": "^4.1.14",
     "tsx": "^4.23.13",
     "typescript": "~5.8.2",

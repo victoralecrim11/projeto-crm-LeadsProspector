@@ -19,7 +19,7 @@ import {
   ExternalLink,
   ChevronRight
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 
 export const DashboardView: React.FC = () => {
   const { 

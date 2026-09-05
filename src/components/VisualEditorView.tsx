@@ -16,7 +16,7 @@ import {
   Calendar,
   Eye
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 
 export const VisualEditorView: React.FC = () => {

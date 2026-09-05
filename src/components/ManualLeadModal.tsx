@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Building2, MapPin, Phone, Globe, Star } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 
 interface ManualLeadModalProps {
   isOpen: boolean;

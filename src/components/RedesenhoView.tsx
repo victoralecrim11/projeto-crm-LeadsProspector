@@ -16,7 +16,7 @@ import {
   Copy,
   Server
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 
 export const RedesenhoView: React.FC = () => {

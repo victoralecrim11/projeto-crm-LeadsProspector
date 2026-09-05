@@ -11,7 +11,7 @@ import {
   ExternalLink,
   Users
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { Appointment } from '../types';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 

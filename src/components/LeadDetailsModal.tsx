@@ -15,7 +15,7 @@ import {
   Plus,
   Trash2
 } from 'lucide-react';
-import { useCrm } from '../context/CrmContext';
+import { useCrm } from '../hooks/useCrm';
 import { Lead, LeadStatus } from '../types';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 
