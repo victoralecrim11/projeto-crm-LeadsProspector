@@ -30,6 +30,7 @@ import {
 } from 'lucide-react';
 import { useCrm } from '../../hooks/useCrm';
 import { ActivePage, Lead } from '../../types';
+import { registerCommandPaletteShortcut } from '../../utils/commandPaletteShortcut';
 
 interface PaletteItem {
   id: string;
@@ -61,6 +62,12 @@ export const GlobalCommandPalette: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
+
+  // Open the global search before the browser consumes Ctrl/Cmd + K.
+  useEffect(() => registerCommandPaletteShortcut(
+    window,
+    () => setIsCommandPaletteOpen(true),
+  ), [setIsCommandPaletteOpen]);
 
   // Focus input on open & reset state
   useEffect(() => {

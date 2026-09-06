@@ -1,0 +1,97 @@
+.prospector-map-shell {
+  min-height: 460px;
+}
+
+.prospector-map-canvas {
+  min-height: 440px;
+}
+
+.prospector-details-action {
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+.prospector-details-action:hover {
+  border-color: #818cf8 !important;
+  box-shadow: 0 3px 8px rgb(79 70 229 / 22%) !important;
+  color: #3730a3 !important;
+  transform: translateY(-1px);
+}
+
+.prospector-details-action:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+@media (min-width: 641px) {
+  .prospector-map-shell {
+    align-self: start;
+    height: clamp(480px, 62vh, 600px);
+    min-height: 0;
+    max-height: 600px;
+  }
+
+  .prospector-map-canvas {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 640px) {
+  .prospector-map-shell {
+    min-height: 0;
+  }
+
+  .prospector-map-canvas {
+    height: clamp(280px, 46dvh, 330px);
+    min-height: clamp(280px, 46dvh, 330px);
+    flex: none;
+  }
+
+  .prospector-map-canvas .leaflet-control-zoom {
+    margin-top: 48px;
+  }
+
+  .prospector-map-canvas .leaflet-popup-content-wrapper {
+    max-width: calc(100vw - 82px);
+    border-radius: 12px;
+  }
+
+  .prospector-map-canvas .leaflet-popup-content {
+    width: auto !important;
+    margin: 7px 9px;
+  }
+
+  .prospector-lead-popup {
+    width: min(230px, calc(100vw - 116px)) !important;
+    max-height: min(220px, calc(100dvh - 230px));
+    gap: 4px !important;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    padding-right: 2px;
+  }
+
+  .prospector-lead-popup .prospector-popup-action {
+    min-height: 30px;
+    padding: 4px 6px !important;
+    font-size: 8.5px !important;
+    line-height: 1.15;
+    white-space: normal;
+  }
+
+  .prospector-lead-popup .prospector-popup-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px !important;
+    padding-top: 5px !important;
+  }
+
+  .prospector-lead-popup .prospector-popup-actions > * {
+    width: 100%;
+  }
+
+  .prospector-map-canvas .leaflet-popup-close-button {
+    width: 28px;
+    height: 28px;
+    font-size: 20px;
+  }
+}

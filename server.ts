@@ -99,7 +99,7 @@ async function startServer() {
 
 
 
-  // IA Generation Route using Gemini 1.5 Pro
+  // IA Generation Route using a current stable Gemini model.
   app.post("/api/generate-site", async (req, res) => {
     try {
       const apiKey = process.env.GEMINI_API_KEY;
@@ -115,11 +115,8 @@ async function startServer() {
       const ai = new GoogleGenAI({ apiKey });
       
       const response = await ai.models.generateContent({
-        model: "gemini-1.5-pro",
+        model: "gemini-3.5-flash",
         contents: prompt,
-        config: {
-          temperature: 0.7,
-        }
       });
 
       res.json({

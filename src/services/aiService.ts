@@ -3,10 +3,32 @@ import { AIProviderConfig, CrmSettingsConfig } from '../types';
 
 const FETCH_TIMEOUT_MS = 30000; // 30 second timeout for AI requests
 
+// Stable text-generation models, ordered from the preferred model to fallback.
+// Keep this list free of preview and retired endpoints.
+export const GEMINI_TEXT_MODELS = [
+  'gemini-3.5-flash',
+  'gemini-2.5-flash',
+  'gemini-3.1-flash-lite',
+] as const;
+
+const GEMINI_RETRY_DELAYS_MS = [600, 1200] as const;
+
 // Helper to create a timeout signal for fetch
 function createTimeoutSignal(): AbortSignal {
   return AbortSignal.timeout(FETCH_TIMEOUT_MS);
 }
+
+async function readApiError(response: Response): Promise<string> {
+  try {
+    const payload = await response.json();
+    const message = payload?.error?.message || payload?.message || payload?.error;
+    return typeof message === 'string' ? message.slice(0, 500) : `HTTP ${response.status}`;
+  } catch {
+    return `HTTP ${response.status}`;
+  }
+}
+
+const wait = (delayMs: number) => new Promise(resolve => setTimeout(resolve, delayMs));
 
 export const generateAiContent = async (
   crmSettings: CrmSettingsConfig,
@@ -56,7 +78,8 @@ export const generateAiContent = async (
 const generateWithProvider = async (
   activeConfig: AIProviderConfig,
   systemPrompt: string,
-  userPrompt: string
+  userPrompt: string,
+  onModelSuccess?: (model: string) => void,
 ): Promise<string> => {
   switch (activeConfig.provider) {
     
@@ -112,40 +135,60 @@ const generateWithProvider = async (
     // ==========================================
     case 'gemini': {
       const cleanKey = activeConfig.apiKey.trim();
-      const modelsToTry = ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash', 'gemini-2.0-pro'];
+      if (!cleanKey) throw new Error('Chave da API do Google Gemini não informada.');
+
       let lastGeminiError: any;
 
-      for (const model of modelsToTry) {
+      for (const model of GEMINI_TEXT_MODELS) {
         try {
-          const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${cleanKey}`;
-          const geminiRes = await fetch(geminiUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            signal: createTimeoutSignal(),
-            body: JSON.stringify({
-              contents: [{ parts: [{ text: `${systemPrompt}\n\n${userPrompt}` }] }]
-            })
-          });
-          if (!geminiRes.ok) {
-            if (geminiRes.status === 400 || geminiRes.status === 401 || geminiRes.status === 403) {
-              throw new Error(`Erro de autenticação na API do Google Gemini (Status ${geminiRes.status}). Chave inválida.`);
+          for (let attempt = 0; attempt <= GEMINI_RETRY_DELAYS_MS.length; attempt++) {
+            const geminiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+            const geminiRes = await fetch(geminiUrl, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'x-goog-api-key': cleanKey,
+              },
+              signal: createTimeoutSignal(),
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ role: 'user', parts: [{ text: userPrompt }] }],
+              })
+            });
+            if (!geminiRes.ok) {
+              const detail = await readApiError(geminiRes);
+              const invalidKey = /api.?key|API_KEY_INVALID|permission denied/i.test(detail);
+              if (geminiRes.status === 401 || geminiRes.status === 403 || (geminiRes.status === 400 && invalidKey)) {
+                throw new Error(`Erro de autenticação na API do Google Gemini (Status ${geminiRes.status}): ${detail}`);
+              }
+
+              const isTransient = geminiRes.status === 408 || geminiRes.status === 429 || geminiRes.status >= 500;
+              if (isTransient && attempt < GEMINI_RETRY_DELAYS_MS.length) {
+                const delayMs = GEMINI_RETRY_DELAYS_MS[attempt];
+                console.warn(`[Gemini] ${model} indisponível (${geminiRes.status}). Nova tentativa em ${delayMs} ms.`);
+                await wait(delayMs);
+                continue;
+              }
+              if (geminiRes.status === 429) {
+                throw new Error(`Limite de uso do Gemini excedido (429) no modelo ${model}: ${detail}`);
+              }
+              throw new Error(`Gemini ${model} respondeu com status ${geminiRes.status}: ${detail}`);
             }
-            // Rate limit exceeded - skip to next provider entirely
-            if (geminiRes.status === 429) {
-              throw new Error(`Rate limit excedido (429) no modelo ${model}. Tentando próximo provedor...`);
-            }
-            throw new Error(`Erro ${geminiRes.status} no modelo ${model}`);
+            const geminiData = await geminiRes.json();
+            const text = geminiData.candidates?.[0]?.content?.parts
+              ?.map((part: { text?: string }) => part.text || '')
+              .join('')
+              .trim();
+            if (!text) throw new Error('O Gemini não retornou texto. A resposta pode ter sido bloqueada pelos filtros de segurança.');
+            onModelSuccess?.(model);
+            console.info(`[Gemini] Resposta recebida com sucesso pelo modelo ${model}.`);
+            return text;
           }
-          const geminiData = await geminiRes.json();
-          // Validate response structure
-          if (!geminiData.candidates || !geminiData.candidates[0] || !geminiData.candidates[0].content?.parts?.[0]?.text) {
-            throw new Error('Resposta inválida da API do Gemini - estrutura de dados inesperada.');
-          }
-          return geminiData.candidates[0].content.parts[0].text;
+          throw new Error(`O modelo ${model} não respondeu após as tentativas configuradas.`);
         } catch (err: any) {
           lastGeminiError = err;
           if (err.message.includes('Erro de autenticação')) throw err;
-          if (err.message.includes('Rate limit')) throw err; // Skip to next provider
+          if (err.message.includes('Limite de uso')) throw err;
           console.warn(`[Fallback Modelo Gemini] Modelo '${model}' falhou. Tentando o próximo...`);
         }
       }
@@ -254,4 +297,17 @@ const generateWithProvider = async (
     default:
       throw new Error(`O provedor selecionado (${activeConfig.provider}) ainda não possui suporte integrado.`);
   }
+};
+
+export const testAiProviderConnection = async (config: AIProviderConfig): Promise<string> => {
+  let successfulModel = '';
+  const response = await generateWithProvider(
+    config,
+    'Você está verificando uma integração de API.',
+    'Responda somente com: OK',
+    model => { successfulModel = model; },
+  );
+  if (!response.trim()) throw new Error('O provedor respondeu sem conteúdo.');
+  const modelLabel = successfulModel ? ` usando ${successfulModel}` : '';
+  return `Conexão real validada com ${config.provider}${modelLabel}.`;
 };

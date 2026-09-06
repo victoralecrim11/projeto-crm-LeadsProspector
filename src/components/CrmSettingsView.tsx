@@ -9,6 +9,7 @@ import { useLeadStore } from '../store/leadStore';
 import { CrmSettingsConfig, AIProvider } from '../types';
 import { EmailService } from '../services/EmailService';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
+import { testAiProviderConnection } from '../services/aiService';
 
 const AI_PROVIDERS_LIST: { id: AIProvider; name: string; tag?: string; tagColor?: string }[] = [
   { id: 'gemini', name: 'Google Gemini', tag: 'Gratuito', tagColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
@@ -98,7 +99,7 @@ export const CrmSettingsView: React.FC = () => {
     }
   };
 
-  // CORREÇÃO: Ignorar a regra de tamanho de chave para provedores locais como Ollama
+  // Valida a conexão de verdade; não aprova apenas pelo formato da chave.
   const testAiConnection = async (providerId: string, apiKey: string) => {
     setIsTestingAi(providerId);
     setTestAiResult(prev => ({ ...prev, [providerId]: null as any }));
@@ -109,11 +110,21 @@ export const CrmSettingsView: React.FC = () => {
       if (pConf?.provider !== 'ollama' && (!apiKey || apiKey.length < 10)) {
         throw new Error('Chave de API inválida ou não informada.');
       }
-      await new Promise(resolve => setTimeout(resolve, 1200));
-      setTestAiResult(prev => ({ ...prev, [providerId]: { success: true, message: 'Conexão estabelecida com sucesso!' } }));
+      if (!pConf) throw new Error('Configuração do provedor não encontrada.');
+      const message = await testAiProviderConnection(pConf);
+      console.info(`[Teste de IA] Conexão com ${pConf.provider} estabelecida com sucesso.`, {
+        provider: pConf.provider,
+        message,
+      });
+      setTestAiResult(prev => ({ ...prev, [providerId]: { success: true, message } }));
       executeSave();
     } catch (err: any) {
-      setTestAiResult(prev => ({ ...prev, [providerId]: { success: false, message: err.message || 'Erro ao conectar à API.' } }));
+      const message = err.message || 'Erro ao conectar à API.';
+      console.error(`[Teste de IA] Falha na conexão com ${pConf?.provider || 'provedor desconhecido'}.`, {
+        provider: pConf?.provider,
+        message,
+      });
+      setTestAiResult(prev => ({ ...prev, [providerId]: { success: false, message } }));
     } finally {
       setIsTestingAi(null);
     }
@@ -806,9 +817,9 @@ export const CrmSettingsView: React.FC = () => {
                          'Testar Conexão da API'}
                       </button>
                       
-                      {testAiResult[prov.id] && !testAiResult[prov.id].success && (
-                        <div className="text-[10px] text-rose-400 ml-3 flex items-center gap-1">
-                           <Info className="w-3 h-3" /> {testAiResult[prov.id].message}
+                      {testAiResult[prov.id] && (
+                        <div className={`text-[10px] ml-3 flex items-center gap-1 ${testAiResult[prov.id].success ? 'text-emerald-400' : 'text-rose-400'}`}>
+                           <Info className="w-3 h-3 shrink-0" /> {testAiResult[prov.id].message}
                         </div>
                       )}
                     </div>

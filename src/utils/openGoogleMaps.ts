@@ -2,11 +2,13 @@ import { isValidCoordinate } from './coordinates';
 
 /**
  * Links externos não devem confundir um ponto OSM com uma ficha comercial de
- * outro provedor. Uma busca por nome só é segura com endereço de logradouro.
+ * outro provedor. Por isso a abertura da coordenada e a busca pelo nome
+ * comercial são ações explicitamente separadas.
  */
 
 export interface MapLeadTarget {
   name: string;
+  category?: string;
   address?: string;
   neighborhood?: string;
   city?: string;
@@ -24,39 +26,8 @@ export function hasPreciseOsmAddress(lead: MapLeadTarget): boolean {
 }
 
 export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
-  const parts: string[] = [];
-
-  const cleanName = (lead.name || '').trim();
-  if (cleanName) {
-    parts.push(cleanName);
-  }
-
-  const cleanAddress = (lead.address || '').trim();
-  if (cleanAddress) {
-    // Se o endereço já contém rua e cidade, usamos diretamente
-    parts.push(cleanAddress);
-  } else {
-    // Caso não haja logradouro completo, compõe bairro + cidade
-    const localParts: string[] = [];
-    if (lead.neighborhood && lead.neighborhood !== 'Todos os Bairros') {
-      localParts.push(lead.neighborhood.trim());
-    }
-    if (lead.city) {
-      localParts.push(lead.city.trim());
-    }
-    if (localParts.length > 0) {
-      parts.push(localParts.join(', '));
-    }
-  }
-
-  const query = parts.filter(Boolean).join(', ');
-
-  if (query && hasPreciseOsmAddress(lead)) {
-    return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-  }
-
-  // A coordenada OSM é precisa, mas não garante que o provedor externo tenha
-  // uma ficha comercial naquele ponto. Por isso é o fallback, não a busca padrão.
+  // Esta ação nunca tenta inferir uma ficha comercial: ela abre somente o
+  // ponto exato informado pelo OpenStreetMap.
   if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
     return `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`;
   }
@@ -70,6 +41,32 @@ export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
   return 'https://www.google.com/maps';
 }
 
+export function buildGoogleMapsBusinessSearchUrl(lead: MapLeadTarget): string {
+  const parts: string[] = [];
+  const name = (lead.name || '').trim();
+  const category = (lead.category || '').trim();
+  const address = (lead.address || '').trim();
+
+  if (name) parts.push(name);
+
+  // Nomes curtos ou genéricos (por exemplo, "Vitória") precisam da categoria
+  // para que o Maps procure uma empresa, e não uma cidade, hotel ou região.
+  if (category && category.toLowerCase() !== 'negócio local') parts.push(category);
+
+  if (address && hasPreciseOsmAddress(lead)) {
+    parts.push(address);
+  } else {
+    if (lead.neighborhood && lead.neighborhood !== 'Todos os Bairros') parts.push(lead.neighborhood.trim());
+    if (lead.city) parts.push(lead.city.trim());
+    if (lead.state) parts.push(lead.state.trim());
+  }
+
+  const query = parts.filter(Boolean).join(', ');
+  return query
+    ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`
+    : buildGoogleMapsSearchUrl(lead);
+}
+
 export function buildOpenStreetMapLocationUrl(lead: MapLeadTarget): string {
   if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
     return `https://www.openstreetmap.org/?mlat=${lead.geoLat}&mlon=${lead.geoLng}#map=19/${lead.geoLat}/${lead.geoLng}`;
@@ -78,9 +75,12 @@ export function buildOpenStreetMapLocationUrl(lead: MapLeadTarget): string {
 }
 
 export function openLeadLocation(lead: MapLeadTarget): void {
-  // Every OSM lead can open Google Maps. With a full street address this is a
-  // business search; otherwise the URL intentionally opens only the exact pin.
   const url = buildGoogleMapsSearchUrl(lead);
+  window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export function openLeadBusinessSearch(lead: MapLeadTarget): void {
+  const url = buildGoogleMapsBusinessSearchUrl(lead);
   window.open(url, '_blank', 'noopener,noreferrer');
 }
 

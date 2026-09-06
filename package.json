@@ -9,11 +9,11 @@
     "preview": "vite preview",
     "start": "node dist/server.cjs",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "test": "tsx --test src/**/*.test.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
-    "@google/generative-ai": "^0.24.1",
     "@tailwindcss/vite": "^4.1.14",
     "@types/canvas-confetti": "^1.9.0",
     "@vitejs/plugin-react": "^5.0.4",
@@ -33,6 +33,9 @@
     "vite": "^6.2.3",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.15"
+  },
+  "optionalDependencies": {
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.3.3"
   },
   "devDependencies": {
     "@rollup/rollup-win32-x64-msvc": "^4.63.1",
