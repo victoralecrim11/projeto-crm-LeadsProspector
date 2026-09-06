@@ -126,6 +126,15 @@ A suíte cobre atualmente:
 - separação entre busca comercial e coordenada exata;
 - preservação das coordenadas nos links Google Maps e OpenStreetMap.
 
+## Documentação do projeto
+
+Todos os documentos Markdown são mantidos na pasta `docs/`:
+
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual do sistema;
+- [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md): análise do uso da BrasilAPI no fluxo de prospecção.
+
+Novos arquivos `.md` também devem ser criados dentro de `docs/`, preservando a raiz do repositório para código e arquivos de configuração.
+
 ## Persistência local
 
 Leads, configurações e rascunhos são gerenciados por stores Zustand e persistidos por `safeStorage`, que tenta `localStorage` e usa `sessionStorage` como alternativa. Limpar os dados do navegador pode remover essas informações; exporte a base regularmente quando os registros forem importantes.

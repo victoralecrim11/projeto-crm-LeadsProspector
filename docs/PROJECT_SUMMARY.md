@@ -95,6 +95,14 @@ O script `npm test` executa `tests/**/*.test.ts`, e o `tsconfig.json` inclui `te
 
 O build atual pode emitir avisos não bloqueantes sobre o tamanho de alguns chunks e sobre `leadStore.ts` ser importado de forma estática e dinâmica.
 
+## Convenção de documentação
+
+Todos os arquivos Markdown do projeto são mantidos em `docs/`. Novos documentos `.md` devem ser criados diretamente nessa pasta, e links entre documentos devem usar caminhos relativos ao próprio diretório.
+
+- [README.md](README.md): apresentação, instalação, configuração e uso.
+- [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual.
+- [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md): análise da integração com BrasilAPI.
+
 ## BrasilAPI
 
 A análise em [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md) conclui que a BrasilAPI pode enriquecer um CNPJ conhecido, mas não oferece descoberta empresarial por cidade, bairro, nicho, CNAE ou raio. Ela não participa das varreduras OSM.
