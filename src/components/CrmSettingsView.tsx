@@ -533,7 +533,7 @@ export const CrmSettingsView: React.FC = () => {
                 ) : (
                   <span className="px-2.5 py-1 text-xs font-semibold bg-sky-500/20 text-sky-300 border border-sky-400/30 rounded-xl flex items-center gap-1.5">
                     <span className="w-2 h-2 rounded-full bg-sky-400 animate-pulse"></span>
-                    Modo Demo Simulado
+                    Chave não configurada
                   </span>
                 )}
               </div>
@@ -993,73 +993,9 @@ export const CrmSettingsView: React.FC = () => {
               </div>
             </div>
 
-            {/* Gerenciamento de Dados & Modo Produção vs Demo */}
-            <div className="p-5 rounded-2xl bg-gradient-to-r from-slate-900/90 to-indigo-950/40 border border-white/15 space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-white/10">
-                <div>
-                  <h4 className="font-bold text-sm text-white flex items-center gap-2">
-                    <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                    Ambiente & Dados de Demonstração (Seed Data)
-                  </h4>
-                  <p className="text-xs text-slate-400 mt-0.5">
-                    Controle se o sistema deve manter leads demonstrativos de exemplo ou operar exclusivamente em Modo Produção Real.
-                  </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="text-xs font-medium text-slate-300">Modo Demo:</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const newMode = !formData.useSeedDemo;
-                      setFormData(prev => ({ ...prev, useSeedDemo: newMode }));
-                      executeSave({ useSeedDemo: newMode });
-                    }}
-                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      formData.useSeedDemo ? 'bg-indigo-600' : 'bg-slate-700'
-                    }`}
-                  >
-                    <span
-                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                        formData.useSeedDemo ? 'translate-x-6' : 'translate-x-1'
-                      }`}
-                    />
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-1">
-                <div className="text-xs space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-slate-400">Total no CRM:</span>
-                    <span className="font-semibold text-white">{leads.length} leads</span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-emerald-400 font-medium">
-                      {leads.filter(l => l.dataSource === 'real').length} reais
-                    </span>
-                    <span className="text-slate-500">•</span>
-                    <span className="text-amber-400 font-medium">
-                      {leads.filter(l => l.dataSource === 'synthetic').length} sintéticos/demo
-                    </span>
-                  </div>
-                  <p className="text-[11px] text-slate-400">
-                    O botão abaixo remove permanentemente todos os leads mockados do CRM e limpa o localStorage, mantendo apenas contatos reais escaneados do OpenStreetMap.
-                  </p>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (window.confirm('Deseja realmente remover todos os leads de demonstração e manter apenas contatos reais no CRM?')) {
-                      useLeadStore.getState().purgeSeedDemoData();
-                      executeSave({ useSeedDemo: false });
-                    }
-                  }}
-                  className="flex items-center gap-2 px-4 py-2 text-xs font-semibold text-rose-300 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 hover:border-rose-500/50 rounded-xl transition-all shadow-sm shrink-0"
-                >
-                  <Trash2 className="w-3.5 h-3.5 text-rose-400" />
-                  <span>Limpar Leads de Demonstração</span>
-                </button>
-              </div>
+            <div className="p-5 rounded-2xl bg-emerald-500/5 border border-emerald-400/20">
+              <h4 className="font-bold text-sm text-white flex items-center gap-2"><ShieldCheck className="w-4 h-4 text-emerald-400" />Dados reais</h4>
+              <p className="text-xs text-slate-400 mt-1">O CRM inicia sem leads demonstrativos. Registros aparecem após uma varredura no OpenStreetMap ou inclusão manual.</p>
             </div>
           </div>
         )}

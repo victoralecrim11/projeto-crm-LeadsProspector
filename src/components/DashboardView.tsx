@@ -31,7 +31,7 @@ export const DashboardView: React.FC = () => {
   } = useCrm();
 
   const cycleSteps = [
-    { num: '1', title: 'Prospectar Maps', desc: 'Buscar negócios sem site ou com nota 5.0', page: 'leads' as const, icon: <Compass className="w-4 h-4" /> },
+    { num: '1', title: 'Prospectar Local', desc: 'Escanear negócios reais no OpenStreetMap', page: 'leads' as const, icon: <Compass className="w-4 h-4" /> },
     { num: '2', title: 'Redesenho IA', desc: 'Gerar comparador Antes e Depois', page: 'redesenhar' as const, icon: <Sparkles className="w-4 h-4" /> },
     { num: '3', title: 'Editor No-Code', desc: 'Ajustar serviços, fotos e WhatsApp', page: 'editor' as const, icon: <Edit3 className="w-4 h-4" /> },
     { num: '4', title: 'Propostas com IA', desc: 'Scripts com rapport e anti-spam', page: 'propostas' as const, icon: <FileText className="w-4 h-4" /> },
@@ -68,7 +68,7 @@ export const DashboardView: React.FC = () => {
               className="w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-500/25 border border-white/20 transition-all flex items-center gap-2"
             >
               <Compass className="w-4 h-4" />
-              <span>Prospectar no Maps</span>
+              <span>Abrir Radar Local</span>
             </button>
           </div>
         </div>

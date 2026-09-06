@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { Lead, LeadStatus, Appointment, Project, AppNotification, SalesRankUser, SiteCustomization } from '../types';
-import { SEED_LEADS, SEED_APPOINTMENTS, SEED_PROJECTS, SEED_NOTIFICATIONS, SEED_RANKING, SEED_CRM_SETTINGS } from '../data/seedData';
 import { safeStorage } from '../utils/safeStorage';
 import confetti from 'canvas-confetti';
 import { useCrmConfigStore } from './crmConfigStore';
 import { migrateLegacyLeads } from '../utils/leadMigration';
+import { isVerifiedOsmLead, normalizeStoredOsmLead } from '../utils/osmLead';
 
 interface LeadState {
   leads: Lead[];
@@ -40,7 +40,6 @@ interface LeadState {
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointmentStatus: (id: string, status: Appointment['status']) => void;
   addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
-  purgeSeedDemoData: () => void;
 }
 
 const STORAGE_KEYS = {
@@ -50,19 +49,6 @@ const STORAGE_KEYS = {
   NOTIFICATIONS: 'leadsite_crm_notifications_v2',
   CRM_SETTINGS: 'leadsite_crm_general_settings_v2'
 };
-
-function shouldUseSeedDemo(): boolean {
-  try {
-    const saved = safeStorage.getItem(STORAGE_KEYS.CRM_SETTINGS);
-    if (saved) {
-      const parsed = JSON.parse(saved);
-      if (typeof parsed.useSeedDemo === 'boolean') {
-        return parsed.useSeedDemo;
-      }
-    }
-  } catch {}
-  return SEED_CRM_SETTINGS.useSeedDemo ?? true;
-}
 
 const getInitialLeads = (): Lead[] => {
   const saved = localStorage.getItem(STORAGE_KEYS.LEADS);
@@ -83,34 +69,18 @@ const getInitialLeads = (): Lead[] => {
         mapped.push({ ...lead, id });
       });
 
-      if (!shouldUseSeedDemo()) {
-        const seedIds = new Set(SEED_LEADS.map(l => l.id));
-        const seedNames = new Set(SEED_LEADS.map(l => (l.name || '').toLowerCase().trim()));
-        const filtered = mapped.filter(l => 
-          !seedIds.has(l.id) && 
-          !seedNames.has((l.name || '').toLowerCase().trim()) &&
-          l.dataSource !== 'synthetic' && 
-          !l.placeId?.startsWith('seed/')
-        );
-        const { migratedLeads, wasMigrated } = migrateLegacyLeads(filtered);
-        if (wasMigrated) {
-          localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(migratedLeads));
-        }
-        return migratedLeads;
-      }
-      const existingIds = new Set(mapped.map(l => l.id));
-      const missingDefaults = SEED_LEADS.filter(l => !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim()));
-      const combined = missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
-      const { migratedLeads, wasMigrated } = migrateLegacyLeads(combined);
-      if (wasMigrated) {
-        localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(migratedLeads));
-      }
-      return migratedLeads;
+      // Old demos did not have a declared, verifiable provenance. Retain only
+      // OSM records and leads explicitly created by the user from this release.
+      const filtered = mapped.filter((lead) => isVerifiedOsmLead(lead) || lead.dataSource === 'manual');
+      const { migratedLeads } = migrateLegacyLeads(filtered);
+      const normalizedLeads = migratedLeads.map(normalizeStoredOsmLead);
+      localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(normalizedLeads));
+      return normalizedLeads;
     } catch (e) {
       console.error('Error loading saved leads', e);
     }
   }
-  return shouldUseSeedDemo() ? SEED_LEADS : [];
+  return [];
 };
 
 const getInitialAppointments = (): Appointment[] => {
@@ -118,14 +88,10 @@ const getInitialAppointments = (): Appointment[] => {
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as Appointment[];
-      if (!shouldUseSeedDemo()) {
-        const seedIds = new Set(SEED_APPOINTMENTS.map(a => a.id));
-        return parsed.filter(a => !seedIds.has(a.id));
-      }
       return parsed;
     } catch(e){}
   }
-  return shouldUseSeedDemo() ? SEED_APPOINTMENTS : [];
+  return [];
 };
 
 const getInitialProjects = (): Project[] => {
@@ -133,14 +99,10 @@ const getInitialProjects = (): Project[] => {
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as Project[];
-      if (!shouldUseSeedDemo()) {
-        const seedIds = new Set(SEED_PROJECTS.map(p => p.id));
-        return parsed.filter(p => !seedIds.has(p.id));
-      }
       return parsed;
     } catch(e){}
   }
-  return shouldUseSeedDemo() ? SEED_PROJECTS : [];
+  return [];
 };
 
 const getInitialNotifications = (): AppNotification[] => {
@@ -148,14 +110,10 @@ const getInitialNotifications = (): AppNotification[] => {
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as AppNotification[];
-      if (!shouldUseSeedDemo()) {
-        const seedIds = new Set(SEED_NOTIFICATIONS.map(n => n.id));
-        return parsed.filter(n => !seedIds.has(n.id));
-      }
       return parsed;
     } catch(e){}
   }
-  return shouldUseSeedDemo() ? SEED_NOTIFICATIONS : [];
+  return [];
 };
 
 export const useLeadStore = create<LeadState>((set, get) => ({
@@ -194,7 +152,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
     set({ notifications: updated });
   },
 
-  ranking: shouldUseSeedDemo() ? SEED_RANKING : [],
+  ranking: [],
 
   addLeadToCrm: (leadId, stage = 'novo', value = 1800) => {
     const leads = get().leads.map(lead => {
@@ -514,26 +472,4 @@ export const useLeadStore = create<LeadState>((set, get) => ({
     get().setProjects([newProject, ...get().projects]);
   },
 
-  purgeSeedDemoData: () => {
-    const seedIds = new Set(SEED_LEADS.map(l => l.id));
-    const seedNames = new Set(SEED_LEADS.map(l => (l.name || '').toLowerCase().trim()));
-    const cleanedLeads = get().leads.filter(l => 
-      !seedIds.has(l.id) && 
-      !seedNames.has((l.name || '').toLowerCase().trim()) &&
-      l.dataSource !== 'synthetic' && 
-      !l.placeId?.startsWith('seed/')
-    );
-    const cleanedAppointments = get().appointments.filter(a => !SEED_APPOINTMENTS.some(s => s.id === a.id));
-    const cleanedProjects = get().projects.filter(p => !SEED_PROJECTS.some(s => s.id === p.id));
-    
-    set({
-      leads: cleanedLeads,
-      appointments: cleanedAppointments,
-      projects: cleanedProjects,
-    });
-
-    safeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(cleanedLeads));
-    safeStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(cleanedAppointments));
-    safeStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(cleanedProjects));
-  }
 }));

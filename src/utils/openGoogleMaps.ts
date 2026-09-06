@@ -1,11 +1,8 @@
 import { isValidCoordinate } from './coordinates';
 
 /**
- * Utilitário universal para abertura de fichas de empresas no Google Maps.
- *
- * Prioriza coordenadas quando existirem e usa uma consulta textual como
- * fallback. Para um lead OSM, coordenadas podem abrir apenas um pino/localização
- * — não garantem uma ficha comercial oficial, fotos, avaliações ou horários.
+ * Links externos não devem confundir um ponto OSM com uma ficha comercial de
+ * outro provedor. Uma busca por nome só é segura com endereço de logradouro.
  */
 
 export interface MapLeadTarget {
@@ -18,25 +15,15 @@ export interface MapLeadTarget {
   geoLng?: number;
   googleMapsUri?: string;
   googlePlaceId?: string;
-  dataSource?: 'real' | 'synthetic';
+  dataSource?: 'real' | 'manual';
+}
+
+export function hasPreciseOsmAddress(lead: MapLeadTarget): boolean {
+  const address = (lead.address || '').trim();
+  return /\b(rua|avenida|av\.?|travessa|alameda|praça|praca|rodovia|estrada)\b/i.test(address);
 }
 
 export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
-  // 1. Coordenadas precisas, especialmente as recebidas do OSM.
-  if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
-    // Para OSM, a query por coordenada exata no link do Maps abre o local ou pino
-    return `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`;
-  }
-
-  if (lead.googleMapsUri) {
-    return lead.googleMapsUri;
-  }
-
-  // Only use Place ID if we don't have coordinates and it's not explicitly a real OSM lead
-  if (lead.googlePlaceId && lead.dataSource !== 'real') {
-    return `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${lead.googlePlaceId}`;
-  }
-
   const parts: string[] = [];
 
   const cleanName = (lead.name || '').trim();
@@ -64,14 +51,39 @@ export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
 
   const query = parts.filter(Boolean).join(', ');
 
-  if (query) {
+  if (query && hasPreciseOsmAddress(lead)) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
+  }
+
+  // A coordenada OSM é precisa, mas não garante que o provedor externo tenha
+  // uma ficha comercial naquele ponto. Por isso é o fallback, não a busca padrão.
+  if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
+    return `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`;
+  }
+
+  if (lead.googleMapsUri) return lead.googleMapsUri;
+
+  if (lead.googlePlaceId && lead.dataSource !== 'real') {
+    return `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${lead.googlePlaceId}`;
   }
 
   return 'https://www.google.com/maps';
 }
 
-export function openGoogleMapsPlace(lead: MapLeadTarget): void {
+export function buildOpenStreetMapLocationUrl(lead: MapLeadTarget): string {
+  if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
+    return `https://www.openstreetmap.org/?mlat=${lead.geoLat}&mlon=${lead.geoLng}#map=19/${lead.geoLat}/${lead.geoLng}`;
+  }
+  return 'https://www.openstreetmap.org';
+}
+
+export function openLeadLocation(lead: MapLeadTarget): void {
+  // Every OSM lead can open Google Maps. With a full street address this is a
+  // business search; otherwise the URL intentionally opens only the exact pin.
   const url = buildGoogleMapsSearchUrl(lead);
   window.open(url, '_blank', 'noopener,noreferrer');
+}
+
+export function openOpenStreetMapLocation(lead: MapLeadTarget): void {
+  window.open(buildOpenStreetMapLocationUrl(lead), '_blank', 'noopener,noreferrer');
 }

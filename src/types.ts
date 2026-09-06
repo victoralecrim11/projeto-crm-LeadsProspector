@@ -84,13 +84,15 @@ export interface Lead {
   osmType?: 'node' | 'way' | 'relation';
   osmLat?: number;
   osmLng?: number;
+  /** Rating read verbatim from an OSM tag, when that tag exists. */
+  osmRating?: number;
 
   googlePlaceId?: string;
   googleMapsUri?: string;
   // Google fields above are legacy import compatibility only. The local
   // prospector does not verify or enrich leads through Google services.
 
-  dataSource?: 'real' | 'synthetic';  // tracks origin of the lead data
+  dataSource?: 'real' | 'manual'; // OpenStreetMap/Overpass provenance or explicit user entry
   hasWebsite: boolean;
   websiteUrl?: string;
   inCrm: boolean;
@@ -270,7 +272,6 @@ export interface CrmSettingsConfig {
   aiBaseUrl?: string; // useful for Ollama or OpenAI compatible endpoints
   aiSystemPrompt?: string;
   aiProviders?: AIProviderConfig[];
-  useSeedDemo?: boolean;
 }
 
 export type ActivePage = 

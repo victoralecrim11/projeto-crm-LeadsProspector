@@ -6,10 +6,10 @@ import {
 } from "../services/neighborhoodService";
 import {
   matchesNiche,
-  generateRealisticLeadsForLocation,
   NEIGHBORHOOD_CENTROIDS,
 } from "../services/leadGeneratorService";
 import { fetchLeadsFromOverpass } from "../services/overpassService";
+import { isVerifiedOsmLead } from "../utils/osmLead";
 
 
 // Utilitário de normalização de texto sem acentos e minúsculo
@@ -22,7 +22,7 @@ export function normalizeStr(text: string): string {
     .trim();
 }
 
-type ScanSource = "real" | "expanded" | "synthetic" | null;
+type ScanSource = "real" | "expanded" | null;
 
 export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: number; lng: number }>) => {
   const leads = useLeadStore((state) => state.leads);
@@ -31,10 +31,9 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const [selectedCity, setSelectedCity] = useState<string>("Belo Horizonte - MG");
   const [selectedNeighborhood, setSelectedNeighborhood] = useState<string>("Todos os Bairros");
   const [selectedNiche, setSelectedNiche] = useState<string>("Todos os Nichos");
-  const [searchRadius, setSearchRadius] = useState<number>(15);
+  const [searchRadius, setSearchRadius] = useState<number>(10);
   const [onlyWithoutWebsite, setOnlyWithoutWebsite] = useState<boolean>(false);
   const [onlyHighRating, setOnlyHighRating] = useState<boolean>(false);
-  const [onlyRealLeads, setOnlyRealLeads] = useState<boolean>(false);
   const [auditStatusFilter, setAuditStatusFilter] = useState<string>("Todos");
   const [priceMin, setPriceMin] = useState<number>(0);
   const [priceMax, setPriceMax] = useState<number>(5000);
@@ -51,9 +50,13 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [lastScanSource, setLastScanSource] = useState<ScanSource>(null);
   const [scanNotice, setScanNotice] = useState<string | null>(null);
+  // OSM often omits addr:suburb. Keep the exact element IDs returned by the
+  // active neighborhood scan so those valid nearby results are not removed by
+  // a later textual neighborhood filter.
+  const [lastScanPlaceIds, setLastScanPlaceIds] = useState<Set<string>>(() => new Set());
+  const [lastScanNeighborhood, setLastScanNeighborhood] = useState<string | null>(null);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
 
-  const [previewLeads, setPreviewLeads] = useState<Lead[]>([]);
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
   useEffect(() => {
@@ -95,7 +98,7 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     const clean = bairroName.trim();
     if (!clean) return;
     addCustomNeighborhoodService(clean);
-    setSelectedNeighborhood(clean);
+    handleNeighborhoodChange(clean);
     setShowAddBairroModal(false);
     setNewBairroInput("");
     setApiSuggestions([]);
@@ -105,6 +108,14 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     setSelectedCity(newCity);
     setSelectedNeighborhood("Todos os Bairros");
     setLastScanCenter(null);
+    setLastScanPlaceIds(new Set());
+    setLastScanNeighborhood(null);
+  };
+
+  const handleNeighborhoodChange = (newNeighborhood: string) => {
+    setSelectedNeighborhood(newNeighborhood);
+    setLastScanPlaceIds(new Set());
+    setLastScanNeighborhood(null);
   };
 
   const cityCenter = useMemo(() => {
@@ -122,17 +133,13 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     return 10;
   }, [searchRadius]);
 
-  const allVisibleLeads = useMemo(() => {
-    const crmPlaceIds = new Set(leads.map((l) => l.placeId).filter(Boolean));
-    const dedupedPreviews = previewLeads.filter((p) => !p.placeId || !crmPlaceIds.has(p.placeId));
-    return [...leads, ...dedupedPreviews];
-  }, [leads, previewLeads]);
+  const allVisibleLeads = useMemo(() => leads.filter(isVerifiedOsmLead), [leads]);
 
   const mappedLeads = useMemo(() => {
-    return allVisibleLeads.map((lead, index) => {
+    return allVisibleLeads.map((lead) => {
       // 1. Coordenadas reais ou leads reais que possuem coordenadas
-      if (typeof lead.geoLat === "number" && typeof lead.geoLng === "number" && lead.dataSource !== 'synthetic') {
-        const distanceKm = lead.distanceKm ?? Number(
+      if (typeof lead.geoLat === "number" && typeof lead.geoLng === "number") {
+        const distanceKm = Number(
           Math.sqrt(
             Math.pow((lead.geoLat - mapCenter.lat) * 111, 2) +
             Math.pow((lead.geoLng - mapCenter.lng) * 104, 2)
@@ -141,44 +148,13 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
         return { ...lead, distanceKm };
       }
 
-      // 2. Apenas para Synthetic/Demo: usar centróide e micro-dispersão
-      if (lead.dataSource === 'synthetic') {
-        const normBairro = normalizeStr(lead.neighborhood || "");
-        const centroid = NEIGHBORHOOD_CENTROIDS[normBairro] || mapCenter;
-
-        const distanceKm = lead.distanceKm ?? Number(
-          Math.sqrt(
-            Math.pow((centroid.lat - mapCenter.lat) * 111, 2) +
-            Math.pow((centroid.lng - mapCenter.lng) * 104, 2)
-          ).toFixed(1)
-        );
-
-        // Micro-dispersão de 150m no próprio bairro para não sobrepor alfinetes idênticos
-        const angle = (index * 67.5) * (Math.PI / 180);
-        const scatterOffsetKm = 0.15;
-        const deltaLat = (scatterOffsetKm / 111) * Math.sin(angle);
-        const deltaLng = (scatterOffsetKm / 104) * Math.cos(angle);
-
-        return {
-          ...lead,
-          distanceKm,
-          geoLat: centroid.lat + deltaLat,
-          geoLng: centroid.lng + deltaLng,
-        };
-      }
-
-      // Se for real mas não tem coordenada, manter como está (sem scatter)
+      // Leads without coordinates are intentionally not placed on the map.
       return lead;
     });
   }, [allVisibleLeads, mapCenter]);
 
   const filteredLeads = useMemo(() => {
     return mappedLeads.filter((lead) => {
-      // Filtro para dados 100% reais (oculta sintéticos/demo se ativo)
-      if (onlyRealLeads && lead.dataSource === "synthetic") {
-        return false;
-      }
-
       const leadCityNorm = normalizeStr(lead.city);
       const selectedCitySimple = normalizeStr(selectedCity.split(" - ")[0]);
 
@@ -190,7 +166,9 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
         const targetBairroNorm = normalizeStr(selectedNeighborhood);
         const leadBairroNorm = normalizeStr(lead.neighborhood || "");
         const leadAddrNorm = normalizeStr(lead.address || "");
-        if (!leadBairroNorm.includes(targetBairroNorm) && !leadAddrNorm.includes(targetBairroNorm)) return false;
+        const cameFromActiveNeighborhoodScan = lastScanNeighborhood === selectedNeighborhood
+          && Boolean(lead.placeId && lastScanPlaceIds.has(lead.placeId));
+        if (!cameFromActiveNeighborhoodScan && !leadBairroNorm.includes(targetBairroNorm) && !leadAddrNorm.includes(targetBairroNorm)) return false;
       }
 
       if (selectedNiche !== "Todos os Nichos" && !matchesNiche(lead.category || "", selectedNiche) && !matchesNiche(lead.niche || "", selectedNiche)) {
@@ -226,23 +204,11 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
 
       return true;
     });
-  }, [mappedLeads, selectedCity, selectedNeighborhood, selectedNiche, onlyWithoutWebsite, onlyHighRating, onlyRealLeads, debouncedSearchQuery, searchRadius, auditStatusFilter, priceMin, priceMax]);
+  }, [mappedLeads, selectedCity, selectedNeighborhood, selectedNiche, onlyWithoutWebsite, onlyHighRating, debouncedSearchQuery, searchRadius, auditStatusFilter, priceMin, priceMax, lastScanNeighborhood, lastScanPlaceIds]);
 
   const addCustomLeads = (newLeads: Omit<Lead, 'id' | 'createdAt'>[]) => {
-    const newlyAdded: Lead[] = [];
     newLeads.forEach((lead) => {
-      if (lead.dataSource === 'synthetic') {
-        const id = `preview-${lead.placeId || lead.name}-${Math.random().toString(36).slice(2, 8)}`;
-        setPreviewLeads((prev) => {
-          if (prev.some((p) => p.name.toLowerCase() === lead.name.toLowerCase())) return prev;
-          return [...prev, { ...lead, id, createdAt: new Date().toISOString() } as Lead];
-        });
-      } else {
-        const addedLead = addCustomLead(lead);
-        if (addedLead) {
-          newlyAdded.push(addedLead);
-        }
-      }
+      addCustomLead(lead);
     });
   };
 
@@ -251,7 +217,6 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     setRadarPulse(true);
     setLastScanSource(null);
     setScanNotice(null);
-    setPreviewLeads([]); 
 
     const activeQuery = typeof overrideQuery === "string" ? overrideQuery : searchQuery;
     const cleanQuery = (activeQuery || "").trim();
@@ -275,6 +240,8 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
 
       if (overpassLeads.length >= 1) {
         addCustomLeads(overpassLeads.map(l => ({ ...l, inCrm: false, temperature: 'quente' as const })));
+        setLastScanPlaceIds(new Set(overpassLeads.map((lead) => lead.placeId).filter((placeId): placeId is string => Boolean(placeId))));
+        setLastScanNeighborhood(selectedNeighborhood);
         setLastScanSource("real");
         setScanNotice(null);
         setIsScanning(false);
@@ -291,6 +258,8 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
 
         if (expandedLeads.length >= 1) {
           addCustomLeads(expandedLeads.map(l => ({ ...l, inCrm: false, temperature: 'morno' as const })));
+          setLastScanPlaceIds(new Set(expandedLeads.map((lead) => lead.placeId).filter((placeId): placeId is string => Boolean(placeId))));
+          setLastScanNeighborhood(selectedNeighborhood);
           setLastScanSource("expanded");
           setScanNotice(null);
           setIsScanning(false);
@@ -367,20 +336,17 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     return filteredLeads.filter((l) => l.dataSource === "real").length;
   }, [filteredLeads]);
 
-  const demoCount = useMemo(() => {
-    return filteredLeads.filter((l) => l.dataSource === "synthetic").length;
-  }, [filteredLeads]);
+  const demoCount = 0;
 
   return {
-    setApiSuggestions, searchSuggestions, handleSelectSuggestion, setScanNotice, setPreviewLeads,
+    setApiSuggestions, searchSuggestions, handleSelectSuggestion, setScanNotice,
 
     selectedCity, handleCityChange,
-    selectedNeighborhood, setSelectedNeighborhood,
+    selectedNeighborhood, setSelectedNeighborhood: handleNeighborhoodChange,
     selectedNiche, setSelectedNiche,
     searchRadius, setSearchRadius,
     onlyWithoutWebsite, setOnlyWithoutWebsite,
     onlyHighRating, setOnlyHighRating,
-    onlyRealLeads, setOnlyRealLeads,
     realOsmCount,
     demoCount,
     auditStatusFilter, setAuditStatusFilter,

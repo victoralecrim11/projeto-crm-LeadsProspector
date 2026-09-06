@@ -88,7 +88,7 @@ export const Sidebar: React.FC = () => {
 
   const primaryCycleNav: { id: ActivePage; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'dashboard', label: 'Painel Geral', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'leads', label: '1. Prospectar Maps', icon: <Compass className="w-4 h-4" />, badge: 'MAPS' },
+    { id: 'leads', label: '1. Prospectar Local', icon: <Compass className="w-4 h-4" />, badge: 'OSM' },
     { id: 'redesenhar', label: '2. Redesenho & Prévia', icon: <Sparkles className="w-4 h-4" />, badge: 'IA' },
     { id: 'editor', label: '3. Editor Visual', icon: <Edit3 className="w-4 h-4" /> },
     { id: 'propostas', label: '4. Propostas & E-mail', icon: <FileText className="w-4 h-4" /> },

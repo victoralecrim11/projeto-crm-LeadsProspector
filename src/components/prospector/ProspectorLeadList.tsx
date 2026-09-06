@@ -252,7 +252,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
                         : "text-rose-400 font-bold shrink-0"
                     }
                   >
-                    {lead.hasWebsite ? "Possui site" : "🚨 Sem site"}
+                    {lead.hasWebsite ? "Site informado no OSM" : "Site não informado no OSM"}
                   </span>
                 </div>
 

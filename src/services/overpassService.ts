@@ -208,6 +208,7 @@ function osmElementToLead(
     osmType: element.type,
     osmLat: lat,
     osmLng: lng,
+    osmRating: rating,
     dataSource: 'real',
     audit: undefined,
   };

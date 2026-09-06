@@ -40,9 +40,6 @@ interface ProspectorFiltersBarProps {
   onlyHighRating: boolean;
   setOnlyHighRating: (val: boolean) => void;
 
-  onlyRealLeads: boolean;
-  setOnlyRealLeads: (val: boolean) => void;
-
   auditStatusFilter: string;
   setAuditStatusFilter: (val: string) => void;
 
@@ -82,8 +79,6 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
   setOnlyWithoutWebsite,
   onlyHighRating,
   setOnlyHighRating,
-  onlyRealLeads,
-  setOnlyRealLeads,
   auditStatusFilter,
   setAuditStatusFilter,
   priceMin,
@@ -115,7 +110,7 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
               </span>
             </div>
             <p className="text-xs text-slate-300 truncate sm:whitespace-normal">
-              Busca negócios reais via OpenStreetMap / Overpass na área, sem depender de Google Maps Platform.
+              Busca somente negócios verificáveis via OpenStreetMap / Overpass na área.
             </p>
           </div>
         </div>
@@ -326,7 +321,7 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
               className="rounded bg-slate-800 border-white/20 text-sky-500 focus:ring-sky-400 w-4 h-4"
             />
             <span>
-              Apenas <strong>SEM WEBSITE</strong> (Alta Oportunidade)
+              Apenas com <strong>site não informado no OSM</strong>
             </span>
           </label>
 
@@ -338,27 +333,19 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
               className="rounded bg-slate-800 border-white/20 text-sky-500 focus:ring-sky-400 w-4 h-4"
             />
             <span>
-              Apenas notas <strong>4.8+ ⭐</strong>
+              Apenas avaliações <strong>OSM 4.8+ ⭐</strong>
             </span>
           </label>
 
-          <label className="flex items-center gap-2 cursor-pointer text-emerald-300 hover:text-emerald-200">
-            <input
-              type="checkbox"
-              checked={onlyRealLeads}
-              onChange={(e) => setOnlyRealLeads(e.target.checked)}
-              className="rounded bg-slate-800 border-emerald-500/40 text-emerald-500 focus:ring-emerald-400 w-4 h-4"
-            />
-            <span className="font-semibold">
-              ✓ Apenas Dados Reais (OSM)
-            </span>
-          </label>
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-emerald-400/30 bg-emerald-500/10 px-2.5 py-1 font-semibold text-emerald-300">
+            <Check className="h-3.5 w-3.5" /> Dados verificáveis OSM
+          </span>
         </div>
 
         <div className="text-xs text-slate-300 flex items-center gap-2">
           <span>Resultados:</span>
           <span className="font-bold text-sky-300 bg-sky-500/20 px-2 py-0.5 rounded-full border border-sky-400/30">
-            {filteredCount} alvos ({realOsmCount} OSM • {demoCount} Demo)
+            {filteredCount} alvos reais OSM
           </span>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { useCrm } from "../hooks/useCrm";
 import { useProspectorSearch } from "../hooks/useProspectorSearch";
 import { Lead } from "../types";
@@ -37,7 +37,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     redesignLeadSite,
     setActivePage,
     setSelectedLeadForModal,
-    addCustomLead,
   } = useCrm();
 
   const {
@@ -53,8 +52,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     setOnlyWithoutWebsite,
     onlyHighRating,
     setOnlyHighRating,
-    onlyRealLeads,
-    setOnlyRealLeads,
     realOsmCount,
     demoCount,
     auditStatusFilter,
@@ -90,8 +87,9 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     searchSuggestions,
     handleSelectSuggestion,
     setScanNotice,
-    setPreviewLeads,
   } = useProspectorSearch(CITY_COORDINATES);
+
+  const selectLeadForModal = useCallback((lead: Lead) => setSelectedLeadForModal(lead), [setSelectedLeadForModal]);
 
   return (
     <div className="space-y-6">
@@ -117,8 +115,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
         setOnlyWithoutWebsite={setOnlyWithoutWebsite}
         onlyHighRating={onlyHighRating}
         setOnlyHighRating={setOnlyHighRating}
-        onlyRealLeads={onlyRealLeads}
-        setOnlyRealLeads={setOnlyRealLeads}
         auditStatusFilter={auditStatusFilter}
         setAuditStatusFilter={setAuditStatusFilter}
         priceMin={priceMin}
@@ -151,11 +147,8 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
           radarPulse={radarPulse}
           activeMarkerLead={activeMarkerLead}
           setActiveMarkerLead={setActiveMarkerLead}
-          addCustomLead={addCustomLead}
           addLeadToCrm={addLeadToCrm}
-          setPreviewLeads={setPreviewLeads}
-          onSelectLeadForModal={(lead) => setSelectedLeadForModal(lead)}
-          onNavigateToSettings={() => setActivePage("configuracoes")}
+          onSelectLeadForModal={selectLeadForModal}
           realOsmCount={realOsmCount}
           demoCount={demoCount}
         />
@@ -172,7 +165,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
           redesignLeadSite={redesignLeadSite}
           setActivePage={setActivePage}
           onSelectLeadForEmail={onSelectLeadForEmail}
-          onSelectLeadForModal={(lead) => setSelectedLeadForModal(lead)}
+          onSelectLeadForModal={selectLeadForModal}
         />
       </div>
 

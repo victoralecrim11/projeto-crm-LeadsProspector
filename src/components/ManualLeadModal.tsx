@@ -54,6 +54,7 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
       hasWebsite: formData.hasWebsite,
       websiteUrl: formData.websiteUrl,
       inCrm: false,
+      dataSource: 'manual',
     });
     
     setFormData({

@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { HostGatorSetupConfig, CrmSettingsConfig, AppNotification } from '../types';
-import { SEED_SETUP_CONFIG, SEED_CRM_SETTINGS } from '../data/seedData';
+import { DEFAULT_SETUP_CONFIG, DEFAULT_CRM_SETTINGS } from '../data/defaultConfig';
 import { safeStorage } from '../utils/safeStorage';
 
 
@@ -23,7 +23,7 @@ const STORAGE_KEYS = {
 };
 
 const getInitialCrmSettings = (): CrmSettingsConfig => {
-  let settings: CrmSettingsConfig = { ...SEED_CRM_SETTINGS };
+  let settings: CrmSettingsConfig = { ...DEFAULT_CRM_SETTINGS };
   try {
     const saved = safeStorage.getItem(STORAGE_KEYS.CRM_SETTINGS);
     if (saved) {
@@ -66,7 +66,7 @@ const getInitialSetupConfig = (): HostGatorSetupConfig => {
       console.error('Error loading setup config', e);
     }
   }
-  return SEED_SETUP_CONFIG;
+  return DEFAULT_SETUP_CONFIG;
 };
 
 export const useCrmConfigStore = create<CrmConfigState>((set, get) => ({
@@ -87,9 +87,6 @@ export const useCrmConfigStore = create<CrmConfigState>((set, get) => ({
     }
 
     import('./leadStore').then(({ useLeadStore }) => {
-      if (newSettings.useSeedDemo === false) {
-        useLeadStore.getState().purgeSeedDemoData();
-      }
       useLeadStore.getState().addNotification({
         id: 'notif-' + Date.now(),
         title: 'Configurações do CRM Salvas',

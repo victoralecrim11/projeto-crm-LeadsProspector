@@ -29,9 +29,9 @@ import { useCityNeighborhoods } from '../services/neighborhoodService';
 import { 
   NICHE_OPTIONS, 
   matchesNiche, 
-  generateRealisticLeadsForLocation, 
   normalizeStr 
 } from '../services/leadGeneratorService';
+import { isVerifiedOsmLead } from '../utils/osmLead';
 
 const AVAILABLE_CITIES = [
   'Belo Horizonte - MG',
@@ -46,14 +46,11 @@ const AVAILABLE_CITIES = [
   'Recife - PE'
 ];
 
-export type QuickFilterId = 'sem_site' | 'site_lento' | 'nota_alta' | 'fora_crm' | 'apenas_reais';
+export type QuickFilterId = 'sem_site' | 'fora_crm';
 
 const QUICK_FILTERS: { id: QuickFilterId; label: string }[] = [
-  { id: 'sem_site', label: '🚨 Sem Site Próprio' },
-  { id: 'site_lento', label: '⚡ Site Lento' },
-  { id: 'nota_alta', label: '★ Nota Google ≥ 4.8' },
+  { id: 'sem_site', label: '🌐 Site não informado no OSM' },
   { id: 'fora_crm', label: '📋 Fora do CRM' },
-  { id: 'apenas_reais', label: '✓ Apenas Dados Reais' },
 ];
 
 export const LeadsProspectorView: React.FC = () => {
@@ -66,11 +63,10 @@ export const LeadsProspectorView: React.FC = () => {
     redesignLeadSite,
     setCurrentEditingLead,
     setActivePage,
-    setEmailModalLead,
-    addCustomLead
+    setEmailModalLead
   } = useCrm();
 
-  const [viewMode, setViewMode] = useState<'map' | 'grid'>('grid');
+  const [viewMode, setViewMode] = useState<'map' | 'grid'>('map');
   const [showManualLeadModal, setShowManualLeadModal] = useState(false);
   const [selectedCity, setSelectedCity] = useState<string>('Belo Horizonte - MG');
   const [searchTerm, setSearchTerm] = useState('');
@@ -87,9 +83,10 @@ export const LeadsProspectorView: React.FC = () => {
   const [selectedQuickFilters, setSelectedQuickFilters] = useState<QuickFilterId[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
+  const prospectionLeads = useMemo(() => leads.filter(isVerifiedOsmLead), [leads]);
 
   // Dynamic hook to fetch and keep neighborhoods synchronized with selected city
-  const { neighborhoods, isSyncing } = useCityNeighborhoods(selectedCity, leads);
+  const { neighborhoods, isSyncing } = useCityNeighborhoods(selectedCity, prospectionLeads);
 
   const handleCityChange = (newCity: string) => {
     setSelectedCity(newCity);
@@ -133,7 +130,7 @@ export const LeadsProspectorView: React.FC = () => {
     const list: AutocompleteSuggestion[] = [];
 
     // 1. Lead names
-    leads.forEach(lead => {
+    prospectionLeads.forEach(lead => {
       list.push({
         id: `lead-${lead.id}`,
         title: lead.name,
@@ -174,7 +171,7 @@ export const LeadsProspectorView: React.FC = () => {
 
     // 4. Addresses
     const seenAddresses = new Set<string>();
-    leads.forEach(lead => {
+    prospectionLeads.forEach(lead => {
       if (lead.address && !seenAddresses.has(lead.address)) {
         seenAddresses.add(lead.address);
         list.push({
@@ -189,7 +186,7 @@ export const LeadsProspectorView: React.FC = () => {
     });
 
     return list;
-  }, [leads, neighborhoods, selectedCity]);
+  }, [prospectionLeads, neighborhoods, selectedCity]);
 
   const handleSelectSuggestion = (item: AutocompleteSuggestion) => {
     if (item.payload?.type === 'neighborhood') {
@@ -203,32 +200,17 @@ export const LeadsProspectorView: React.FC = () => {
     }
   };
 
-  // Instant radar scanner to generate leads for selected location & niche
+  // The only scanner is the OpenStreetMap/Overpass radar. This action routes
+  // legacy grid controls into that flow; it never creates local fake leads.
   const handleInstantScan = (overrideNeighborhood?: string, overrideNiche?: string) => {
-    setIsScanning(true);
-    const targetNeighborhood = overrideNeighborhood || (selectedNeighborhood !== 'Todos os Bairros' ? selectedNeighborhood : 'Centro');
-    const targetNiche = overrideNiche || (selectedNiche !== 'todos' ? selectedNiche : 'Barbearia');
-
-    setTimeout(() => {
-      const generated = generateRealisticLeadsForLocation({
-        city: selectedCity,
-        neighborhood: targetNeighborhood,
-        niche: targetNiche,
-        count: 3,
-        query: searchTerm
-      });
-
-      generated.forEach(leadData => {
-        addCustomLead(leadData);
-      });
-
-      setIsScanning(false);
-    }, 700);
+    if (overrideNeighborhood) setSelectedNeighborhood(overrideNeighborhood);
+    if (overrideNiche) setSelectedNiche(overrideNiche);
+    setViewMode('map');
   };
 
   // Multi-dimensional resilient filtering logic
   const filteredLeads = useMemo(() => {
-    return leads.filter(lead => {
+    return prospectionLeads.filter(lead => {
       // 1. City Filter (soft filter when searching globally)
       if (selectedCity) {
         const cityName = normalizeStr(selectedCity.split(' - ')[0]);
@@ -262,26 +244,10 @@ export const LeadsProspectorView: React.FC = () => {
       // 4. Multi-Select Quick Filters (AND logic, with intelligent web opportunity matching)
       if (selectedQuickFilters.length > 0) {
         const hasSemSite = selectedQuickFilters.includes('sem_site');
-        const hasSiteLento = selectedQuickFilters.includes('site_lento');
-        const hasNotaAlta = selectedQuickFilters.includes('nota_alta');
         const hasForaCrm = selectedQuickFilters.includes('fora_crm');
-        const hasApenasReais = selectedQuickFilters.includes('apenas_reais');
 
-        // Combined web opportunity: if user selects both "Sem Site" and "Site Lento",
-        // match companies that either don't have a website OR have a slow website (< 50)
-        if (hasSemSite && hasSiteLento) {
-          const isSlow = lead.hasWebsite && typeof lead.audit?.speedScore === 'number' && lead.audit.speedScore < 50;
-          const isWithout = !lead.hasWebsite;
-          if (!isSlow && !isWithout) return false;
-        } else if (hasSemSite) {
+        if (hasSemSite) {
           if (lead.hasWebsite) return false;
-        } else if (hasSiteLento) {
-          if (!lead.hasWebsite || typeof lead.audit?.speedScore !== 'number' || lead.audit.speedScore >= 50) return false;
-        }
-
-        // High Google rating (>= 4.8)
-        if (hasNotaAlta) {
-          if (typeof lead.rating !== 'number' || lead.rating < 4.8) return false;
         }
 
         // Outside of CRM (lead.inCrm === false)
@@ -289,10 +255,6 @@ export const LeadsProspectorView: React.FC = () => {
           if (lead.inCrm) return false;
         }
 
-        // Real Data Only
-        if (hasApenasReais) {
-          if (lead.dataSource === 'synthetic') return false;
-        }
       }
 
       // 5. Multi-token Search Term Filter
@@ -315,7 +277,7 @@ export const LeadsProspectorView: React.FC = () => {
 
       return true;
     });
-  }, [leads, selectedCity, selectedNeighborhood, selectedNiche, selectedQuickFilters, debouncedSearchTerm]);
+  }, [prospectionLeads, selectedCity, selectedNeighborhood, selectedNiche, selectedQuickFilters, debouncedSearchTerm]);
 
   const handleToggleSelectLead = (id: string) => {
     setSelectedLeadIds(prev => 
@@ -390,7 +352,7 @@ export const LeadsProspectorView: React.FC = () => {
                 }`}
               >
                 <MapIcon className="w-3.5 h-3.5" />
-                <span>Radar Maps</span>
+                <span>Radar Local</span>
               </button>
             </div>
 
@@ -405,12 +367,12 @@ export const LeadsProspectorView: React.FC = () => {
                 {isScanning ? (
                   <>
                     <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                    <span>Varrendo Maps...</span>
+                    <span>Abrindo radar...</span>
                   </>
                 ) : (
                   <>
                     <Zap className="w-3.5 h-3.5 fill-white text-white" />
-                    <span>Escanear no Maps</span>
+                    <span>Abrir Radar Local</span>
                   </>
                 )}
               </button>
@@ -444,10 +406,10 @@ export const LeadsProspectorView: React.FC = () => {
         {viewMode !== 'map' && (
           <div className="space-y-3 pt-3 border-t border-white/10">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-3.5">
-            {/* 1. Cidade no Maps */}
+            {/* 1. Cidade de busca */}
             <div className="min-w-0 flex flex-col justify-end">
               <label className="text-[11px] font-semibold text-slate-300 mb-1.5 flex items-center justify-between h-6">
-                <span className="truncate">🌆 Cidade no Maps:</span>
+                <span className="truncate">🌆 Cidade de busca:</span>
                 <span className="text-[10px] text-sky-400 font-normal shrink-0 ml-1">Base</span>
               </label>
               <ResponsiveSelect
@@ -706,31 +668,31 @@ export const LeadsProspectorView: React.FC = () => {
 
                         <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold shrink-0">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span>{typeof lead.rating === 'number' ? lead.rating : 'Avaliação não informada'}</span>
+                      <span>{typeof lead.rating === 'number' ? lead.rating : 'Avaliação OSM não informada'}</span>
                           {typeof lead.reviewsCount === 'number' && <span className="text-[10px] text-amber-400/70 font-normal">({lead.reviewsCount})</span>}
                         </div>
                       </div>
 
-                      {/* Technical Diagnostic Badge */}
+                      {/* Dados de procedência, sem inventar auditoria */}
                       <div className="p-3 glass-panel rounded-2xl border border-white/10 space-y-1.5 text-[11px]">
                         <div className="flex items-center justify-between">
-                          <span className="text-slate-400">Diagnóstico Técnico:</span>
-                          <span className={`font-bold ${lead.hasWebsite ? 'text-amber-300' : 'text-rose-400'}`}>
-                            {lead.hasWebsite ? (typeof lead.audit?.speedScore === 'number' ? `PageSpeed ${lead.audit.speedScore}/100` : 'Não auditado') : 'Sem Site Próprio'}
+                          <span className="text-slate-400">Procedência:</span>
+                          <span className="font-bold text-emerald-300">
+                            OpenStreetMap
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-300">
-                          <span>Mobile Friendly:</span>
-                          <span className={!lead.audit ? 'text-slate-400' : lead.audit.mobileFriendly ? 'text-emerald-400' : 'text-rose-400'}>
-                            {!lead.audit ? 'Não auditado' : lead.audit.mobileFriendly ? 'Sim' : 'Não Adaptado'}
+                          <span>Site cadastrado:</span>
+                          <span className={lead.hasWebsite ? 'text-emerald-400' : 'text-slate-400'}>
+                            {lead.hasWebsite ? 'Sim' : 'Não informado'}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-300">
-                          <span>Certificado SSL:</span>
-                          <span className={!lead.audit ? 'text-slate-400' : lead.audit.hasSsl ? 'text-emerald-400' : 'text-rose-400'}>
-                            {!lead.audit ? 'Não auditado' : lead.audit.hasSsl ? 'Ativo (HTTPS)' : 'Inseguro (HTTP)'}
+                          <span>Referência:</span>
+                          <span className="text-sky-300">
+                            {lead.osmType}/{lead.osmId}
                           </span>
                         </div>
                       </div>
