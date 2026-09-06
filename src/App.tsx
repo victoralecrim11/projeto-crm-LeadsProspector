@@ -35,7 +35,7 @@ const ViewFallback = () => (
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex h-screen w-screen overflow-hidden mesh-bg text-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
+    <div className="flex h-screen w-full overflow-hidden mesh-bg text-slate-100 font-['Plus_Jakarta_Sans',sans-serif]">
       {/* Sidebar */}
       <Sidebar />
 
@@ -45,7 +45,7 @@ const MainLayout: React.FC = () => {
         <Header />
 
         {/* Scrollable View Content */}
-        <main className="flex-1 overflow-y-auto px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 min-w-0">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden px-3 sm:px-6 lg:px-8 py-3.5 sm:py-6 min-w-0">
           <div className="max-w-7xl mx-auto w-full min-w-0">
             <Suspense fallback={<ViewFallback />}>
               <Routes>

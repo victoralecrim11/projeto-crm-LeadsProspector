@@ -73,17 +73,39 @@ export const PropostasView: React.FC = () => {
     handleEnhanceWithAI
   } = useProposalForm();
 
+  if (!leads || leads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-5 animate-in fade-in duration-300">
+        <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+          <FileText className="w-10 h-10" />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h2 className="text-2xl font-bold text-white tracking-tight">Nenhum Lead Encontrado</h2>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Você precisa prospectar empresas no Google Maps ou adicionar leads manualmente ao CRM para começar a gerar propostas comerciais e contratos.
+          </p>
+        </div>
+        <button 
+          onClick={() => setActivePage('dashboard')} 
+          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 border border-white/10"
+        >
+          Voltar ao Painel
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 shadow-xl">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 shadow-xl">
         <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2 text-indigo-400 font-bold text-xs uppercase tracking-wider">
+          <div className="flex flex-wrap items-center gap-2 text-indigo-400 font-bold text-[10px] sm:text-xs uppercase tracking-wider">
             <FileText className="w-4 h-4 text-sky-400" />
             <span>Ciclo Passo 4 · Propostas Comerciais & Documentos PDF com Branding</span>
           </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight">Gerador de Propostas de Alta Conversão</h2>
-          <p className="text-xs text-slate-300/80 max-w-2xl">
+          <h2 className="text-lg sm:text-2xl font-bold text-white tracking-tight">Gerador de Propostas de Alta Conversão</h2>
+          <p className="text-[11px] sm:text-xs text-slate-300/80 max-w-2xl">
             Scripts calibrados com gatilhos de reciprocidade, editor de propostas e gerador de PDF oficial com a marca da sua agência.
           </p>
 
@@ -461,38 +483,41 @@ export const PropostasView: React.FC = () => {
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto animate-in fade-in duration-200">
           <div className="relative w-full max-w-4xl bg-slate-900 border border-white/20 rounded-3xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Modal Header */}
-            <div className="p-4 sm:p-5 bg-slate-950 border-b border-white/10 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
-                  <FileText className="w-5 h-5" />
+            <div className="p-3 sm:p-5 bg-slate-950 border-b border-white/10 flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+                <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl bg-sky-500/20 border border-sky-400/30 flex items-center justify-center text-sky-400 shrink-0">
+                  <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
                 </div>
-                <div>
-                  <h3 className="font-bold text-sm sm:text-base text-white">Prévia da Proposta Comercial Oficial (PDF)</h3>
-                  <p className="text-[11px] sm:text-xs text-slate-400">Identidade visual da agência: <strong>{setupConfig.agencyName || 'Nexus Digital Studio'}</strong> (Pressione ESC para fechar)</p>
+                <div className="min-w-0">
+                  <h3 className="font-bold text-xs sm:text-base text-white truncate">Prévia da Proposta</h3>
+                  <p className="text-[10px] sm:text-xs text-slate-400 truncate">
+                    <span className="hidden sm:inline">Identidade visual da agência: </span>
+                    <strong>{setupConfig.agencyName || 'Nexus Digital Studio'}</strong>
+                  </p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-2">
-                <div className="hidden sm:flex items-center gap-1 mr-2 bg-slate-900/50 p-1 rounded-lg border border-white/5">
+              <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+                <div className="flex items-center gap-0.5 sm:gap-1 sm:mr-2 bg-slate-900/50 p-1 rounded-lg border border-white/5">
                   <button
                     onClick={() => setPdfTheme(pdfTheme === 'light' ? 'dark' : 'light')}
-                    className="p-1.5 text-slate-400 hover:text-amber-300 hover:bg-white/10 rounded-lg transition-colors"
+                    className="p-1 sm:p-1.5 text-slate-400 hover:text-amber-300 hover:bg-white/10 rounded-lg transition-colors"
                     title="Alternar Tema Escuro/Claro"
                   >
-                    {pdfTheme === 'light' ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
+                    {pdfTheme === 'light' ? <Moon className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Sun className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
                   </button>
-                  <div className="w-px h-4 bg-white/10 mx-1"></div>
+                  <div className="hidden sm:block w-px h-4 bg-white/10 mx-1"></div>
                   <button
                     onClick={() => setPdfZoom(z => Math.max(z - 0.1, 0.5))}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    className="hidden sm:block p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     title="Diminuir Zoom"
                   >
                     <ZoomOut className="w-4 h-4" />
                   </button>
-                  <span className="text-[10px] text-slate-500 font-mono w-8 text-center">{Math.round(pdfZoom * 100)}%</span>
+                  <span className="hidden sm:block text-[10px] text-slate-500 font-mono w-8 text-center">{Math.round(pdfZoom * 100)}%</span>
                   <button
                     onClick={() => setPdfZoom(z => Math.min(z + 0.1, 1.5))}
-                    className="p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
+                    className="hidden sm:block p-1.5 text-slate-400 hover:text-white hover:bg-white/10 rounded-lg transition-colors"
                     title="Aumentar Zoom"
                   >
                     <ZoomIn className="w-4 h-4" />
@@ -502,18 +527,18 @@ export const PropostasView: React.FC = () => {
                 <button
                   onClick={handleExportPdf}
                   disabled={isExportingPdf}
-                  className="px-3.5 sm:px-4 py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-sky-500/25 border border-sky-400/30 transition-all flex items-center gap-2"
+                  className="px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500 text-white font-bold text-xs rounded-lg sm:rounded-xl shadow-lg shadow-sky-500/25 border border-sky-400/30 transition-all flex items-center gap-1.5 sm:gap-2"
                 >
-                  <Download className={`w-3.5 h-3.5 ${isExportingPdf ? 'animate-bounce' : ''}`} />
+                  <Download className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${isExportingPdf ? 'animate-bounce' : ''}`} />
                   <span className="hidden sm:inline">{isExportingPdf ? 'Gerando...' : 'Baixar PDF'}</span>
                 </button>
 
                 <button
                   onClick={() => setIsPreviewModalOpen(false)}
-                  className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+                  className="p-1.5 sm:p-2 text-slate-400 hover:text-white rounded-lg sm:rounded-xl hover:bg-white/10 transition-colors ml-0.5 sm:ml-1 shrink-0"
                   title="Fechar (Esc)"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4 sm:w-5 sm:h-5" />
                 </button>
               </div>
             </div>

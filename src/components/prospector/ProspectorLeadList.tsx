@@ -261,7 +261,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
 
                 <div className="mt-1 text-[10px] text-slate-500 truncate flex items-center gap-1">
                   <MapPin className="w-3 h-3 text-sky-400 shrink-0" />
-                  <span className="truncate">{lead.address}</span>
+                  <span className="truncate">{lead.address || lead.city || 'Endereço não informado'}</span>
                   <span className="ml-auto font-mono text-slate-400 shrink-0">
                     ({lead.distanceKm ?? 2.5}km)
                   </span>

@@ -48,24 +48,24 @@ export const DashboardView: React.FC = () => {
     <div className="space-y-4 sm:space-y-6 pb-12">
       {/* Top Welcome Hero Banner */}
       <div className="relative overflow-hidden glass-panel p-4 sm:p-8 rounded-2xl sm:rounded-3xl border border-white/10 bg-gradient-to-r from-slate-950 via-indigo-950/40 to-slate-950 shadow-2xl">
-        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-4 sm:gap-6">
+        <div className="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-6">
           <div className="space-y-2 max-w-2xl">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-sky-300 border border-indigo-400/30 text-[11px] sm:text-xs font-semibold">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-indigo-500/20 text-sky-300 border border-indigo-400/30 text-[10px] sm:text-xs font-semibold">
               <Sparkles className="w-3.5 h-3.5" />
               <span>Metodologia Prospector de Sites v2.1 Ativa</span>
             </div>
-            <h2 className="text-xl sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
+            <h2 className="text-lg sm:text-2xl lg:text-3xl font-extrabold text-white tracking-tight leading-tight">
               Acelere a prospecção e o fechamento de sites para negócios locais.
             </h2>
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p className="text-[11px] sm:text-sm text-slate-300 leading-relaxed">
               Audite sites no Google Maps, crie demonstrações instantâneas de alta conversão e transforme pequenos negócios em contratos recorrentes (MRR).
             </p>
           </div>
 
-          <div className="flex flex-wrap items-center gap-3 shrink-0">
+          <div className="flex flex-wrap items-center gap-3 shrink-0 mt-2 sm:mt-0">
             <button
               onClick={() => setActivePage('leads')}
-              className="w-full sm:w-auto justify-center px-5 py-3 bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-500/25 border border-white/20 transition-all flex items-center gap-2"
+              className="w-full sm:w-auto justify-center px-4 py-2.5 sm:px-5 sm:py-3 bg-gradient-to-r from-indigo-600 via-blue-600 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-bold text-xs rounded-2xl shadow-xl shadow-indigo-500/25 border border-white/20 transition-all flex items-center gap-2"
             >
               <Compass className="w-4 h-4" />
               <span>Prospectar no Maps</span>

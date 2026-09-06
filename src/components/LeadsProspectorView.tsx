@@ -46,13 +46,14 @@ const AVAILABLE_CITIES = [
   'Recife - PE'
 ];
 
-export type QuickFilterId = 'sem_site' | 'site_lento' | 'nota_alta' | 'fora_crm';
+export type QuickFilterId = 'sem_site' | 'site_lento' | 'nota_alta' | 'fora_crm' | 'apenas_reais';
 
 const QUICK_FILTERS: { id: QuickFilterId; label: string }[] = [
   { id: 'sem_site', label: '🚨 Sem Site Próprio' },
   { id: 'site_lento', label: '⚡ Site Lento' },
   { id: 'nota_alta', label: '★ Nota Google ≥ 4.8' },
   { id: 'fora_crm', label: '📋 Fora do CRM' },
+  { id: 'apenas_reais', label: '✓ Apenas Dados Reais' },
 ];
 
 export const LeadsProspectorView: React.FC = () => {
@@ -264,6 +265,7 @@ export const LeadsProspectorView: React.FC = () => {
         const hasSiteLento = selectedQuickFilters.includes('site_lento');
         const hasNotaAlta = selectedQuickFilters.includes('nota_alta');
         const hasForaCrm = selectedQuickFilters.includes('fora_crm');
+        const hasApenasReais = selectedQuickFilters.includes('apenas_reais');
 
         // Combined web opportunity: if user selects both "Sem Site" and "Site Lento",
         // match companies that either don't have a website OR have a slow website (< 50)
@@ -285,6 +287,11 @@ export const LeadsProspectorView: React.FC = () => {
         // Outside of CRM (lead.inCrm === false)
         if (hasForaCrm) {
           if (lead.inCrm) return false;
+        }
+
+        // Real Data Only
+        if (hasApenasReais) {
+          if (lead.dataSource === 'synthetic') return false;
         }
       }
 
@@ -338,24 +345,24 @@ export const LeadsProspectorView: React.FC = () => {
   return (
     <div className="space-y-6 pb-12">
       {/* Top Header & Switcher */}
-      <div className="glass-panel p-5 sm:p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl relative z-40">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+      <div className="glass-panel p-4 sm:p-6 rounded-3xl border border-white/10 space-y-4 shadow-xl relative z-40">
+        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-3 sm:gap-4">
           <div className="space-y-1 min-w-0">
-            <div className="flex items-center gap-2 text-indigo-400 font-bold text-[11px] uppercase tracking-wider">
+            <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider">
               <Compass className="w-3.5 h-3.5 text-sky-400 shrink-0" />
               <span>Ciclo Passo 1 · Radar Google Maps & Prospecção Local</span>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
+              <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
                 Prospecção Geográfica de Leads
               </h1>
               {viewMode !== 'map' && (
-                <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 shrink-0">
+                <span className="text-[10px] sm:text-xs font-bold px-2 sm:px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 shrink-0">
                   {filteredLeads.length} {filteredLeads.length === 1 ? 'negócio' : 'negócios'}
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-300 max-w-2xl leading-relaxed">
+            <p className="text-[11px] sm:text-xs text-slate-300 max-w-2xl leading-relaxed">
               Filtre por cidade, bairro e nicho para identificar empresas com altas notas no Google Maps e sem site moderno próprio.
             </p>
           </div>
@@ -732,11 +739,11 @@ export const LeadsProspectorView: React.FC = () => {
                       <div className="space-y-1 text-xs text-slate-300">
                         <p className="flex items-center gap-1.5 text-slate-400 text-[11px] truncate">
                           <MapPin className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                          <span>{lead.address}</span>
+                          <span>{lead.address || lead.city || 'Endereço não informado'}</span>
                         </p>
                         <p className="flex items-center gap-1.5 text-sky-300 text-[11px]">
                           <Phone className="w-3.5 h-3.5 shrink-0" />
-                          <span>{lead.phone}</span>
+                          <span>{lead.phone || 'Telefone não informado'}</span>
                         </p>
                       </div>
                     </div>

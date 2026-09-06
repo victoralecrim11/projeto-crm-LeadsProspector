@@ -245,9 +245,9 @@ export const EmailDispatchModal: React.FC = () => {
               <label className="block text-[11px] font-medium text-slate-400 mb-1">
                 Remetente (Closer Configurado):
               </label>
-              <div className="flex items-center justify-between px-3 py-1.5 text-xs bg-slate-900/40 border border-white/10 rounded-lg text-slate-300">
-                <span className="font-medium">{crmSettings.closerName} ({crmSettings.closerTitle})</span>
-                <span className="text-[10px] text-indigo-300">{crmSettings.closerEmail}</span>
+              <div className="flex items-center justify-between gap-2 px-3 py-1.5 text-xs bg-slate-900/40 border border-white/10 rounded-lg text-slate-300">
+                <span className="font-medium truncate">{crmSettings.closerName} ({crmSettings.closerTitle})</span>
+                <span className="text-[10px] text-indigo-300 truncate shrink-0">{crmSettings.closerEmail}</span>
               </div>
             </div>
           </div>
@@ -297,12 +297,12 @@ export const EmailDispatchModal: React.FC = () => {
           {/* Preview banner info */}
           <div className="flex items-start gap-2.5 p-3 rounded-xl bg-sky-500/10 border border-sky-400/20 text-xs text-sky-200">
             <Sparkles className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-            <div>
-              <span className="font-semibold text-sky-300">Link de Prévia Integrado: </span>
-              <span>
+            <div className="min-w-0 flex-1">
+              <span className="font-semibold text-sky-300 block mb-0.5">Link de Prévia Integrado: </span>
+              <span className="block break-all">
                 https://{setupConfig.baseDomain}/clientes/{lead.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}
               </span>
-              <p className="text-[11px] text-slate-400 mt-0.5">
+              <p className="text-[11px] text-slate-400 mt-1">
                 Ao clicar, o lead vê a comparação Antes vs Depois e o botão de agendamento no seu WhatsApp.
               </p>
             </div>

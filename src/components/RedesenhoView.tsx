@@ -72,6 +72,28 @@ export const RedesenhoView: React.FC = () => {
 
   const currentLead = leads.find(l => l.id === selectedLeadId) || leads[0];
 
+  if (!leads || leads.length === 0) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 px-4 text-center space-y-5 animate-in fade-in duration-300">
+        <div className="w-20 h-20 rounded-3xl bg-indigo-500/10 text-indigo-400 flex items-center justify-center border border-indigo-500/20 shadow-inner">
+          <Sparkles className="w-10 h-10" />
+        </div>
+        <div className="max-w-md space-y-2">
+          <h2 className="text-2xl font-bold text-white tracking-tight">Nenhum Lead Encontrado</h2>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            Adicione ou prospecte leads no CRM para começar a visualizar e editar os comparadores interativos de sites.
+          </p>
+        </div>
+        <button 
+          onClick={() => setActivePage('dashboard')} 
+          className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-500 hover:to-blue-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20 border border-white/10"
+        >
+          Voltar ao Painel
+        </button>
+      </div>
+    );
+  }
+
   const handleCopyLink = () => {
     if (!currentLead) return;
     const slug = currentLead.name.toLowerCase().replace(/[^a-z0-9]/g, '-');

@@ -48,6 +48,30 @@ export const VisualEditorView: React.FC = () => {
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [isDeploying, setIsDeploying] = useState(false);
 
+  if (!leads || leads.length === 0) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-slate-950 flex flex-col items-center justify-center p-6 animate-in fade-in duration-300">
+        <div className="text-center space-y-5 max-w-md bg-slate-900/50 p-8 rounded-3xl border border-white/10 shadow-2xl">
+          <div className="w-16 h-16 rounded-2xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center mx-auto border border-indigo-500/30">
+            <Palette className="w-8 h-8" />
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-white mb-2">Nenhum Lead Encontrado</h2>
+            <p className="text-slate-400 text-sm leading-relaxed">
+              Você precisa prospectar ou adicionar leads ao CRM antes de usar o Editor Visual para formatar o site deles.
+            </p>
+          </div>
+          <button 
+            onClick={() => setActivePage('dashboard')} 
+            className="w-full px-4 py-3 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg shadow-indigo-600/20"
+          >
+            Voltar ao Painel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   const colorPalettes = [
     { name: 'Índigo Real', color: '#4f46e5' },
     { name: 'Oceano Sky', color: '#0ea5e9' },
@@ -116,24 +140,24 @@ export const VisualEditorView: React.FC = () => {
   return (
     <div className="fixed inset-0 z-[100] bg-slate-900 flex flex-col overflow-hidden animate-in fade-in duration-300">
       {/* Top Header - Plugin Style */}
-      <div className="flex items-center justify-between px-4 sm:px-6 py-3 bg-slate-950 border-b border-white/10 shrink-0">
-        <div className="flex items-center gap-4">
+      <div className="flex items-center justify-between px-2 sm:px-6 py-2 sm:py-3 bg-slate-950 border-b border-white/10 shrink-0 gap-1 sm:gap-4 overflow-x-auto scrollbar-none">
+        <div className="flex items-center gap-1 sm:gap-4 shrink-0">
           <button 
             onClick={() => setActivePage('dashboard')} 
-            className="text-slate-400 hover:text-white transition-colors p-2 -ml-2 rounded-lg hover:bg-white/5"
+            className="text-slate-400 hover:text-white transition-colors p-1.5 sm:p-2 sm:-ml-2 rounded-lg hover:bg-white/5"
             title="Voltar ao Painel"
           >
             <ArrowLeft className="w-5 h-5" />
           </button>
           <div className="h-6 w-px bg-white/10 hidden sm:block" />
           <div className="flex items-center gap-2 text-indigo-400 font-bold text-xs sm:text-sm uppercase tracking-wider">
-            <Edit3 className="w-4 h-4 text-sky-400" />
+            <Edit3 className="w-4 h-4 text-sky-400 hidden sm:block" />
             <span className="hidden sm:inline">Editor Visual PRO (HostGator Plugin)</span>
           </div>
         </div>
 
         {/* Center: Device Toggles on Desktop & Mode Switcher on Mobile */}
-        <div className="hidden md:flex items-center glass-panel p-1 rounded-xl border border-white/10 shadow-inner bg-black/20">
+        <div className="hidden md:flex items-center glass-panel p-1 rounded-xl border border-white/10 shadow-inner bg-black/20 shrink-0">
           <button
             onClick={() => setDeviceMode('desktop')}
             className={`p-1.5 px-3 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
@@ -155,29 +179,29 @@ export const VisualEditorView: React.FC = () => {
         </div>
 
         {/* Mobile View Switcher: Editor vs Live Preview */}
-        <div className="flex md:hidden items-center glass-panel p-0.5 rounded-xl border border-white/10 bg-black/40">
+        <div className="flex md:hidden items-center glass-panel p-0.5 rounded-lg sm:rounded-xl border border-white/10 bg-black/40 shrink-0">
           <button
             onClick={() => setMobileTab('editor')}
-            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+            className={`px-1.5 sm:px-2 py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1 ${
               mobileTab === 'editor' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Edit3 className="w-3.5 h-3.5" />
+            <Edit3 className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>Editar</span>
           </button>
           <button
             onClick={() => setMobileTab('preview')}
-            className={`px-2 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+            className={`px-1.5 sm:px-2 py-1 rounded-md sm:rounded-lg text-[10px] sm:text-xs font-bold transition-all flex items-center gap-1 ${
               mobileTab === 'preview' ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'
             }`}
           >
-            <Eye className="w-3.5 h-3.5" />
+            <Eye className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
             <span>Prévia</span>
           </button>
         </div>
 
         {/* Right: Actions */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-1.5 sm:gap-3 shrink-0">
           <button
             onClick={handleSave}
             className="hidden sm:flex items-center gap-1.5 px-3 sm:px-4 py-2 bg-slate-800 hover:bg-slate-700 text-white font-bold text-xs rounded-xl border border-white/10 transition-all"
@@ -189,10 +213,11 @@ export const VisualEditorView: React.FC = () => {
           <button
             onClick={handleDeployHostGator}
             disabled={isDeploying}
-            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-emerald-500/25 border border-white/20 transition-all"
+            className="flex items-center gap-1 sm:gap-1.5 px-2.5 sm:px-4 py-1.5 sm:py-2 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[10px] sm:text-xs rounded-lg sm:rounded-xl shadow-lg shadow-emerald-500/25 border border-white/20 transition-all"
           >
-            <Server className="w-4 h-4" />
-            <span>{isDeploying ? 'Sincronizando...' : 'Publicar HostGator'}</span>
+            <Server className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">{isDeploying ? 'Sincronizando...' : 'Publicar HostGator'}</span>
+            <span className="sm:hidden">{isDeploying ? 'Sync...' : 'Publicar'}</span>
           </button>
         </div>
       </div>

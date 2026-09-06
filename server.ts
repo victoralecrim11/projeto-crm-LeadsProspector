@@ -31,8 +31,10 @@ async function startServer() {
       
       const USER_AGENT = 'LeadsProspector-CRM/1.0';
       const OVERPASS_ENDPOINTS = [
-        'overpass.private.coffee',
         'overpass-api.de',
+        'lz4.overpass-api.de',
+        'z.overpass-api.de',
+        'overpass.private.coffee',
       ];
 
       const postData = querystring.stringify({ data: query });
@@ -51,7 +53,7 @@ async function startServer() {
                 'Content-Length': Buffer.byteLength(postData),
                 'User-Agent': USER_AGENT
               },
-              timeout: 60000
+              timeout: 15000 // 15 seconds to allow fast fallback before Cloud Run times out
             };
 
             const request = https.request(options, (response) => {

@@ -150,8 +150,13 @@ export const ResponsiveSelect: React.FC<ResponsiveSelectProps> = ({
               style={dropdownStyle}
               className={`max-h-52 sm:max-h-60 overflow-y-auto bg-slate-900/98 backdrop-blur-xl border border-white/20 rounded-xl shadow-2xl p-1.5 space-y-0.5 scrollbar-thin scrollbar-thumb-white/20 ${dropdownClassName}`}
             >
-              {options.map((option) => {
-                const isSelected = option.value === value;
+              {options.length === 0 ? (
+                <div className="px-3 py-4 text-center text-xs text-slate-400">
+                  Nenhuma opção disponível
+                </div>
+              ) : (
+                options.map((option) => {
+                  const isSelected = option.value === value;
                 return (
                   <button
                     key={option.value}
@@ -181,7 +186,7 @@ export const ResponsiveSelect: React.FC<ResponsiveSelectProps> = ({
                     {isSelected && <Check className="w-3.5 h-3.5 text-sky-400 shrink-0 ml-1" />}
                   </button>
                 );
-              })}
+              }))}
             </div>
           </>,
           document.body
