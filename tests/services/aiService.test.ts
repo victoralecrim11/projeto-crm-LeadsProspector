@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { generateAiContent, testAiProviderConnection } from './aiService';
-import type { CrmSettingsConfig } from '../types';
+import { generateAiContent, testAiProviderConnection } from '../../src/services/aiService';
+import type { CrmSettingsConfig } from '../../src/types';
 
 const settingsWithGemini = (apiKey: string): CrmSettingsConfig => ({
   closerName: '',

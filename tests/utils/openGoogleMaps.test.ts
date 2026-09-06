@@ -4,7 +4,7 @@ import {
   buildGoogleMapsBusinessSearchUrl,
   buildGoogleMapsSearchUrl,
   buildOpenStreetMapLocationUrl,
-} from './openGoogleMaps';
+} from '../../src/utils/openGoogleMaps';
 
 test('busca comercial combina nome genérico, categoria e cidade', () => {
   const url = new URL(buildGoogleMapsBusinessSearchUrl({

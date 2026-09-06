@@ -1,63 +1,156 @@
-# 🎯 CRM Prospector de Sites & Radar Google Maps
+# 🎯 PROSPECTOR CRM — Prospecção Local com OpenStreetMap
 
-**Uma plataforma full-stack completa para prospecção, auditoria de sites, CRM e gestão de vendas de desenvolvimento web — rodando diretamente no seu navegador.**
+Plataforma full-stack para encontrar negócios locais, organizar oportunidades comerciais e conduzir a venda de sites e serviços recorrentes.
 
-Encontrou → Auditou → Abordou → Ofertou → Acompanhou → Fechou → Contrato.
+O fluxo principal reúne prospecção geográfica, auditoria, abordagem comercial, geração de propostas, follow-up, contratos e acompanhamento de receita em um único CRM.
 
-Desenvolvido para agências digitais e freelancers, o sistema centraliza e automatiza a prospecção de clientes locais. Ache negócios com nota alta no Google Maps que possuem sites ruins ou não têm site, faça a gestão de cada oportunidade em um funil inteligente e envie propostas completas.
+## Estado atual
 
-## ✨ O que a plataforma faz
-
-| Funcionalidade | O que acontece |
+| Área | Recursos disponíveis |
 |---|---|
-| **Radar Google Maps** | Varre a sua região de forma direcionada: encontra negócios por Categoria/Nicho, Bairro (integrado ao IBGE), Raio e Nota de Avaliação. |
-| **Auditoria Técnica** | Diagnóstico instantâneo avaliando a existência de site, velocidade (PageSpeed) e gargalos (ex: falta de HTTPS, responsividade). |
-| **Exportação Excel (.xlsx)** | Planilha completa gerada na hora! Conta com abas de Resumo Executivo (KPIs) e Base de Leads formatada, com filtros automáticos e colorização por "Temperatura" e "Saúde do Lead". |
-| **CRM Kanban (Funil)** | Dashboard visual (drag & drop) para gerenciar leads: Prospecção → Reunião → Proposta → Negociação → Fechamento. |
-| **Command Palette (Atalhos)** | Pressione `Ctrl + K` (ou `Cmd + K`) para abrir uma paleta universal de buscas, navegação e atalhos globais. |
-| **Gerador de Propostas (PDF)** | Envie propostas comerciais padronizadas com a marca da sua agência, descritivo do projeto, valores de setup e recorrência (MRR). |
-| **E-mails & Follow-up** | Textos e copys validadas para contato inicial e acompanhamento anti-vácuo com placeholders automáticos (`[Nome do Lead]`, etc). |
-| **Gestão Financeira** | Acompanhe a projeção financeira: Total de Setup em pipeline e projeção de faturamento recorrente. |
+| **Radar local OSM** | Consulta negócios reais cadastrados no OpenStreetMap por cidade, bairro/região, nicho e raio de 5 a 50 km. As consultas passam pelo proxy Overpass do servidor, com fallback entre endpoints. |
+| **Rastreabilidade geográfica** | Cada resultado OSM pode abrir a coordenada exata no Google Maps, o ponto exato no OpenStreetMap e o registro original (`node`, `way` ou `relation`). |
+| **Busca comercial no Maps** | Ação separada que pesquisa nome, categoria e localização no Google Maps. Ela ajuda na conferência manual, mas não altera nem valida automaticamente o registro OSM. |
+| **Mapa responsivo** | Mapa e popup adaptados para desktop e celular, com ações compactas, detalhes visíveis e altura limitada por breakpoint. |
+| **CRM e funil** | Cadastro de leads, etapas comerciais, valores de setup e MRR, anotações, follow-up, contratos, projetos e agenda. |
+| **Scripts com IA** | Geração e melhoria de textos de abordagem, follow-up e objeção diretamente nos detalhes do lead, com opção de restaurar o texto original. |
+| **Integração Gemini** | Modelos estáveis com retentativas e fallback. O teste de conexão realiza uma chamada real e mostra sucesso ou erro na interface e no console do navegador. |
+| **Busca global** | O botão **Buscar** e o atalho `Ctrl + K` ou `Cmd + K` abrem a paleta de empresas, páginas e ações rápidas. |
+| **Exportação** | Exportação da base de leads para Excel (`.xlsx`) com resumo e dados comerciais. |
 
-## 📊 CRM Integrado (Dashboard)
+## Origem e interpretação dos dados
 
-Totalmente livre de mensalidades e bancos de dados complexos: as informações rodam de forma robusta localmente no seu navegador utilizando *Local Storage API* gerenciado via React Context, garantindo velocidade e privacidade. O painel inclui controle financeiro, funil de vendas, lista de tarefas para agendamentos e lista de clientes convertidos.
+O radar local usa **OpenStreetMap/Overpass** como fonte. O selo `REAL OSM` significa que o registro veio diretamente do OSM; ele não garante que o estabelecimento ainda esteja ativo, nem que os dados estejam completos.
 
-## 🚀 Como Instalar e Rodar
+- Avaliação, telefone, site e endereço só são exibidos quando existem nos dados disponíveis.
+- “Site não informado no OSM” não prova que a empresa não possui site.
+- A busca comercial no Google Maps é apenas uma conferência externa por texto.
+- O botão de coordenada abre exatamente a latitude e longitude recebidas do OSM, mesmo quando o Google Maps não associa o ponto a uma ficha comercial.
 
-O projeto foi construído utilizando as mais modernas tecnologias web: **React 18**, **TypeScript**, **Vite** e **Tailwind CSS**.
+## Tecnologias
 
-1. **Faça o clone ou download deste repositório**
-   ```bash
-   git clone <url-do-repositorio>
-   cd <nome-da-pasta>
-   ```
+- React 19, TypeScript 5.8 e Vite 6.
+- Tailwind CSS 4 e Lucide React.
+- Zustand para estado global e `safeStorage` para persistência no navegador.
+- Express para servir a aplicação e os proxies locais.
+- Leaflet, OpenStreetMap, Overpass API, Nominatim e BrasilAPI/IBGE.
+- Google GenAI e provedores configuráveis para recursos de inteligência artificial.
+- ExcelJS, FileSaver, jsPDF e HTML2Canvas para exportações e documentos.
 
-2. **Instale as dependências essenciais**
-   ```bash
-   npm install
-   ```
+## Requisitos
 
-3. **Inicie o Servidor de Desenvolvimento**
-   ```bash
-   npm run dev
-   ```
+- Node.js 20 ou superior.
+- npm compatível com a versão instalada do Node.js.
+- Acesso à internet para consultas OSM, busca externa no Maps e provedores de IA em nuvem.
 
-O sistema será iniciado (geralmente em `http://localhost:3000`). Basta acessar e começar a personalizar os dados da sua agência nas Configurações!
+## Instalação rápida
 
-## 📦 Tecnologias & Bibliotecas Utilizadas
+```bash
+git clone https://github.com/victoralecrim11/projeto-crm-LeadsProspector.git
+cd projeto-crm-LeadsProspector
+npm install
+npm run dev
+```
 
-- **Core:** React, TypeScript, Vite.
-- **Estilização & UI:** Tailwind CSS (glassmorphism premium, dark mode otimizado), Lucide React (Ícones).
-- **Motor de Exportação de Dados:** `exceljs` e `file-saver` (Geração de `workbooks` reais do Microsoft Excel com formatação nativa client-side).
-- **Geração de Documentos:** Utilitários JS para conversão em PDF (jsPDF / HTML2Canvas).
+A aplicação fica disponível em [http://localhost:3000](http://localhost:3000).
 
-## 💡 Dicas de Uso & Hacks
+## Configuração
 
-1. **Integração com Bairros Reais:** No Radar Google Maps, após selecionar a cidade, aguarde o carregamento ou force a atualização no ícone IBGE ao lado de **"Bairro / Região"** para puxar bairros hiper-segmentados, otimizando muito a conversão de prospecção.
-2. **Personalização Automática Excel:** Ao exportar em `.xlsx`, leads 'Quentes' sairão em destaque vermelho (alta prioridade), 'Mornos' em laranja e 'Frios' em azul, ajudando o time comercial de telemarketing a focar em quem tem mais propensão ao fechamento.
-3. **Seu Logo na Proposta:** Acesse "Configurações" e preencha todos os campos da agência. Esses dados popularão automaticamente o cabeçalho e rodapé do documento gerado em PDF, transmitindo extrema credibilidade no momento do fechamento.
+### Inteligência artificial
+
+Os provedores podem ser cadastrados em **Configurações → Inteligência Artificial**. Para o Gemini, a aplicação tenta modelos estáveis em ordem de fallback e não inclui a chave na URL da requisição.
+
+Use **Testar Conexão da API** para executar uma chamada real. O resultado aparece:
+
+- no próprio cartão do provedor;
+- no console do navegador como sucesso ou erro;
+- com o nome do modelo Gemini que respondeu, quando aplicável.
+
+O endpoint de geração executado pelo servidor também aceita a variável abaixo em um arquivo `.env` local:
+
+```env
+GEMINI_API_KEY=sua_chave_do_google_ai_studio
+```
+
+As chaves cadastradas pela interface são persistidas no armazenamento local do navegador. Esse armazenamento não equivale a um cofre criptografado; evite usar chaves sensíveis em computadores compartilhados e aplique restrições de uso no provedor.
+
+### Tiles do mapa
+
+Por padrão, o mapa usa os tiles públicos do OpenStreetMap. Uma fonte compatível pode ser definida com:
+
+```env
+VITE_MAP_TILE_URL=https://seu-servidor/{z}/{x}/{y}.png
+VITE_MAP_TILE_ATTRIBUTION=Texto de atribuição exigido pelo provedor
+```
+
+Mantenha sempre a atribuição exigida pelo fornecedor dos tiles.
+
+## Fluxo recomendado
+
+1. Abra **Radar de Prospecção Local**.
+2. Escolha a cidade, o bairro/região, o nicho e o raio.
+3. Execute a busca e confira os marcadores `REAL OSM`.
+4. Use **Buscar empresa no Google Maps** para comparar o nome comercial.
+5. Use os botões de coordenada e origem OSM para confirmar o ponto geográfico.
+6. Abra **Ver detalhes**, adicione o lead ao CRM e prepare a abordagem.
+7. Gere ou melhore o script com IA, registre o contato e avance o lead pelo funil.
+
+## Comandos disponíveis
+
+| Comando | Finalidade |
+|---|---|
+| `npm run dev` | Inicia o servidor Express com Vite em modo de desenvolvimento. |
+| `npm test` | Executa todos os testes automatizados da pasta `tests/`. |
+| `npm run lint` | Valida a tipagem TypeScript sem gerar arquivos. |
+| `npm run build` | Gera o frontend e o servidor de produção em `dist/`. |
+| `npm start` | Inicia o bundle de produção previamente gerado. |
+
+## Organização dos testes
+
+Os testes ficam fora do código de produção e espelham as áreas verificadas:
+
+```text
+tests/
+├── services/
+│   └── aiService.test.ts
+└── utils/
+    ├── commandPaletteShortcut.test.ts
+    └── openGoogleMaps.test.ts
+```
+
+A suíte cobre atualmente:
+
+- autenticação e fallback de modelos Gemini sem expor a chave na URL;
+- resposta do teste real de conexão com IA;
+- abertura da busca global por `Ctrl + K`;
+- separação entre busca comercial e coordenada exata;
+- preservação das coordenadas nos links Google Maps e OpenStreetMap.
+
+## Persistência local
+
+Leads, configurações e rascunhos são gerenciados por stores Zustand e persistidos por `safeStorage`, que tenta `localStorage` e usa `sessionStorage` como alternativa. Limpar os dados do navegador pode remover essas informações; exporte a base regularmente quando os registros forem importantes.
+
+## Build de produção
+
+```bash
+npm run build
+```
+
+Depois, inicie o servidor em modo de produção conforme o terminal utilizado:
+
+```powershell
+# PowerShell
+$env:NODE_ENV = "production"
+npm start
+```
+
+```bash
+# Bash, zsh ou Git Bash
+NODE_ENV=production npm start
+```
+
+O servidor entrega os arquivos compilados de `dist/` e mantém disponíveis as rotas locais usadas pelos proxies e pela geração via servidor.
 
 ---
 
-> Referência de workflow inspirada no projeto completo de prospecção do [ArrecheNeto (PROSPECTOR-DE-SITES)](https://github.com/ArrecheNeto/PROSPECTOR-DE-SITES).
+Referência de workflow inspirada no projeto [PROSPECTOR-DE-SITES](https://github.com/ArrecheNeto/PROSPECTOR-DE-SITES), de ArrecheNeto.

@@ -2,68 +2,101 @@
 
 ## Objetivo
 
-CRM para prospecção local de negócios com dados obtidos no OpenStreetMap, sem depender do Google Maps Platform, Places API ou Geocoding.
+Aplicação full-stack para descobrir negócios locais por dados do OpenStreetMap, validar oportunidades externamente e conduzir o atendimento em um CRM. O sistema reúne radar geográfico, funil, scripts comerciais com IA, propostas, contratos, projetos, agenda e exportação.
+
+O OpenStreetMap/Overpass é a fonte do radar. Google Maps é usado somente como destino de conferência manual; a aplicação não trata o resultado textual do Maps como validação automática do registro OSM.
 
 ## Fluxo de prospecção
 
-1. O usuário abre o **Radar Local** e define cidade, bairro opcional, nicho e raio.
-2. Ao clicar em **Escanear Área**, o frontend consulta o backend `/api/overpass`.
-3. O backend encaminha a consulta ao Overpass; os resultados OSM `node`, `way` e `relation` são convertidos em leads rastreáveis.
-4. Somente locais com procedência OSM completa (`tipo`, `id` e coordenadas válidas) são exibidos no mapa Leaflet e na grade.
-5. Clicar em um marcador mantém o popup aberto com detalhes, inclusão no CRM, localização externa e, quando disponível, link de origem OSM.
+1. O usuário abre o **Radar Local** e seleciona cidade, bairro/região, nicho e raio de 5 a 50 km.
+2. Ao executar a busca, o frontend envia a consulta ao proxy `/api/overpass`.
+3. O backend consulta endpoints Overpass com fallback e transforma elementos `node`, `way` e `relation` em leads rastreáveis.
+4. Os filtros são aplicados sobre a consulta ativa e os resultados retornados; negócios sem `addr:suburb` não são descartados quando pertencem ao conjunto OSM encontrado no raio do bairro.
+5. O mesmo centro ativo orienta consulta, círculo, foco do mapa e cálculo das distâncias exibidas.
+6. Um marcador abre o popup com detalhes, inclusão no CRM e ações independentes de conferência geográfica.
 
-O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações de exemplo. Registros antigos marcados como sintéticos são descartados no carregamento local.
+O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações de demonstração. Registros locais antigos marcados como sintéticos são descartados durante a migração.
 
-## Mapa e geodados
+## Mapa, coordenadas e links externos
 
-- Leaflet puro (`L.map`, `L.tileLayer`, `L.marker`, `L.circle`, `L.layerGroup`), sem `react-leaflet`.
-- Provider de tiles configurável por `VITE_MAP_TILE_URL` e `VITE_MAP_TILE_ATTRIBUTION`; há fallback para o endpoint padrão do OpenStreetMap.
-- O centro usado no Overpass, no círculo e no foco do mapa é o mesmo, inclusive para bairros com centróide conhecido.
-- Resultados de uma varredura por bairro são vinculados aos IDs OSM retornados naquela consulta. Assim, a ausência de `addr:suburb` no OSM não elimina negócios realmente encontrados dentro do raio.
-- A distância exibida é recalculada a partir do centro ativo da busca, inclusive após trocar cidade ou bairro.
-- Coordenadas são verificadas quanto a tipo, finitude e intervalo geográfico antes de criar marcadores ou links externos.
-- Uma pesquisa no Google Maps só ocorre quando o OSM oferece endereço de logradouro; sem isso, a interface abre o ponto exato no OpenStreetMap para evitar associar um nome ambíguo ao negócio errado.
+- O mapa usa Leaflet diretamente (`L.map`, `L.tileLayer`, `L.marker`, `L.circle` e `L.layerGroup`), sem `react-leaflet`.
+- Tiles e atribuição podem ser configurados por `VITE_MAP_TILE_URL` e `VITE_MAP_TILE_ATTRIBUTION`, com OpenStreetMap como padrão.
+- Latitude e longitude são validadas quanto a tipo, finitude e intervalo antes da criação de marcadores ou links.
+- **Buscar empresa no Google Maps** monta uma pesquisa comercial com nome, categoria e cidade/região para reduzir ambiguidades de nomes genéricos.
+- **Coordenada exata no Google Maps** abre as coordenadas recebidas do OSM. O Maps pode mostrar apenas um ponto ou Plus Code quando não associa essas coordenadas a uma ficha comercial.
+- **Ver ponto exato no OpenStreetMap** centraliza o mapa OSM na mesma latitude e longitude.
+- **Ver origem no OpenStreetMap** abre o objeto original pelo tipo e ID OSM quando a procedência está completa.
+- A busca comercial e a coordenada exata permanecem separadas porque resolvem problemas diferentes e nenhuma delas altera os dados armazenados.
+- O contêiner, o popup e as ações do mapa possuem regras específicas para celular e desktop, limitando altura e largura sem degradar a visualização ampla.
 
 ## Procedência e integridade dos leads
 
-- Leads OSM usam `osmType`, `osmId`, `osmLat`, `osmLng`, `geoLat` e `geoLng`.
-- A badge **REAL OSM** só aparece para registros com procedência OSM completa.
-- Não há fallback para nota, reviews, distância, WhatsApp, score ou auditoria.
+- Leads OSM preservam `osmType`, `osmId`, `osmLat`, `osmLng`, `geoLat` e `geoLng`.
+- O selo **REAL OSM** só aparece quando a procedência necessária está presente.
+- Nota, avaliações, endereço, telefone e site só são apresentados quando existem nos dados disponíveis.
+- “Site não informado no OSM” não significa que a empresa não possui site.
 - O score é determinístico e usa somente campos presentes no registro.
-- Auditoria técnica não inventa métricas: quando ausente, a UI informa que não foi auditado.
+- A auditoria técnica não inventa métricas; quando ausente, a interface informa que o lead ainda não foi auditado.
+- Entradas manuais são marcadas explicitamente como `manual` e não recebem localização, WhatsApp, avaliação ou auditoria fictícios.
+
+## IA e Google Gemini
+
+- Os scripts de abordagem, follow-up e objeção podem ser gerados ou melhorados no detalhe do lead, com restauração do texto original.
+- A configuração aceita provedores de IA cadastrados na interface e geração pelo servidor com `GEMINI_API_KEY`.
+- O Gemini usa a sequência de fallback `gemini-3.5-flash`, `gemini-2.5-flash` e `gemini-3.1-flash-lite`.
+- Falhas transitórias recebem novas tentativas com espera progressiva antes da troca de modelo.
+- A chave Gemini é enviada no cabeçalho `x-goog-api-key`, sem ser exposta na URL da requisição.
+- **Testar Conexão da API** faz uma chamada real e mostra sucesso ou erro no cartão e no console do navegador. Quando há fallback, informa qual modelo respondeu.
+- Chaves cadastradas pela interface ficam no armazenamento local do navegador; isso não equivale a um cofre criptografado.
 
 ## Nominatim e limites externos
 
-- A digitação no modal de bairro não chama Nominatim.
-- A busca externa só acontece ao clicar em **Buscar no OpenStreetMap**.
-- O proxy usa chave normalizada, cache com TTL de 24 h, máximo de 500 entradas, limpeza e uma fila que limita saídas externas a uma por segundo.
-- Erros de rate limit, timeout e upstream retornam respostas específicas.
+- Digitar no modal de bairro não dispara consultas ao Nominatim.
+- A busca externa acontece somente após a ação explícita do usuário.
+- O proxy normaliza a chave de busca, mantém cache com TTL de 24 horas e até 500 entradas e limita as saídas externas a uma por segundo.
+- Rate limit, timeout e falhas do serviço de origem retornam respostas específicas.
 
-## Estado atual de dados
+## CRM e experiência de uso
 
-- `src/data/defaultConfig.ts` contém somente configurações vazias padrão.
-- Não há gerador de empresas, seed leads, fallback sintético ou modo demonstração.
-- Registros locais antigos sem procedência verificável são descartados; entradas manuais novas são identificadas explicitamente como `manual`. Avaliações antigas sem a tag OSM correspondente também são removidas.
-- Inclusão manual permanece possível, mas não inventa localização, WhatsApp, nota, avaliações, distância ou auditoria.
+- O **Radar Local** é o ponto de varredura; a grade apresenta os mesmos resultados OSM em outra visualização.
+- O detalhe do lead reúne etapa do funil, valor de setup, MRR, contato, localização, scripts, notas e ações comerciais.
+- O botão **Melhorar com IA** permanece disponível junto ao script inteligente.
+- O botão **Buscar** e os atalhos `Ctrl + K` ou `Cmd + K` abrem a paleta global antes que o navegador consuma o atalho.
+- Leads podem ser exportados para Excel (`.xlsx`) com dados e resumo comercial.
+- Stores Zustand usam `safeStorage`, tentando `localStorage` e recorrendo a `sessionStorage` quando necessário.
 
-## Experiência de prospecção
+## Organização dos testes
 
-- O **Radar Local** é o único ponto de varredura; o botão da grade apenas abre o radar com os filtros selecionados.
-- A **Grade** é uma visualização alternativa dos mesmos resultados OSM, sem filtros ou diagnósticos baseados em dados não fornecidos pelo OSM.
-- O raio começa em 10 km e seus atalhos refletem sempre o valor atual do controle deslizante.
+Os testes automatizados ficam separados do código de produção e espelham a estrutura correspondente:
 
-## Verificações realizadas
+```text
+tests/
+├── services/
+│   └── aiService.test.ts
+└── utils/
+    ├── commandPaletteShortcut.test.ts
+    └── openGoogleMaps.test.ts
+```
 
-- `npm run lint` executa `tsc --noEmit`.
-- `npm run build` gera o frontend Vite e o backend compilado em `dist/server.cjs`.
-- Overpass foi consultado com retornos reais de `node`, `way` e `relation`.
-- No navegador, uma varredura em Belo Horizonte retornou 20 estabelecimentos reais e o popup de um marcador exibiu suas ações.
-- Nominatim foi testado com requisições concorrentes; a segunda saída respeitou a fila de um pedido externo por segundo.
+O script `npm test` executa `tests/**/*.test.ts`, e o `tsconfig.json` inclui `tests/**/*` na verificação de tipos. A suíte cobre:
 
-## Dívida técnica conhecida
+- seleção, autenticação, retentativa e fallback do Gemini;
+- retorno do teste real de conexão;
+- captura de `Ctrl + K` pela busca global;
+- composição da busca comercial no Google Maps;
+- preservação das coordenadas exatas em Google Maps e OpenStreetMap.
 
-O `strict` global do TypeScript ainda não está habilitado. Os campos opcionais ajustados nesta área são validados explicitamente; o plano de adoção gradual está em [TECHNICAL_DEBT.md](TECHNICAL_DEBT.md).
+## Comandos de verificação e produção
 
-## Análise de BrasilAPI
+- `npm test`: executa a suíte automatizada.
+- `npm run lint`: executa `tsc --noEmit`.
+- `npm run build`: gera o frontend Vite e o backend em `dist/server.cjs`.
+- `npm start`: inicia o bundle de produção previamente gerado.
 
-A avaliação em [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md) conclui que a BrasilAPI serve para enriquecer um CNPJ já conhecido, mas não oferece descoberta geográfica ou busca empresarial por cidade, bairro, nicho, CNAE ou raio. Ela não é chamada durante scans OSM.
+O build atual pode emitir avisos não bloqueantes sobre o tamanho de alguns chunks e sobre `leadStore.ts` ser importado de forma estática e dinâmica.
+
+## BrasilAPI
+
+A análise em [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md) conclui que a BrasilAPI pode enriquecer um CNPJ conhecido, mas não oferece descoberta empresarial por cidade, bairro, nicho, CNAE ou raio. Ela não participa das varreduras OSM.
+
+Consulte o [README.md](README.md) para instalação, configuração, fluxo recomendado e comandos de uso.

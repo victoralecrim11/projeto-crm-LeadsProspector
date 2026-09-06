@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { registerCommandPaletteShortcut } from './commandPaletteShortcut';
+import { registerCommandPaletteShortcut } from '../../src/utils/commandPaletteShortcut';
 
 test('Ctrl+K abre a busca e impede o atalho padrão do navegador', () => {
   let keydownListener: ((event: KeyboardEvent) => void) | undefined;
