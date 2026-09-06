@@ -41,7 +41,8 @@ export const LeadDetailsModal: React.FC = () => {
   const generatePitchScript = () => {
     switch (selectedScriptType) {
       case 'cold':
-        return `Olá ${lead.name}! Meu nome é Victor do LeadSite.\n\nNotei que vocês possuem uma excelente avaliação no Google (${lead.rating} estrelas com ${lead.reviewsCount} clientes em ${lead.city}), porém ${
+        const reputation = typeof lead.rating === 'number' ? `Notei uma avaliação de ${lead.rating} estrelas${typeof lead.reviewsCount === 'number' ? ` com ${lead.reviewsCount} avaliações` : ''} para o negócio em ${lead.city}` : `Conheci o negócio de vocês em ${lead.city}`;
+        return `Olá ${lead.name}! Meu nome é Victor do LeadSite.\n\n${reputation}, porém ${
           !lead.hasWebsite ? 'não possuem um site próprio para receber novos agendamentos automáticos.' : 'o site atual poderia converter muito mais clientes locais direto pelo WhatsApp.'
         }\n\nPreparei uma prévia gratuita de como ficaria a nova página da ${lead.name} para atrair novos clientes da região do ${lead.neighborhood || lead.city}.\n\nPosso enviar o link aqui para você dar uma olhada?`;
       
@@ -177,7 +178,7 @@ export const LeadDetailsModal: React.FC = () => {
               </div>
               <div className="flex items-center gap-2 text-slate-300">
                 <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
-                <span>{lead.rating} estrelas ({lead.reviewsCount} avaliações no Google)</span>
+                <span>{typeof lead.rating === 'number' ? `${lead.rating} estrelas${typeof lead.reviewsCount === 'number' ? ` (${lead.reviewsCount} avaliações)` : ''}` : 'Avaliação não informada'}</span>
               </div>
               <div className="flex items-start gap-2 text-slate-300 md:col-span-2">
                 <MapPin className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />

@@ -270,18 +270,18 @@ export const LeadsProspectorView: React.FC = () => {
         // Combined web opportunity: if user selects both "Sem Site" and "Site Lento",
         // match companies that either don't have a website OR have a slow website (< 50)
         if (hasSemSite && hasSiteLento) {
-          const isSlow = lead.hasWebsite && (lead.audit?.speedScore || 50) < 50;
+          const isSlow = lead.hasWebsite && typeof lead.audit?.speedScore === 'number' && lead.audit.speedScore < 50;
           const isWithout = !lead.hasWebsite;
           if (!isSlow && !isWithout) return false;
         } else if (hasSemSite) {
           if (lead.hasWebsite) return false;
         } else if (hasSiteLento) {
-          if (!lead.hasWebsite || (lead.audit?.speedScore || 50) >= 50) return false;
+          if (!lead.hasWebsite || typeof lead.audit?.speedScore !== 'number' || lead.audit.speedScore >= 50) return false;
         }
 
         // High Google rating (>= 4.8)
         if (hasNotaAlta) {
-          if (lead.rating < 4.8) return false;
+          if (typeof lead.rating !== 'number' || lead.rating < 4.8) return false;
         }
 
         // Outside of CRM (lead.inCrm === false)
@@ -350,7 +350,7 @@ export const LeadsProspectorView: React.FC = () => {
           <div className="space-y-1 min-w-0">
             <div className="flex items-center gap-2 text-indigo-400 font-bold text-[10px] sm:text-[11px] uppercase tracking-wider">
               <Compass className="w-3.5 h-3.5 text-sky-400 shrink-0" />
-              <span>Ciclo Passo 1 · Radar Google Maps & Prospecção Local</span>
+              <span>Ciclo Passo 1 · Radar de Prospecção Local</span>
             </div>
             <div className="flex items-center gap-2.5 flex-wrap">
               <h1 className="text-lg sm:text-2xl font-black text-white tracking-tight">
@@ -363,7 +363,7 @@ export const LeadsProspectorView: React.FC = () => {
               )}
             </div>
             <p className="text-[11px] sm:text-xs text-slate-300 max-w-2xl leading-relaxed">
-              Filtre por cidade, bairro e nicho para identificar empresas com altas notas no Google Maps e sem site moderno próprio.
+              Filtre por cidade, bairro e nicho para identificar empresas locais e oportunidades de presença digital.
             </p>
           </div>
 
@@ -577,7 +577,7 @@ export const LeadsProspectorView: React.FC = () => {
         )}
       </div>
 
-      {/* Main View Mode: Google Maps Interactive Radar vs Grid Cards */}
+      {/* Main View Mode: local prospecting radar vs grid cards */}
       {viewMode === 'map' ? (
         <GoogleMapsProspector />
       ) : (
@@ -623,7 +623,7 @@ export const LeadsProspectorView: React.FC = () => {
                   </strong>{' '}
                   {selectedNiche !== 'todos' && (
                     <>no nicho <strong className="text-indigo-300 font-semibold">{selectedNicheLabel}</strong></>
-                  )}. Deseja executar uma varredura agora no Google Maps para encontrar empresas reais?
+                  )}. Deseja executar uma varredura no OpenStreetMap para encontrar empresas reais?
                 </p>
               </div>
 
@@ -636,13 +636,13 @@ export const LeadsProspectorView: React.FC = () => {
                   {isScanning ? (
                     <>
                       <RefreshCw className="w-4 h-4 animate-spin" />
-                      <span>Varrendo Google Maps em tempo real...</span>
+                      <span>Buscando estabelecimentos no OpenStreetMap...</span>
                     </>
                   ) : (
                     <>
                       <Zap className="w-4 h-4 fill-white text-white" />
                       <span>
-                        Fazer Varredura no Google Maps Agora{' '}
+                        Escanear Área{' '}
                         {selectedNeighborhood !== 'Todos os Bairros' ? `em ${selectedNeighborhood}` : ''}
                       </span>
                     </>
@@ -706,8 +706,8 @@ export const LeadsProspectorView: React.FC = () => {
 
                         <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold shrink-0">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                          <span>{lead.rating}</span>
-                          <span className="text-[10px] text-amber-400/70 font-normal">({lead.reviewsCount})</span>
+                          <span>{typeof lead.rating === 'number' ? lead.rating : 'Avaliação não informada'}</span>
+                          {typeof lead.reviewsCount === 'number' && <span className="text-[10px] text-amber-400/70 font-normal">({lead.reviewsCount})</span>}
                         </div>
                       </div>
 
@@ -716,21 +716,21 @@ export const LeadsProspectorView: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400">Diagnóstico Técnico:</span>
                           <span className={`font-bold ${lead.hasWebsite ? 'text-amber-300' : 'text-rose-400'}`}>
-                            {lead.hasWebsite ? `PageSpeed ${lead.audit?.speedScore || 28}/100` : 'Sem Site Próprio'}
+                            {lead.hasWebsite ? (typeof lead.audit?.speedScore === 'number' ? `PageSpeed ${lead.audit.speedScore}/100` : 'Não auditado') : 'Sem Site Próprio'}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-300">
                           <span>Mobile Friendly:</span>
-                          <span className={lead.audit?.mobileFriendly ? 'text-emerald-400' : 'text-rose-400'}>
-                            {lead.audit?.mobileFriendly ? 'Sim' : 'Não Adaptado'}
+                          <span className={!lead.audit ? 'text-slate-400' : lead.audit.mobileFriendly ? 'text-emerald-400' : 'text-rose-400'}>
+                            {!lead.audit ? 'Não auditado' : lead.audit.mobileFriendly ? 'Sim' : 'Não Adaptado'}
                           </span>
                         </div>
 
                         <div className="flex items-center justify-between text-[10px] text-slate-300">
                           <span>Certificado SSL:</span>
-                          <span className={lead.audit?.hasSsl ? 'text-emerald-400' : 'text-rose-400'}>
-                            {lead.audit?.hasSsl ? 'Ativo (HTTPS)' : 'Inseguro (HTTP)'}
+                          <span className={!lead.audit ? 'text-slate-400' : lead.audit.hasSsl ? 'text-emerald-400' : 'text-rose-400'}>
+                            {!lead.audit ? 'Não auditado' : lead.audit.hasSsl ? 'Ativo (HTTPS)' : 'Inseguro (HTTP)'}
                           </span>
                         </div>
                       </div>

@@ -222,7 +222,7 @@ export const SiteGeneratorModal: React.FC = () => {
                 
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-sky-300 border border-indigo-400/30 text-xs font-semibold">
                   <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                  <span>{currentLead?.rating} estrelas no Google · {currentLead?.reviewsCount}+ Clientes Satisfeitos</span>
+                  <span>{typeof currentLead?.rating === 'number' ? `${currentLead.rating} estrelas${typeof currentLead.reviewsCount === 'number' ? ` · ${currentLead.reviewsCount} avaliações` : ''}` : 'Avaliação não informada'}</span>
                 </div>
 
                 <h1 className="text-3xl sm:text-4xl font-extrabold text-white tracking-tight leading-tight">
@@ -258,7 +258,7 @@ export const SiteGeneratorModal: React.FC = () => {
                     <Star className="w-4 h-4 fill-sky-300" />
                   </div>
                   <h4 className="font-bold text-xs text-white">Excelência Comprovada</h4>
-                  <p className="text-[11px] text-slate-300 mt-1">{currentLead?.rating} de 5 no Google Maps</p>
+                  <p className="text-[11px] text-slate-300 mt-1">{typeof currentLead?.rating === 'number' ? `${currentLead.rating} de 5` : 'Avaliação não informada'}</p>
                 </div>
 
                 <div className="flex-1 min-w-[140px] p-4 glass-card rounded-2xl border border-white/10">

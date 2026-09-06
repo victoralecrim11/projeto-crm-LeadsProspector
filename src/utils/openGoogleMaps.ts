@@ -1,12 +1,11 @@
+import { isValidCoordinate } from './coordinates';
+
 /**
  * Utilitário universal para abertura de fichas de empresas no Google Maps.
  *
- * Em vez de abrir coordenadas puras (que exibem apenas um ponto de GPS vazio
- * no meio de ruas ou morros), este utilitário monta uma query contextualizada
- * com Nome da Empresa + Endereço/Bairro + Cidade.
- *
- * Dessa forma, o Google Maps abre a ficha comercial oficial da empresa,
- * exibindo fotos, avaliações, horário de funcionamento e Street View.
+ * Prioriza coordenadas quando existirem e usa uma consulta textual como
+ * fallback. Para um lead OSM, coordenadas podem abrir apenas um pino/localização
+ * — não garantem uma ficha comercial oficial, fotos, avaliações ou horários.
  */
 
 export interface MapLeadTarget {
@@ -17,9 +16,27 @@ export interface MapLeadTarget {
   state?: string;
   geoLat?: number;
   geoLng?: number;
+  googleMapsUri?: string;
+  googlePlaceId?: string;
+  dataSource?: 'real' | 'synthetic';
 }
 
 export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
+  // 1. Coordenadas precisas, especialmente as recebidas do OSM.
+  if (isValidCoordinate(lead.geoLat, lead.geoLng)) {
+    // Para OSM, a query por coordenada exata no link do Maps abre o local ou pino
+    return `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`;
+  }
+
+  if (lead.googleMapsUri) {
+    return lead.googleMapsUri;
+  }
+
+  // Only use Place ID if we don't have coordinates and it's not explicitly a real OSM lead
+  if (lead.googlePlaceId && lead.dataSource !== 'real') {
+    return `https://www.google.com/maps/search/?api=1&query=Google&query_place_id=${lead.googlePlaceId}`;
+  }
+
   const parts: string[] = [];
 
   const cleanName = (lead.name || '').trim();
@@ -49,11 +66,6 @@ export function buildGoogleMapsSearchUrl(lead: MapLeadTarget): string {
 
   if (query) {
     return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(query)}`;
-  }
-
-  // Fallback de última instância: coordenadas GPS se não houver nome nem endereço
-  if (typeof lead.geoLat === 'number' && typeof lead.geoLng === 'number') {
-    return `https://www.google.com/maps/search/?api=1&query=${lead.geoLat},${lead.geoLng}`;
   }
 
   return 'https://www.google.com/maps';

@@ -239,7 +239,7 @@ export const CrmSettingsView: React.FC = () => {
           { id: 'closer', label: 'Perfil & Closer', icon: <User className="w-3.5 h-3.5" /> },
           { id: 'pipeline', label: 'Funil & Alertas SLA', icon: <Clock className="w-3.5 h-3.5" /> },
           { id: 'pricing', label: 'Preços & Propostas', icon: <DollarSign className="w-3.5 h-3.5" /> },
-          { id: 'maps', label: 'Google Maps Platform', icon: <MapPin className="w-3.5 h-3.5" />, badge: 'Maps API' },
+          { id: 'maps', label: 'Integrações legacy', icon: <MapPin className="w-3.5 h-3.5" />, badge: 'Opcional' },
           { id: 'ai', label: 'Inteligência Artificial', icon: <Sparkles className="w-3.5 h-3.5" /> },
           { id: 'email', label: 'EmailService & Envio', icon: <Mail className="w-3.5 h-3.5" /> },
           { id: 'backup', label: 'Backup & Dados', icon: <Download className="w-3.5 h-3.5" /> },
@@ -510,7 +510,7 @@ export const CrmSettingsView: React.FC = () => {
           </div>
         )}
 
-        {/* 4. Google Maps Platform Integration */}
+        {/* 4. Legacy optional integration */}
 
         {activeTab === 'maps' && (
           <div className="glass-panel p-6 rounded-2xl border border-white/10 space-y-6 animate-in fade-in duration-150">
@@ -518,10 +518,10 @@ export const CrmSettingsView: React.FC = () => {
               <div>
                 <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
                   <MapPin className="w-4 h-4 text-sky-400" />
-                  Integração Google Maps Platform (Places API & Radar)
+                  Integração Google legacy (opcional)
                 </h3>
                 <p className="text-xs text-slate-400">
-                  Configure sua chave de API para carregar mapas em alta resolução, satélite e busca de pontos comerciais locais.
+                  Esta configuração é legada e opcional. O Prospector atual usa OpenStreetMap / Overpass e não depende desta chave.
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">

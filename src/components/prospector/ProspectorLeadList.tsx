@@ -55,11 +55,8 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
                 {activeMarkerLead.name}
               </h3>
               <div className="flex items-center gap-1.5 mt-1 text-xs text-slate-300">
-                <span className="flex items-center text-amber-400 font-bold">
-                  <Star className="w-3.5 h-3.5 fill-amber-400 inline mr-0.5" />
-                  {activeMarkerLead.rating}
-                </span>
-                <span>({activeMarkerLead.reviewsCount} avaliações no Google)</span>
+                {typeof activeMarkerLead.rating === "number" ? <span className="flex items-center text-amber-400 font-bold"><Star className="w-3.5 h-3.5 fill-amber-400 inline mr-0.5" />{activeMarkerLead.rating}</span> : <span>Avaliação não informada</span>}
+                {typeof activeMarkerLead.reviewsCount === "number" && <span>({activeMarkerLead.reviewsCount} avaliações)</span>}
               </div>
             </div>
 
@@ -110,7 +107,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
             <div className="flex items-center justify-between">
               <span className="text-slate-400">Distância do Centro:</span>
               <span className="font-semibold text-sky-300">
-                📍 {activeMarkerLead.distanceKm ?? 2.5} km
+                📍 {typeof activeMarkerLead.distanceKm === "number" ? `${activeMarkerLead.distanceKm} km` : "Distância não informada"}
               </span>
             </div>
 
@@ -217,7 +214,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
               className="w-full py-2 px-3 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
             >
               <Zap className="w-3.5 h-3.5 fill-white" />
-              <span>Escanear Google Maps Agora</span>
+              <span>Escanear Área</span>
             </button>
           </div>
         ) : (
@@ -237,7 +234,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
                     {lead.name}
                   </span>
                   <span className="text-amber-400 font-bold shrink-0">
-                    ★ {lead.rating}
+                    {typeof lead.rating === "number" ? `★ ${lead.rating}` : "Avaliação não informada"}
                   </span>
                 </div>
 
@@ -255,7 +252,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
                         : "text-rose-400 font-bold shrink-0"
                     }
                   >
-                    {lead.hasWebsite ? "Site lento" : "🚨 Sem site"}
+                    {lead.hasWebsite ? "Possui site" : "🚨 Sem site"}
                   </span>
                 </div>
 
@@ -263,7 +260,7 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
                   <MapPin className="w-3 h-3 text-sky-400 shrink-0" />
                   <span className="truncate">{lead.address || lead.city || 'Endereço não informado'}</span>
                   <span className="ml-auto font-mono text-slate-400 shrink-0">
-                    ({lead.distanceKm ?? 2.5}km)
+                    {typeof lead.distanceKm === "number" ? `(${lead.distanceKm}km)` : "Distância não informada"}
                   </span>
                 </div>
               </div>

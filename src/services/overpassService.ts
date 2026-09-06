@@ -3,6 +3,8 @@
 // Free, no API key required.
 
 import { Lead } from '../types';
+import { isValidCoordinate } from '../utils/coordinates';
+import { calculateOpportunityScore } from '../utils/leadScoring';
 
 const NICHE_TO_OSM_TAGS: Record<string, { key: string; value: string }[]> = {
   'Barbearia': [
@@ -75,8 +77,11 @@ function buildOverpassQuery(opts: OverpassSearchOptions): string {
   const wayQueries = tags
     .map(tag => `  way["${tag.key}"="${tag.value}"](around:${radiusMeters},${lat},${lng});`)
     .join('\n');
+  const relationQueries = tags
+    .map(tag => `  relation["${tag.key}"="${tag.value}"](around:${radiusMeters},${lat},${lng});`)
+    .join('\n');
 
-  return `[out:json][timeout:25];\n(\n${nodeQueries}\n${wayQueries}\n);\nout body center ${maxResults};`;
+  return `[out:json][timeout:25];\n(\n${nodeQueries}\n${wayQueries}\n${relationQueries}\n);\nout body center ${maxResults};`;
 }
 
 function buildAddress(tags: Record<string, string>, cityName: string): string {
@@ -132,7 +137,7 @@ function osmElementToLead(
 
   const lat = element.lat ?? element.center?.lat;
   const lng = element.lon ?? element.center?.lon;
-  if (!lat || !lng) return null;
+  if (!isValidCoordinate(lat, lng)) return null;
 
   const phone = tags['phone'] || tags['contact:phone'] || tags['contact:mobile'] || '';
   const cleanPhone = phone.replace(/\s/g, '').replace(/^\+55/, '');
@@ -145,7 +150,7 @@ function osmElementToLead(
 
   const ratingStr = tags['rating'] || tags['stars'] || '';
   const parsedRating = ratingStr ? parseFloat(ratingStr) : NaN;
-  const rating = !isNaN(parsedRating) ? Math.min(5, Math.max(1, parsedRating)) : 4.5;
+  const rating = !isNaN(parsedRating) ? Math.min(5, Math.max(1, parsedRating)) : undefined;
 
   const address = buildAddress(tags, cityName);
   const neighborhood = extractNeighborhood(tags);
@@ -165,16 +170,28 @@ function osmElementToLead(
 
   const distanceKm = Number(calculateDistance(originLat, originLng, lat, lng).toFixed(1));
 
+  const opportunityScore = calculateOpportunityScore({
+    hasWebsite,
+    phone,
+    email: tags['email'] || tags['contact:email'],
+    address,
+    category: realCategory,
+  });
+
+  const rawWhatsapp = tags['contact:whatsapp'] || tags['whatsapp'] || '';
+  const cleanWhatsapp = rawWhatsapp.replace(/\D/g, '');
+  const whatsapp = cleanWhatsapp ? (cleanWhatsapp.startsWith('55') ? cleanWhatsapp : `55${cleanWhatsapp}`) : undefined;
+
   return {
     name: name.trim(),
     category: realCategory,
     niche: realCategory,
     temperature: 'quente',
-    score: 85 + Math.floor(Math.random() * 13),
+    score: opportunityScore,
     rating,
-    reviewsCount: 0,
+    reviewsCount: undefined,
     phone: formattedPhone,
-    whatsapp: formattedPhone ? `55${cleanPhone.replace(/\D/g, '')}` : '',
+    whatsapp,
     email: tags['email'] || tags['contact:email'] || '',
     city: cityName,
     state: stateName,
@@ -187,31 +204,12 @@ function osmElementToLead(
     websiteUrl: hasWebsite ? website : undefined,
     inCrm: false,
     placeId: `${element.type}/${element.id}`,
+    osmId: String(element.id),
+    osmType: element.type,
+    osmLat: lat,
+    osmLng: lng,
     dataSource: 'real',
-    audit: {
-      speedScore: hasWebsite ? Math.floor(20 + Math.random() * 35) : 0,
-      loadingTimeSeconds: hasWebsite ? Number((4.5 + Math.random() * 4).toFixed(1)) : 0,
-      mobileFriendly: false,
-      hasSsl: false,
-      hasWhatsappButton: false,
-      seoScore: Math.floor(25 + Math.random() * 35),
-      issues: hasWebsite
-        ? [
-            'Site pode não estar adaptado para smartphones',
-            'Sem certificado HTTPS verificado',
-            'Sem botão de agendamento via WhatsApp',
-          ]
-        : [
-            'Empresa sem website cadastrado',
-            'Perdendo clientes para concorrentes com presença digital',
-            'Alta oportunidade de criação de Landing Page de conversão',
-          ],
-      opportunities: [
-        'Agendamento direto via WhatsApp com 1 clique',
-        'Página moderna com carregamento < 1s',
-        'Destaque das avaliações Google nas buscas',
-      ],
-    },
+    audit: undefined,
   };
 }
 

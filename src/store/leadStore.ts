@@ -4,6 +4,7 @@ import { SEED_LEADS, SEED_APPOINTMENTS, SEED_PROJECTS, SEED_NOTIFICATIONS, SEED_
 import { safeStorage } from '../utils/safeStorage';
 import confetti from 'canvas-confetti';
 import { useCrmConfigStore } from './crmConfigStore';
+import { migrateLegacyLeads } from '../utils/leadMigration';
 
 interface LeadState {
   leads: Lead[];
@@ -24,7 +25,7 @@ interface LeadState {
   removeLeadFromCrm: (leadId: string) => void;
   updateLeadStage: (leadId: string, newStage: LeadStatus) => void;
   updateLeadDetails: (updatedLead: Lead) => void;
-  addCustomLead: (newLead: Omit<Lead, 'id' | 'createdAt'>) => void;
+  addCustomLead: (newLead: Omit<Lead, 'id' | 'createdAt'>) => Lead | undefined;
   
   // Lifecycle Actions
   runAuditOnLead: (leadId: string) => void;
@@ -85,16 +86,26 @@ const getInitialLeads = (): Lead[] => {
       if (!shouldUseSeedDemo()) {
         const seedIds = new Set(SEED_LEADS.map(l => l.id));
         const seedNames = new Set(SEED_LEADS.map(l => (l.name || '').toLowerCase().trim()));
-        return mapped.filter(l => 
+        const filtered = mapped.filter(l => 
           !seedIds.has(l.id) && 
           !seedNames.has((l.name || '').toLowerCase().trim()) &&
           l.dataSource !== 'synthetic' && 
           !l.placeId?.startsWith('seed/')
         );
+        const { migratedLeads, wasMigrated } = migrateLegacyLeads(filtered);
+        if (wasMigrated) {
+          localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(migratedLeads));
+        }
+        return migratedLeads;
       }
       const existingIds = new Set(mapped.map(l => l.id));
       const missingDefaults = SEED_LEADS.filter(l => !existingIds.has(l.id) && !nameSet.has((l.name || '').toLowerCase().trim()));
-      return missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
+      const combined = missingDefaults.length > 0 ? [...mapped, ...missingDefaults] : mapped;
+      const { migratedLeads, wasMigrated } = migrateLegacyLeads(combined);
+      if (wasMigrated) {
+        localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(migratedLeads));
+      }
+      return migratedLeads;
     } catch (e) {
       console.error('Error loading saved leads', e);
     }
@@ -271,54 +282,53 @@ export const useLeadStore = create<LeadState>((set, get) => ({
   addCustomLead: (newLeadData) => {
     const prev = get().leads;
     const isDuplicate = prev.some(l => {
+      if (l.googlePlaceId && newLeadData.googlePlaceId && l.googlePlaceId === newLeadData.googlePlaceId) return true;
+      if (l.osmType && l.osmId && newLeadData.osmType && newLeadData.osmId && l.osmType === newLeadData.osmType && l.osmId === newLeadData.osmId) return true;
+      if (l.placeId && newLeadData.placeId && l.placeId === newLeadData.placeId) return true;
+
       const name1 = (l.name || '').toLowerCase().trim();
       const name2 = (newLeadData.name || '').toLowerCase().trim();
-      if (name1 === name2) return true;
-      const words1 = name1.split(' ');
-      const words2 = name2.split(' ');
-      if (words1.length >= 3 && words2.length >= 3) {
-        if (words1[0] === words2[0] && words1[1] === words2[1] && words1[2] === words2[2]) return true;
+      
+      let isNameMatch = name1 === name2;
+      if (!isNameMatch) {
+        const words1 = name1.split(' ');
+        const words2 = name2.split(' ');
+        if (words1.length >= 3 && words2.length >= 3) {
+          isNameMatch = words1[0] === words2[0] && words1[1] === words2[1] && words1[2] === words2[2];
+        }
+      }
+
+      if (isNameMatch) {
+        if (typeof l.geoLat === 'number' && typeof l.geoLng === 'number' && typeof newLeadData.geoLat === 'number' && typeof newLeadData.geoLng === 'number') {
+          const distKm = Math.sqrt(
+            Math.pow((l.geoLat - newLeadData.geoLat) * 111, 2) +
+            Math.pow((l.geoLng - newLeadData.geoLng) * 104, 2)
+          );
+          if (distKm < 0.5) return true;
+        } else {
+          return true;
+        }
       }
       return false;
     });
-    if (isDuplicate) return;
+    if (isDuplicate) return undefined;
     
     const uniqueId = 'lead-custom-' + Date.now() + '-' + Math.random().toString(36).substring(2, 9);
     const newLead: Lead = {
       ...newLeadData,
       id: uniqueId,
       createdAt: new Date().toISOString(),
-      audit: {
-        speedScore: 30,
-        loadingTimeSeconds: 6.0,
-        mobileFriendly: false,
-        hasSsl: false,
-        hasWhatsappButton: false,
-        seoScore: 45,
-        issues: ['Site não responsivo para celular', 'Sem certificado SSL', 'Sem botão WhatsApp'],
-        opportunities: ['Redesenho com agendamento direto']
-      }
+      audit: undefined
     };
     get().setLeads([newLead, ...prev]);
+    return newLead;
   },
 
   runAuditOnLead: (leadId) => {
     const leads = get().leads.map(lead => {
       if (lead.id === leadId) {
-        return {
-          ...lead,
-          crmStage: lead.crmStage === 'novo' ? 'auditado' : lead.crmStage,
-          audit: lead.audit || {
-            speedScore: 28,
-            loadingTimeSeconds: 6.2,
-            mobileFriendly: false,
-            hasSsl: false,
-            hasWhatsappButton: false,
-            seoScore: 40,
-            issues: ['Sem versão mobile', 'Sem botão WhatsApp', 'Tempo de carregamento lento (6.2s)'],
-            opportunities: ['Página rápida com agendamento instantâneo']
-          }
-        };
+        // Retornar lead inalterado se não temos auditoria real (Não inventar métricas nesta fase)
+        return lead;
       }
       return lead;
     });
@@ -344,7 +354,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
               { title: 'Atendimento Completo VIP', price: 'R$ 80,00', description: 'Serviço personalizado com profissionais experientes.' },
               { title: 'Procedimento Especializado', price: 'R$ 150,00', description: 'Tecnologia moderna e foco na sua satisfação total.' }
             ],
-            testimonials: [{ author: 'Cliente Satisfeito', role: 'Google Maps', text: 'Excelente experiência, recomendo demais!', rating: 5 }]
+            testimonials: [{ author: 'Exemplo de depoimento', role: 'Cliente', text: 'Exemplo de depoimento — substitua por uma avaliação real do cliente.', rating: 5 }]
           },
           proposal: lead.proposal || {
             title: `Proposta Comercial - ${lead.name}`,
@@ -398,7 +408,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
           proposal: {
             title: `Proposta de Transformação Digital - ${lead.name}`,
             emailSubject: `Oportunidade para dobrar os clientes de ${lead.name}`,
-            emailBody: `Olá!\n\nIdentificamos que seu negócio tem nota ${lead.rating} no Google, mas o site atual pode estar perdendo visitantes mobile.\n\nPreparamos uma página interativa com comparador Antes e Depois para você avaliar sem compromisso:\nhttps://${setupConfig.baseDomain}/clientes/${slug}`,
+            emailBody: `Olá!\n\nIdentificamos uma grande oportunidade de atrair mais clientes para seu negócio através da internet, garantindo que vocês não percam visitantes mobile.\n\nPreparamos uma página interativa com comparador Antes e Depois para você avaliar sem compromisso:\nhttps://${setupConfig.baseDomain}/clientes/${slug}`,
             whatsappMessage: `Olá ${lead.name}! Criei uma proposta visual com comparador Antes/Depois para seu novo site. Veja aqui: https://${setupConfig.baseDomain}/clientes/${slug}`,
             proposalSlug: slug,
             dealValue: lead.dealValue || 1800,

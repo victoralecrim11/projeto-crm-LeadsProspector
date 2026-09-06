@@ -58,7 +58,7 @@ export const DashboardView: React.FC = () => {
               Acelere a prospecção e o fechamento de sites para negócios locais.
             </h2>
             <p className="text-[11px] sm:text-sm text-slate-300 leading-relaxed">
-              Audite sites no Google Maps, crie demonstrações instantâneas de alta conversão e transforme pequenos negócios em contratos recorrentes (MRR).
+              Encontre negócios locais, crie demonstrações instantâneas de alta conversão e transforme oportunidades em contratos recorrentes (MRR).
             </p>
           </div>
 
@@ -211,7 +211,7 @@ export const DashboardView: React.FC = () => {
                   <div className="flex items-center gap-2">
                     <h4 className="font-bold text-xs text-white">{lead.name}</h4>
                     <span className="px-2 py-0.2 text-[9px] font-bold rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                      ★ {lead.rating}
+                      {typeof lead.rating === 'number' ? `★ ${lead.rating}` : 'Avaliação não informada'}
                     </span>
                   </div>
                   <p className="text-[11px] text-slate-400">{lead.category} · {lead.city}</p>

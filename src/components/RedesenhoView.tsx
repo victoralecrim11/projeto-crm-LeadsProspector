@@ -186,9 +186,9 @@ export const RedesenhoView: React.FC = () => {
                 <div className="p-3 glass-panel rounded-2xl border border-white/10 text-center">
                   <span className="text-[10px] font-bold text-slate-400 block uppercase">Site Antigo</span>
                   <div className="text-xl font-extrabold text-rose-400 mt-0.5">
-                    {currentLead.audit?.speedScore || 28}/100
+                    {typeof currentLead.audit?.speedScore === 'number' ? `${currentLead.audit.speedScore}/100` : 'Não auditado'}
                   </div>
-                  <span className="text-[10px] text-slate-400">Tempo: {currentLead.audit?.loadingTimeSeconds || 6.2}s</span>
+                  <span className="text-[10px] text-slate-400">Tempo: {currentLead.audit ? `${currentLead.audit.loadingTimeSeconds}s` : 'Não auditado'}</span>
                 </div>
 
                 <div className="p-3 glass-panel rounded-2xl border border-emerald-500/30 bg-emerald-500/10 text-center">
@@ -242,7 +242,7 @@ export const RedesenhoView: React.FC = () => {
                   </li>
                   <li className="flex items-center gap-2 text-emerald-200/90 text-[11px]">
                     <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>Depoimentos 5.0 estrelas do Google Maps</span>
+                    <span>Depoimentos devem ser fornecidos ou autorizados pelo cliente</span>
                   </li>
                 </ul>
               </div>
@@ -382,7 +382,7 @@ export const RedesenhoView: React.FC = () => {
                     {/* Main Hero Banner */}
                     <div className="text-center space-y-3 max-w-xl mx-auto py-4">
                       <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/20 text-sky-300 border border-indigo-400/30 text-xs font-semibold">
-                        <span>★ {currentLead.rating} no Google Maps · {currentLead.reviewsCount}+ Clientes</span>
+                        <span>{typeof currentLead.rating === 'number' ? `★ ${currentLead.rating}${typeof currentLead.reviewsCount === 'number' ? ` · ${currentLead.reviewsCount} avaliações` : ''}` : 'Avaliação não informada'}</span>
                       </div>
                       <h3 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight leading-tight">
                         {currentLead.customization?.heroTitle || `O melhor atendimento de ${currentLead.category} em ${currentLead.city}`}

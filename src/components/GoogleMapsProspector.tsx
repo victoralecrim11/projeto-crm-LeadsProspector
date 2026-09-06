@@ -37,7 +37,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     redesignLeadSite,
     setActivePage,
     setSelectedLeadForModal,
-    crmSettings,
     addCustomLead,
   } = useCrm();
 
@@ -71,8 +70,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     scanNotice,
     activeMarkerLead,
     setActiveMarkerLead,
-    infoWindowAnchor,
-    setInfoWindowAnchor,
     radarPulse,
     currentCityNeighborhoods,
     isSyncingNeighborhoods,
@@ -82,6 +79,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     setNewBairroInput,
     apiSuggestions,
     isSearchingApi,
+    searchNeighborhoodsOnOpenStreetMap,
     handleAddCustomNeighborhood,
     refreshNeighborhoodsFromApi,
     mapCenter,
@@ -94,11 +92,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
     setScanNotice,
     setPreviewLeads,
   } = useProspectorSearch(CITY_COORDINATES);
-
-  const apiKey =
-    crmSettings.googleMapsApiKey ||
-    (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY ||
-    "";
 
   return (
     <div className="space-y-6">
@@ -147,7 +140,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
       {/* 2. Grid Principal: Área do Mapa e Lista Lateral de Leads */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
         <ProspectorMapArea
-          apiKey={apiKey}
           mapCenter={mapCenter}
           mapZoom={mapZoom}
           searchRadius={searchRadius}
@@ -159,8 +151,6 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
           radarPulse={radarPulse}
           activeMarkerLead={activeMarkerLead}
           setActiveMarkerLead={setActiveMarkerLead}
-          infoWindowAnchor={infoWindowAnchor}
-          setInfoWindowAnchor={setInfoWindowAnchor}
           addCustomLead={addCustomLead}
           addLeadToCrm={addLeadToCrm}
           setPreviewLeads={setPreviewLeads}
@@ -195,6 +185,7 @@ export const GoogleMapsProspector: React.FC<GoogleMapsProspectorProps> = ({
         setNewBairroInput={setNewBairroInput}
         isSearchingApi={isSearchingApi}
         apiSuggestions={apiSuggestions}
+        onSearchOpenStreetMap={searchNeighborhoodsOnOpenStreetMap}
         onAddNeighborhood={(name) => handleAddCustomNeighborhood(name)}
       />
     </div>

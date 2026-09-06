@@ -65,8 +65,8 @@ export interface Lead {
   niche: string;
   temperature: LeadTemperature;
   score: number; // 0 - 100
-  rating: number; // e.g. 4.9, 5.0
-  reviewsCount: number;
+  rating?: number; // e.g. 4.9, 5.0
+  reviewsCount?: number;
   phone: string;
   whatsapp?: string;
   email?: string;
@@ -77,7 +77,19 @@ export interface Lead {
   distanceKm?: number;
   geoLat?: number;
   geoLng?: number;
-  placeId?: string;        // OSM node ID (e.g. "node/123456") or Google place_id
+  placeId?: string;        // Legacy: OSM node ID (e.g. "node/123456") or Google place_id
+
+  // Campos de rastreabilidade híbrida
+  osmId?: string;
+  osmType?: 'node' | 'way' | 'relation';
+  osmLat?: number;
+  osmLng?: number;
+
+  googlePlaceId?: string;
+  googleMapsUri?: string;
+  // Google fields above are legacy import compatibility only. The local
+  // prospector does not verify or enrich leads through Google services.
+
   dataSource?: 'real' | 'synthetic';  // tracks origin of the lead data
   hasWebsite: boolean;
   websiteUrl?: string;

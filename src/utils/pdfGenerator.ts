@@ -72,7 +72,7 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.text('PROPOSTA VIP', pageWidth - margin - 21, 20, { align: 'center' });
   doc.setFontSize(7.5);
   doc.setTextColor(203, 213, 225);
-  doc.text('AUDITADO VIA IA', pageWidth - margin - 21, 26, { align: 'center' });
+  doc.text(lead.audit ? 'AUDITORIA DISPONÍVEL' : 'NÃO AUDITADO', pageWidth - margin - 21, 26, { align: 'center' });
 
   let y = 52;
 
@@ -95,7 +95,9 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.setFontSize(8.5);
   doc.setTextColor(71, 85, 105);
   doc.text(`Segmento: ${lead.category}  |  Localização: ${lead.city} - ${lead.state || 'Brasil'}`, margin + 4, y + 19);
-  doc.text(`Avaliação Google Maps: ${lead.rating} ⭐ (${lead.reviewsCount} avaliações)  |  Contato: ${lead.phone}`, margin + 4, y + 23);
+  const contactText = lead.phone ? `Contato: ${lead.phone}` : 'Contato: Não informado';
+  const ratingText = typeof lead.rating === 'number' ? `Avaliação local: ${lead.rating} ⭐` : 'Avaliação local não informada';
+  doc.text(`${ratingText}  |  ${contactText}`, margin + 4, y + 23);
 
   y += 32;
 
@@ -114,7 +116,8 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8.5);
   doc.setTextColor(51, 65, 85);
-  const diagText = `Identificamos que a ${lead.name} possui uma excelente reputação presencial e no Google Maps (${lead.rating} estrelas). No entanto, a presença digital atual pode estar deixando escapar clientes qualificados diariamente por conta de tempo de resposta ou ausência de uma página adaptada para smartphones com botão direto de WhatsApp.`;
+  const ratingClause = typeof lead.rating === 'number' ? `tem uma avaliação disponível de ${lead.rating} estrelas` : `possui um grande potencial para se destacar online na região`;
+  const diagText = `Identificamos que a ${lead.name} ${ratingClause}. No entanto, a presença digital atual pode estar deixando escapar clientes qualificados diariamente por conta da ausência de uma página focada em conversão, adaptada para smartphones e com agendamento direto.`;
   const splitDiag = doc.splitTextToSize(diagText, contentWidth);
   doc.text(splitDiag, margin, y);
   y += splitDiag.length * 4.2 + 2;
@@ -131,7 +134,7 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.setTextColor(185, 28, 28);
   doc.text('VELOCIDADE ATUAL', margin + 3, y + 5);
   doc.setFontSize(10);
-  doc.text(`${lead.audit?.loadingTimeSeconds || 6.2}s (Lento)`, margin + 3, y + 11);
+  doc.text(lead.audit ? `${lead.audit.loadingTimeSeconds}s (Lento)` : 'Não medido', margin + 3, y + 11);
 
   // Badge 2: Target Speed
   doc.setFillColor(240, 253, 244);
@@ -142,7 +145,7 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.setTextColor(21, 128, 61);
   doc.text('VELOCIDADE COM REDESIGN', margin + badgeWidth + 6, y + 5);
   doc.setFontSize(10);
-  doc.text('0.7s (Ultra Rápido)', margin + badgeWidth + 6, y + 11);
+  doc.text(lead.audit ? 'Meta do redesign' : 'A definir após auditoria', margin + badgeWidth + 6, y + 11);
 
   // Badge 3: Opportunity Score
   doc.setFillColor(238, 242, 255);
@@ -153,7 +156,7 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   doc.setTextColor(67, 56, 202);
   doc.text('OPORTUNIDADE DE CONVERSÃO', margin + (badgeWidth + 3) * 2 + 3, y + 5);
   doc.setFontSize(10);
-  doc.text(`${lead.score || 85}/100 no CRM`, margin + (badgeWidth + 3) * 2 + 3, y + 11);
+  doc.text(`${lead.score}/100 no CRM`, margin + (badgeWidth + 3) * 2 + 3, y + 11);
 
   y += 22;
 
@@ -169,7 +172,7 @@ export function generateProposalPdf({ lead, setupConfig, crmSettings }: Proposal
   const deliverables = [
     { title: 'Website Mobile-First Ultra Rápido', desc: 'Design personalizado e adaptado para todos os celulares e computadores com pontuação 95+ no Google.' },
     { title: 'Funil de Atendimento no WhatsApp', desc: 'Botões de agendamento automático com mensagens pré-formatadas para maximizar o fechamento de vendas.' },
-    { title: 'Integração Google Maps & SEO Local', desc: 'Otimização para aparecer nas primeiras posições de busca da região de ' + lead.city + '.' },
+    { title: 'SEO local', desc: 'Otimização para aparecer nas primeiras posições de busca da região de ' + lead.city + '.' },
     { title: 'Infraestrutura Cloud & Certificado SSL', desc: 'Hospedagem segura em nuvem de alta velocidade, proteção HTTPS e domínio próprio incluso.' },
     { title: 'Painel de Gestão & Suporte Técnico', desc: 'Acompanhamento mensal com backups diários, suporte prioritário e alterações solicitadas.' }
   ];

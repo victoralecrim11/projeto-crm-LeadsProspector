@@ -329,11 +329,6 @@ export async function fetchIbgeNeighborhoods(cityKey: string): Promise<string[]>
   }
 }
 
-/**
- * Searches neighborhoods in real time using:
- * 1) Google Places AutocompleteService (if window.google.maps is initialized)
- * 2) OpenStreetMap Nominatim API (public, no key required)
- */
 export async function searchNeighborhoodsViaApi(
   query: string,
   cityKey: string
@@ -343,49 +338,11 @@ export async function searchNeighborhoodsViaApi(
 
   const cityName = cityKey.split(' - ')[0];
 
-  // 1. Try Google Maps Places Autocomplete if available on window
-  const google = (window as any).google;
-  if (google?.maps?.places?.AutocompleteService) {
-    try {
-      const autocomplete = new google.maps.places.AutocompleteService();
-      const predictions = await new Promise<any[]>((resolve) => {
-        autocomplete.getPlacePredictions(
-          {
-            input: `${cleanQuery} ${cityName}`,
-            types: ['sublocality', 'neighborhood', 'sublocality_level_1', 'administrative_area_level_3'],
-            componentRestrictions: { country: 'br' }
-          },
-          (results: any[], status: any) => {
-            if (status === google.maps.places.PlacesServiceStatus.OK && Array.isArray(results)) {
-              resolve(results);
-            } else {
-              resolve([]);
-            }
-          }
-        );
-      });
-
-      if (predictions.length > 0) {
-        return predictions.map(p => ({
-          name: p.structured_formatting?.main_text || p.description.split(',')[0],
-          type: 'Google Places API',
-          fullAddress: p.description
-        }));
-      }
-    } catch {
-      // fallback to OSM Nominatim
-    }
-  }
-
-  // 2. OpenStreetMap Nominatim API fallback
   try {
     const encoded = encodeURIComponent(`${cleanQuery} ${cityName} Brasil`);
-    const resp = await fetch(
-      `https://nominatim.openstreetmap.org/search?q=${encoded}&format=json&addressdetails=1&countrycodes=br&limit=8`,
-      {
-        headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' }
-      }
-    );
+    const resp = await fetch(`/api/nominatim/search?q=${encoded}`, {
+      headers: { 'Accept-Language': 'pt-BR,pt;q=0.9' }
+    });
 
     if (resp.ok) {
       const data = await resp.json();
@@ -404,7 +361,7 @@ export async function searchNeighborhoodsViaApi(
       }
     }
   } catch (err) {
-    console.warn('[NeighborhoodService] Nominatim search warning:', err);
+    console.warn('[NeighborhoodService] Nominatim proxy search warning:', err);
   }
 
   return [];

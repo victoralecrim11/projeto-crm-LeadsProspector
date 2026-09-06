@@ -90,7 +90,7 @@ export const GlobalCommandPalette: React.FC = () => {
     },
     {
       id: 'page-leads',
-      title: 'Radar Google Maps & Leads',
+      title: 'Radar de Prospecção Local',
       subtitle: 'Prospecção geográfica, bairros e filtro de oportunidades',
       category: 'page',
       icon: Compass,
@@ -301,7 +301,7 @@ export const GlobalCommandPalette: React.FC = () => {
     return leads.map((lead: Lead) => ({
       id: `lead-${lead.id}`,
       title: lead.name,
-      subtitle: `${lead.category} • ${lead.neighborhood || lead.city} • ${lead.rating} ⭐ (${lead.reviewsCount} avaliações) • ${lead.hasWebsite ? 'Possui Site' : 'SEM SITE'}`,
+      subtitle: `${lead.category} • ${lead.neighborhood || lead.city} • ${typeof lead.rating === 'number' ? `${lead.rating} ⭐` : 'Avaliação não informada'}${typeof lead.reviewsCount === 'number' ? ` (${lead.reviewsCount} avaliações)` : ''} • ${lead.hasWebsite ? 'Possui Site' : 'SEM SITE'}`,
       category: 'lead' as const,
       icon: Building2,
       iconColor: lead.hasWebsite ? 'text-slate-400' : 'text-amber-400',

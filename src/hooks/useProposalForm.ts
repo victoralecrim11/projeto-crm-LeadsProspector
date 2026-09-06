@@ -72,7 +72,9 @@ export const useProposalForm = () => {
     if (type === 'technical') {
       return `Diagnóstico técnico e ideia para o site de ${lead.name}`;
     }
-    return `Parabéns pela nota ${lead.rating} no Google Maps (${lead.name})`;
+    return typeof lead.rating === 'number'
+      ? `Ideia para valorizar a presença digital de ${lead.name}`
+      : `Ideia de presença digital para ${lead.name}`;
   };
 
   const computeDefaultEmailBody = (lead = currentLead, type = templateType) => {
@@ -81,17 +83,24 @@ export const useProposalForm = () => {
     const leadPreviewUrl = `https://${setupConfig.baseDomain}/clientes/${leadSlug}`;
 
     if (type === 'technical') {
-      return `Olá equipe ${lead.name}!\n\nTudo bem? Meu nome é ${setupConfig.senderName}.\n\nEstive analisando o site atual de vocês e notei que ele demora cerca de ${lead.audit?.loadingTimeSeconds || 6.2} segundos para abrir no celular e não possui botão direto de WhatsApp, o que pode fazer vocês perderem até metade dos clientes que chegam pelo Google.\n\nPara ajudar, redesenhei uma versão demonstrativa ultra-rápida (0.7s) e 100% adaptada para celular:\n👉 ${leadPreviewUrl}\n\nO que achou da prévia? Se fizer sentido, podemos bater um papo rápido de 5 minutos nesta semana.`;
+      const auditDetail = lead.audit
+        ? `A auditoria disponível indicou ${lead.audit.loadingTimeSeconds}s de carregamento e oportunidades de melhoria na experiência mobile.`
+        : `Ainda não realizamos uma auditoria técnica do site; a proposta parte de uma melhoria geral de presença digital e conversão mobile.`;
+      return `Olá equipe ${lead.name}!\n\nTudo bem? Meu nome é ${setupConfig.senderName}.\n\n${auditDetail}\n\nPara ajudar, preparei uma versão demonstrativa moderna e adaptada para celular:\n👉 ${leadPreviewUrl}\n\nO que achou da prévia? Se fizer sentido, podemos bater um papo rápido de 5 minutos nesta semana.`;
     }
 
-    return `Olá ${lead.name}!\n\nTudo bem por aí? Meu nome é ${setupConfig.senderName}.\n\nEstava navegando no Google Maps e vi que vocês têm uma avaliação fantástica de ${lead.rating} estrelas com ${lead.reviewsCount} avaliações na região de ${lead.city}. Parabéns pelo trabalho impecável!\n\nTomei a liberdade de criar uma página modelo moderna e rápida para valorizar ainda mais a presença digital de vocês e gerar agendamentos automáticos no WhatsApp.\n\nVocê pode ver como ficou aqui:\n👉 ${leadPreviewUrl}\n\nPodemos conversar 5 minutinhos amanhã para eu te mostrar como colocar no ar sem complicação?\n\nUm abraço,\n${setupConfig.senderName}\n${setupConfig.senderEmail}`;
+    const reputation = typeof lead.rating === 'number'
+      ? `Vi que o negócio tem uma avaliação de ${lead.rating} estrelas${typeof lead.reviewsCount === 'number' ? ` em ${lead.reviewsCount} avaliações` : ''}.`
+      : `Conheci o negócio de vocês na região de ${lead.city}.`;
+    return `Olá ${lead.name}!\n\nTudo bem por aí? Meu nome é ${setupConfig.senderName}.\n\n${reputation}\n\nPreparei uma página modelo moderna e adaptada para celular para valorizar a presença digital e facilitar novos agendamentos no WhatsApp.\n\nVocê pode ver como ficou aqui:\n👉 ${leadPreviewUrl}\n\nPodemos conversar 5 minutinhos amanhã para eu mostrar como colocar no ar sem complicação?\n\nUm abraço,\n${setupConfig.senderName}\n${setupConfig.senderEmail}`;
   };
 
   const computeDefaultWhatsappScript = (lead = currentLead) => {
     if (!lead) return '';
     const leadSlug = lead.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
     const leadPreviewUrl = `https://${setupConfig.baseDomain}/clientes/${leadSlug}`;
-    return `Olá ${lead.name}, tudo bem? Vi a nota excelente de vocês no Google Maps (${lead.rating} estrelas)! Criei uma prévia gratuita de um site novo ultra rápido para vocês atraírem ainda mais agendamentos pelo WhatsApp: ${leadPreviewUrl}`;
+    const ratingMention = typeof lead.rating === 'number' ? ` Vi uma avaliação de ${lead.rating} estrelas para o negócio.` : '';
+    return `Olá ${lead.name}, tudo bem?${ratingMention} Criei uma prévia gratuita de um site novo para facilitar agendamentos pelo WhatsApp: ${leadPreviewUrl}`;
   };
 
   // Editable fields with auto-save

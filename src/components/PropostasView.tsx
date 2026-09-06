@@ -82,7 +82,7 @@ export const PropostasView: React.FC = () => {
         <div className="max-w-md space-y-2">
           <h2 className="text-2xl font-bold text-white tracking-tight">Nenhum Lead Encontrado</h2>
           <p className="text-slate-400 text-sm leading-relaxed">
-            Você precisa prospectar empresas no Google Maps ou adicionar leads manualmente ao CRM para começar a gerar propostas comerciais e contratos.
+            Você precisa prospectar empresas localmente ou adicionar leads manualmente ao CRM para começar a gerar propostas comerciais e contratos.
           </p>
         </div>
         <button 
@@ -339,7 +339,7 @@ export const PropostasView: React.FC = () => {
                 </li>
                 <li className="flex items-center gap-2 text-emerald-200">
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>Personalização real com dados do Google Maps</span>
+                  <span>Personalização com dados disponíveis do lead</span>
                 </li>
               </ul>
             </div>
@@ -568,7 +568,7 @@ export const PropostasView: React.FC = () => {
                     <span className="px-3 py-1 bg-sky-500/20 text-sky-300 border border-sky-400/40 rounded-md text-[10px] font-bold block">
                       PROPOSTA VIP
                     </span>
-                    <span className="text-[9px] text-slate-400 mt-1 block">AUDITADO VIA IA</span>
+                    <span className="text-[9px] text-slate-400 mt-1 block">{currentLead.audit ? 'AUDITORIA DISPONÍVEL' : 'NÃO AUDITADO'}</span>
                   </div>
                 </div>
 
@@ -580,7 +580,7 @@ export const PropostasView: React.FC = () => {
                   <div className={`grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1.5 text-xs ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-400'}`}>
                     <div>Segmento: <strong className={pdfTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}>{currentLead.category}</strong></div>
                     <div>Localização: <strong className={pdfTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}>{currentLead.city} - {currentLead.state || 'Brasil'}</strong></div>
-                    <div>Avaliação Google: <strong className={pdfTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}>{currentLead.rating} ⭐ ({currentLead.reviewsCount} avaliações)</strong></div>
+                    {typeof currentLead.rating === 'number' && <div>Avaliação: <strong className={pdfTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}>{currentLead.rating} ⭐{typeof currentLead.reviewsCount === 'number' ? ` (${currentLead.reviewsCount} avaliações)` : ''}</strong></div>}
                     <div>Contato: <strong className={pdfTheme === 'light' ? 'text-slate-800' : 'text-slate-200'}>{currentLead.phone}</strong></div>
                   </div>
                 </div>
@@ -592,24 +592,24 @@ export const PropostasView: React.FC = () => {
                     <span>1. Diagnóstico Digital & Oportunidade de Mercado</span>
                   </h4>
                   <p className={`text-xs leading-relaxed ${pdfTheme === 'light' ? 'text-slate-600' : 'text-slate-300'}`}>
-                    Identificamos que a <strong className={pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}>{currentLead.name}</strong> possui uma excelente reputação presencial e no Google Maps ({currentLead.rating} estrelas). No entanto, a presença digital atual pode estar deixando escapar clientes qualificados diariamente por conta de tempo de resposta ou ausência de uma página adaptada para smartphones com botão direto de WhatsApp.
+                    Identificamos uma oportunidade para a <strong className={pdfTheme === 'light' ? 'text-slate-900' : 'text-slate-100'}>{currentLead.name}</strong> fortalecer a presença digital com uma página adaptada para smartphones e contato direto pelo WhatsApp.{typeof currentLead.rating === 'number' ? ` A avaliação disponível é de ${currentLead.rating} estrelas.` : ''}
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
                     <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-red-50 border-red-200' : 'bg-red-950/30 border-red-900/50'
                       }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-red-700' : 'text-red-400'}`}>Velocidade Atual</span>
-                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-red-950' : 'text-red-100'}`}>{currentLead.audit?.loadingTimeSeconds || 6.2}s (Lento)</strong>
+                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-red-950' : 'text-red-100'}`}>{currentLead.audit ? `${currentLead.audit.loadingTimeSeconds}s` : 'Não auditado'}</strong>
                     </div>
                     <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-emerald-50 border-emerald-200' : 'bg-emerald-950/30 border-emerald-900/50'
                       }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-emerald-700' : 'text-emerald-400'}`}>Com Redesign</span>
-                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-emerald-950' : 'text-emerald-100'}`}>0.7s (Ultra Rápido)</strong>
+                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-emerald-950' : 'text-emerald-100'}`}>{currentLead.audit ? 'Meta do redesign' : 'A definir após auditoria'}</strong>
                     </div>
                     <div className={`p-2.5 rounded-lg border text-xs transition-colors ${pdfTheme === 'light' ? 'bg-indigo-50 border-indigo-200' : 'bg-indigo-950/30 border-indigo-900/50'
                       }`}>
                       <span className={`text-[10px] font-bold block uppercase ${pdfTheme === 'light' ? 'text-indigo-700' : 'text-indigo-400'}`}>Oportunidade</span>
-                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-indigo-950' : 'text-indigo-100'}`}>{currentLead.score || 85}/100 no CRM</strong>
+                      <strong className={`font-bold text-sm ${pdfTheme === 'light' ? 'text-indigo-950' : 'text-indigo-100'}`}>{currentLead.score}/100 no CRM</strong>
                     </div>
                   </div>
                 </div>
@@ -624,7 +624,7 @@ export const PropostasView: React.FC = () => {
                     {[
                       { title: 'Website Mobile-First Ultra Rápido', desc: 'Design personalizado e adaptado para todos os celulares com pontuação 95+ no Google.' },
                       { title: 'Funil de Atendimento no WhatsApp', desc: 'Botões de agendamento automático com mensagens pré-formatadas para maximizar conversão.' },
-                      { title: 'Integração Google Maps & SEO Local', desc: `Otimização para busca orgânica na região de ${currentLead.city}.` },
+                      { title: 'SEO local', desc: `Otimização para busca orgânica na região de ${currentLead.city}.` },
                       { title: 'Infraestrutura Cloud & Certificado SSL', desc: 'Hospedagem segura em nuvem de alta velocidade, domínio próprio e proteção HTTPS.' },
                       { title: 'Painel de Gestão & Suporte Técnico', desc: 'Backups diários, suporte prioritário e alterações técnicas solicitadas.' }
                     ].map((item, idx) => (

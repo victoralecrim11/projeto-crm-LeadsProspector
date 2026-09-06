@@ -56,7 +56,7 @@ export const Header: React.FC = () => {
       case 'dashboard':
         return { title: 'Dashboard', subtitle: 'Visão geral da sua operação comercial' };
       case 'leads':
-        return { title: 'Radar Google Maps & Leads', subtitle: 'Encontre negócios locais por raio, nicho e diagnóstico de site' };
+        return { title: 'Radar de Prospecção Local', subtitle: 'Encontre negócios locais por raio, nicho e dados do OpenStreetMap' };
       case 'redesenhar':
         return { title: 'Redesenho & Prévia IA', subtitle: 'Comparador interativo Antes vs Depois pronto para conversão' };
       case 'editor':
@@ -78,7 +78,7 @@ export const Header: React.FC = () => {
       case 'setup':
         return { title: 'Setup HostGator & cPanel', subtitle: 'Conexão com servidor para sincronização automática via FTP' };
       case 'configuracoes':
-        return { title: 'Configurações do CRM', subtitle: 'Perfil do Closer, Google Maps API, EmailService e Regras Comerciais' };
+        return { title: 'Configurações do CRM', subtitle: 'Perfil do Closer, integrações opcionais, EmailService e regras comerciais' };
       case 'ranking':
         return { title: 'Ranking de Vendas SDR', subtitle: 'Desempenho e gamificação da equipe comercial' };
       case 'templates':

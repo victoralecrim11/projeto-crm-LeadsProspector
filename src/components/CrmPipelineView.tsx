@@ -198,7 +198,7 @@ leadsInStage.map((lead) => {
                             </div>
 
                             <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-bold shrink-0">
-                              ★ {lead.rating}
+                              {typeof lead.rating === 'number' ? `★ ${lead.rating}` : 'Avaliação não informada'}
                             </span>
                           </div>
 

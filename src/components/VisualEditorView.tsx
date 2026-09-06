@@ -446,7 +446,7 @@ export const VisualEditorView: React.FC = () => {
                 <div className="relative z-10 max-w-2xl mx-auto space-y-6">
                   <div className={`inline-flex items-center gap-1.5 rounded-full bg-white/10 border border-white/20 font-bold backdrop-blur-md ${deviceMode === 'mobile' ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs'}`}>
                     <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400 shrink-0" />
-                    <span className="truncate">{selectedLead?.rating} no Google Maps · {selectedLead?.reviewsCount}+ Avaliações</span>
+                    <span className="truncate">{typeof selectedLead?.rating === 'number' ? `${selectedLead.rating} estrelas${typeof selectedLead.reviewsCount === 'number' ? ` · ${selectedLead.reviewsCount} avaliações` : ''}` : 'Avaliação não informada'}</span>
                   </div>
                   <h1 className={`font-extrabold tracking-tight leading-tight ${deviceMode === 'mobile' ? 'text-3xl px-2' : 'text-4xl sm:text-5xl'}`}>
                     {title}

@@ -11,6 +11,7 @@ import {
 } from "../services/leadGeneratorService";
 import { fetchLeadsFromOverpass } from "../services/overpassService";
 
+
 // Utilitário de normalização de texto sem acentos e minúsculo
 export function normalizeStr(text: string): string {
   if (!text) return "";
@@ -51,26 +52,12 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const [lastScanSource, setLastScanSource] = useState<ScanSource>(null);
   const [scanNotice, setScanNotice] = useState<string | null>(null);
   const [activeMarkerLead, setActiveMarkerLead] = useState<Lead | null>(null);
-  const [infoWindowAnchor, setInfoWindowAnchor] = useState<google.maps.marker.AdvancedMarkerElement | null>(null);
 
   const [previewLeads, setPreviewLeads] = useState<Lead[]>([]);
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
   useEffect(() => {
-    if (!activeMarkerLead || !activeMarkerLead.geoLat || !activeMarkerLead.geoLng) return;
-    const isMissingAddress = !activeMarkerLead.address || activeMarkerLead.address.length < 15 || !activeMarkerLead.address.includes(',');
-    if (isMissingAddress && window.google?.maps?.Geocoder) {
-      const geocoder = new window.google.maps.Geocoder();
-      geocoder.geocode({ location: { lat: activeMarkerLead.geoLat, lng: activeMarkerLead.geoLng } }, (results, status) => {
-        if (status === 'OK' && results && results[0]) {
-          const newAddress = results[0].formatted_address;
-          setActiveMarkerLead(prev => prev ? { ...prev, address: newAddress } : null);
-          if (activeMarkerLead.dataSource === 'synthetic') {
-             setPreviewLeads(prev => prev.map(p => p.id === activeMarkerLead.id ? { ...p, address: newAddress } : p));
-          }
-        }
-      });
-    }
+    // Geocoding reverso foi removido do fluxo para não depender do Google Maps API
   }, [activeMarkerLead]);
 
   const {
@@ -86,32 +73,23 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const [apiSuggestions, setApiSuggestions] = useState<{ name: string; type: string; fullAddress?: string }[]>([]);
   const [isSearchingApi, setIsSearchingApi] = useState<boolean>(false);
 
-  useEffect(() => {
-    if (!showAddBairroModal) {
-      setApiSuggestions((prev) => (prev.length > 0 ? [] : prev));
-      setIsSearchingApi(false);
-      return;
-    }
+  // Nominatim is intentionally never invoked while typing. Local neighborhood
+  // sources remain instant; external OSM lookup requires an explicit action.
+  const searchNeighborhoodsOnOpenStreetMap = async () => {
     const clean = newBairroInput.trim();
     if (clean.length < 2) {
-      setApiSuggestions((prev) => (prev.length > 0 ? [] : prev));
-      setIsSearchingApi(false);
+      setApiSuggestions([]);
       return;
     }
-    let active = true;
-    const timer = setTimeout(async () => {
-      setIsSearchingApi(true);
-      try {
-        const res = await searchNeighborhoodsApi(clean);
-        if (active) setApiSuggestions(res);
-      } catch (err) {
-        console.warn("[GoogleMapsProspector] Auto-complete error:", err);
-      } finally {
-        if (active) setIsSearchingApi(false);
-      }
-    }, 300);
-    return () => { active = false; clearTimeout(timer); };
-  }, [newBairroInput, showAddBairroModal, searchNeighborhoodsApi]);
+    setIsSearchingApi(true);
+    try {
+      setApiSuggestions(await searchNeighborhoodsApi(clean));
+    } catch (err) {
+      console.warn("[Prospector] OpenStreetMap neighborhood lookup failed:", err);
+    } finally {
+      setIsSearchingApi(false);
+    }
+  };
 
   const handleAddCustomNeighborhood = (bairroName: string) => {
     const clean = bairroName.trim();
@@ -126,11 +104,15 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const handleCityChange = (newCity: string) => {
     setSelectedCity(newCity);
     setSelectedNeighborhood("Todos os Bairros");
+    setLastScanCenter(null);
   };
 
-  const mapCenter = useMemo(() => {
+  const cityCenter = useMemo(() => {
     return CITY_COORDINATES[selectedCity] || CITY_COORDINATES["Belo Horizonte - MG"];
   }, [selectedCity, CITY_COORDINATES]);
+
+  const [lastScanCenter, setLastScanCenter] = useState<{ lat: number; lng: number } | null>(null);
+  const mapCenter = lastScanCenter || cityCenter;
 
   const mapZoom = useMemo(() => {
     if (searchRadius <= 4) return 14;
@@ -148,8 +130,8 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
 
   const mappedLeads = useMemo(() => {
     return allVisibleLeads.map((lead, index) => {
-      // 1. Se o lead já possui coordenadas reais, preserva e calcula a distância correta
-      if (typeof lead.geoLat === "number" && typeof lead.geoLng === "number") {
+      // 1. Coordenadas reais ou leads reais que possuem coordenadas
+      if (typeof lead.geoLat === "number" && typeof lead.geoLng === "number" && lead.dataSource !== 'synthetic') {
         const distanceKm = lead.distanceKm ?? Number(
           Math.sqrt(
             Math.pow((lead.geoLat - mapCenter.lat) * 111, 2) +
@@ -159,29 +141,34 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
         return { ...lead, distanceKm };
       }
 
-      // 2. Se não possuir coordenadas, consulta o centróide real do bairro
-      const normBairro = normalizeStr(lead.neighborhood || "");
-      const centroid = NEIGHBORHOOD_CENTROIDS[normBairro] || mapCenter;
+      // 2. Apenas para Synthetic/Demo: usar centróide e micro-dispersão
+      if (lead.dataSource === 'synthetic') {
+        const normBairro = normalizeStr(lead.neighborhood || "");
+        const centroid = NEIGHBORHOOD_CENTROIDS[normBairro] || mapCenter;
 
-      const distanceKm = lead.distanceKm ?? Number(
-        Math.sqrt(
-          Math.pow((centroid.lat - mapCenter.lat) * 111, 2) +
-          Math.pow((centroid.lng - mapCenter.lng) * 104, 2)
-        ).toFixed(1)
-      );
+        const distanceKm = lead.distanceKm ?? Number(
+          Math.sqrt(
+            Math.pow((centroid.lat - mapCenter.lat) * 111, 2) +
+            Math.pow((centroid.lng - mapCenter.lng) * 104, 2)
+          ).toFixed(1)
+        );
 
-      // Micro-dispersão de 150m no próprio bairro para não sobrepor alfinetes idênticos
-      const angle = (index * 67.5) * (Math.PI / 180);
-      const scatterOffsetKm = 0.15;
-      const deltaLat = (scatterOffsetKm / 111) * Math.sin(angle);
-      const deltaLng = (scatterOffsetKm / 104) * Math.cos(angle);
+        // Micro-dispersão de 150m no próprio bairro para não sobrepor alfinetes idênticos
+        const angle = (index * 67.5) * (Math.PI / 180);
+        const scatterOffsetKm = 0.15;
+        const deltaLat = (scatterOffsetKm / 111) * Math.sin(angle);
+        const deltaLng = (scatterOffsetKm / 104) * Math.cos(angle);
 
-      return {
-        ...lead,
-        distanceKm,
-        geoLat: centroid.lat + deltaLat,
-        geoLng: centroid.lng + deltaLng,
-      };
+        return {
+          ...lead,
+          distanceKm,
+          geoLat: centroid.lat + deltaLat,
+          geoLng: centroid.lng + deltaLng,
+        };
+      }
+
+      // Se for real mas não tem coordenada, manter como está (sem scatter)
+      return lead;
     });
   }, [allVisibleLeads, mapCenter]);
 
@@ -211,7 +198,7 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
       }
 
       if (onlyWithoutWebsite && lead.hasWebsite) return false;
-      if (onlyHighRating && lead.rating < 4.8) return false;
+      if (onlyHighRating && (typeof lead.rating !== "number" || lead.rating < 4.8)) return false;
 
       if (auditStatusFilter !== "Todos") {
         const isAudited = !!lead.audit;
@@ -242,6 +229,7 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   }, [mappedLeads, selectedCity, selectedNeighborhood, selectedNiche, onlyWithoutWebsite, onlyHighRating, onlyRealLeads, debouncedSearchQuery, searchRadius, auditStatusFilter, priceMin, priceMax]);
 
   const addCustomLeads = (newLeads: Omit<Lead, 'id' | 'createdAt'>[]) => {
+    const newlyAdded: Lead[] = [];
     newLeads.forEach((lead) => {
       if (lead.dataSource === 'synthetic') {
         const id = `preview-${lead.placeId || lead.name}-${Math.random().toString(36).slice(2, 8)}`;
@@ -250,7 +238,10 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
           return [...prev, { ...lead, id, createdAt: new Date().toISOString() } as Lead];
         });
       } else {
-        addCustomLead(lead);
+        const addedLead = addCustomLead(lead);
+        if (addedLead) {
+          newlyAdded.push(addedLead);
+        }
       }
     });
   };
@@ -275,14 +266,15 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
         if (NEIGHBORHOOD_CENTROIDS[normBairro]) coords = NEIGHBORHOOD_CENTROIDS[normBairro];
       }
       if (!coords) throw new Error("City coordinates not found");
+      setLastScanCenter(coords);
 
       const overpassLeads = await fetchLeadsFromOverpass(
         { lat: coords.lat, lng: coords.lng, radiusMeters: searchRadius * 1000, niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined, maxResults: 30 },
         cityName, stateName
       );
 
-      if (overpassLeads.length >= 8) {
-        addCustomLeads(overpassLeads.map(l => ({ ...l, neighborhood: l.neighborhood || (selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : ""), inCrm: false, temperature: 'quente' as const })));
+      if (overpassLeads.length >= 1) {
+        addCustomLeads(overpassLeads.map(l => ({ ...l, inCrm: false, temperature: 'quente' as const })));
         setLastScanSource("real");
         setScanNotice(null);
         setIsScanning(false);
@@ -297,8 +289,8 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
           cityName, stateName
         );
 
-        if (expandedLeads.length >= 8) {
-          addCustomLeads(expandedLeads.map(l => ({ ...l, neighborhood: l.neighborhood || (selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : ""), inCrm: false, temperature: 'morno' as const })));
+        if (expandedLeads.length >= 1) {
+          addCustomLeads(expandedLeads.map(l => ({ ...l, inCrm: false, temperature: 'morno' as const })));
           setLastScanSource("expanded");
           setScanNotice(null);
           setIsScanning(false);
@@ -307,19 +299,11 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
         }
       }
 
-      const syntheticLeads = generateRealisticLeadsForLocation({
-        city: selectedCity, neighborhood: selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : "Centro", niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined, count: 3, query: cleanQuery || undefined,
-      });
-      addCustomLeads(syntheticLeads);
-      setLastScanSource("synthetic");
-      setScanNotice("Nenhum negócio encontrado no OpenStreetMap para esta região. Exibindo leads de demonstração para fins de preview — escaneie outra área para dados reais.");
+      setLastScanSource(null);
+      setScanNotice("Nenhum negócio encontrado no OpenStreetMap para esta região. Tente expandir o raio ou alterar o nicho.");
     } catch (err) {
-      const syntheticLeads = generateRealisticLeadsForLocation({
-        city: selectedCity, neighborhood: selectedNeighborhood !== "Todos os Bairros" ? selectedNeighborhood : "Centro", niche: selectedNiche !== "Todos os Nichos" ? selectedNiche : undefined, count: 3,
-      });
-      addCustomLeads(syntheticLeads);
-      setLastScanSource("synthetic");
-      setScanNotice("Serviço OpenStreetMap indisponível no momento. Exibindo leads de demonstração — tente novamente em alguns minutos.");
+      setLastScanSource(null);
+      setScanNotice(`Falha na busca de dados: ${err instanceof Error ? err.message : String(err)}`);
     } finally {
       setIsScanning(false);
       setRadarPulse(false);
@@ -407,7 +391,6 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     lastScanSource,
     scanNotice,
     activeMarkerLead, setActiveMarkerLead,
-    infoWindowAnchor, setInfoWindowAnchor,
     radarPulse,
     currentCityNeighborhoods,
     isSyncingNeighborhoods,
@@ -415,6 +398,7 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
     newBairroInput, setNewBairroInput,
     apiSuggestions,
     isSearchingApi,
+    searchNeighborhoodsOnOpenStreetMap,
     handleAddCustomNeighborhood,
     refreshNeighborhoodsFromApi,
     mapCenter,

@@ -108,14 +108,14 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
               <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
-                Radar Google Maps Platform
+                Radar de Prospecção Local
               </h2>
               <span className="px-2 py-0.5 text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 rounded-full shrink-0">
                 OpenStreetMap Real-Time
               </span>
             </div>
             <p className="text-xs text-slate-300 truncate sm:whitespace-normal">
-              Auditoria geográfica em tempo real: busca negócios reais via OpenStreetMap e exibe no Google Maps — empresas com notas altas e sem site moderno
+              Busca negócios reais via OpenStreetMap / Overpass na área, sem depender de Google Maps Platform.
             </p>
           </div>
         </div>
@@ -136,7 +136,7 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
             ) : (
               <>
                 <Zap className="w-3.5 h-3.5 fill-white text-white" />
-                <span>Escanear Google Maps Agora</span>
+                <span>Escanear Área</span>
               </>
             )}
           </button>
@@ -148,7 +148,7 @@ export const ProspectorFiltersBar: React.FC<ProspectorFiltersBarProps> = ({
         {/* City Selection */}
         <div className="min-w-0 flex flex-col justify-end">
           <label className="flex items-center justify-between text-[11px] font-semibold text-slate-300 mb-1.5 h-6">
-            <span className="truncate">Cidade no Maps:</span>
+            <span className="truncate">Cidade:</span>
             <span className="text-[10px] text-sky-400 font-normal shrink-0 ml-1">
               Base de Busca
             </span>

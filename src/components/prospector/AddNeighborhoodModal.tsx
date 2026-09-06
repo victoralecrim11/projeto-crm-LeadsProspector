@@ -9,6 +9,7 @@ interface AddNeighborhoodModalProps {
   setNewBairroInput: (val: string) => void;
   isSearchingApi: boolean;
   apiSuggestions: { name: string; type: string; fullAddress?: string }[];
+  onSearchOpenStreetMap: () => void;
   onAddNeighborhood: (name: string) => void;
 }
 
@@ -20,6 +21,7 @@ export const AddNeighborhoodModal: React.FC<AddNeighborhoodModalProps> = ({
   setNewBairroInput,
   isSearchingApi,
   apiSuggestions,
+  onSearchOpenStreetMap,
   onAddNeighborhood,
 }) => {
   if (!isOpen) return null;
@@ -41,6 +43,16 @@ export const AddNeighborhoodModal: React.FC<AddNeighborhoodModalProps> = ({
               </p>
             </div>
           </div>
+
+          <button
+            type="button"
+            onClick={onSearchOpenStreetMap}
+            disabled={isSearchingApi || newBairroInput.trim().length < 2}
+            className="w-full flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-semibold text-sky-200 bg-sky-500/10 hover:bg-sky-500/20 disabled:opacity-50 border border-sky-400/30 rounded-xl transition-colors"
+          >
+            {isSearchingApi ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <MapPin className="w-3.5 h-3.5" />}
+            Buscar no OpenStreetMap
+          </button>
           <button
             type="button"
             onClick={onClose}
@@ -81,7 +93,7 @@ export const AddNeighborhoodModal: React.FC<AddNeighborhoodModalProps> = ({
             <div className="mt-2 p-2 rounded-xl bg-slate-950/80 border border-white/10 space-y-1.5">
               <div className="flex items-center justify-between text-[10px] text-slate-400 px-1 font-semibold uppercase">
                 <span>
-                  Sugestões da API ({selectedCity.split(" - ")[0]}):
+                  Sugestões do OpenStreetMap ({selectedCity.split(" - ")[0]}):
                 </span>
                 <span className="text-sky-400 lowercase font-normal">
                   clique para selecionar
@@ -115,8 +127,8 @@ export const AddNeighborhoodModal: React.FC<AddNeighborhoodModalProps> = ({
           )}
 
           <p className="text-[11px] text-slate-400">
-            Bairros adicionados são sincronizados com a API e salvos no seu
-            navegador para prospecções e filtros instantâneos.
+            Digite para filtrar os bairros locais. A busca externa só ocorre ao
+            clicar em “Buscar no OpenStreetMap”.
           </p>
         </div>
 

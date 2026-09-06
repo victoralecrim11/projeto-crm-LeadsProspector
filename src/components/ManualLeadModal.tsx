@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Building2, MapPin, Phone, Globe, Star } from 'lucide-react';
 import { useCrm } from '../hooks/useCrm';
+import { calculateOpportunityScore } from '../utils/leadScoring';
 
 interface ManualLeadModalProps {
   isOpen: boolean;
@@ -18,8 +19,9 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
     phone: '',
     hasWebsite: false,
     websiteUrl: '',
-    rating: '5.0',
-    reviewsCount: '1',
+    whatsapp: '',
+    rating: '',
+    reviewsCount: '',
   });
 
   if (!isOpen) return null;
@@ -33,17 +35,22 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
       category: formData.category,
       niche: formData.category,
       temperature: 'quente',
-      score: 90,
-      rating: parseFloat(formData.rating) || 5.0,
-      reviewsCount: parseInt(formData.reviewsCount) || 1,
+      score: calculateOpportunityScore({
+        hasWebsite: formData.hasWebsite,
+        phone: formData.phone,
+        address: formData.address,
+        category: formData.category,
+      }),
+      rating: formData.rating.trim() ? Number(formData.rating) : undefined,
+      reviewsCount: formData.reviewsCount.trim() ? Number(formData.reviewsCount) : undefined,
       phone: formData.phone,
-      whatsapp: formData.phone.replace(/\D/g, ''),
+      whatsapp: formData.whatsapp.trim() || undefined,
       email: '',
       city: formData.city,
       state: 'MG',
       neighborhood: formData.neighborhood,
       address: formData.address || `${formData.neighborhood}, ${formData.city} - MG`,
-      distanceKm: Number((Math.random() * 5 + 1).toFixed(1)),
+      distanceKm: undefined,
       hasWebsite: formData.hasWebsite,
       websiteUrl: formData.websiteUrl,
       inCrm: false,
@@ -58,8 +65,9 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
       phone: '',
       hasWebsite: false,
       websiteUrl: '',
-      rating: '5.0',
-      reviewsCount: '1',
+      whatsapp: '',
+      rating: '',
+      reviewsCount: '',
     });
     onClose();
   };
@@ -91,6 +99,17 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
                 onChange={e => setFormData({ ...formData, name: e.target.value })}
                 className="w-full px-3 py-2 text-sm bg-slate-900/60 border border-white/15 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
                 placeholder="Ex: Barbearia Mateus Guerra"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-300 mb-1.5">WhatsApp</label>
+              <input
+                type="text"
+                value={formData.whatsapp}
+                onChange={e => setFormData({ ...formData, whatsapp: e.target.value })}
+                className="w-full px-3 py-2 text-sm bg-slate-900/60 border border-white/15 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
+                placeholder="Informe somente se confirmado"
               />
             </div>
             
@@ -160,7 +179,7 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Nota (Google)</label>
+                <label className="block text-xs font-semibold text-slate-300 mb-1.5">Avaliação (opcional)</label>
                 <div className="relative">
                   <Star className="w-3.5 h-3.5 absolute left-3 top-2.5 text-slate-400" />
                   <input
@@ -168,6 +187,7 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
                     step="0.1"
                     min="1"
                     max="5"
+                    placeholder="Não informada"
                     value={formData.rating}
                     onChange={e => setFormData({ ...formData, rating: e.target.value })}
                     className="w-full pl-9 pr-3 py-2 text-sm bg-slate-900/60 border border-white/15 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"
@@ -178,7 +198,8 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">Qtd. Avaliações</label>
                 <input
                   type="number"
-                  min="0"
+                    min="0"
+                    placeholder="Não informada"
                   value={formData.reviewsCount}
                   onChange={e => setFormData({ ...formData, reviewsCount: e.target.value })}
                   className="w-full px-3 py-2 text-sm bg-slate-900/60 border border-white/15 rounded-lg text-white placeholder-slate-500 focus:outline-none focus:border-sky-400"

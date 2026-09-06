@@ -7,6 +7,7 @@ import dotenv from "dotenv";
 import https from "https";
 import querystring from "querystring";
 
+
 dotenv.config();
 
 async function startServer() {
@@ -96,26 +97,7 @@ async function startServer() {
     }
   });
 
-  app.post("/api/geocode", async (req, res) => {
-    try {
-      const { lat, lng, apiKey } = req.body;
-      if (!lat || !lng || !apiKey) {
-        return res.status(400).json({ error: "Missing lat, lng, or apiKey" });
-      }
 
-      const url = `https://maps.googleapis.com/maps/api/geocode/json?latlng=${lat},${lng}&key=${apiKey}`;
-      const response = await fetch(url);
-      const data = await response.json();
-
-      if (!response.ok) {
-         return res.status(response.status).json(data);
-      }
-      return res.json(data);
-    } catch (error) {
-      console.error("Geocoding Proxy Error:", error);
-      res.status(500).json({ error: "Failed to fetch from Geocoding API" });
-    }
-  });
 
   // IA Generation Route using Gemini 1.5 Pro
   app.post("/api/generate-site", async (req, res) => {
@@ -150,6 +132,115 @@ async function startServer() {
       res.status(500).json({ error: "Failed to generate site content" });
     }
   });
+
+  // Nominatim API Proxy Route
+  const NOMINATIM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
+  const NOMINATIM_CACHE_MAX_ENTRIES = 500;
+  const nominatimCache = new Map<string, { value: unknown; createdAt: number }>();
+  let lastNominatimRequestTime = 0;
+  let nominatimQueue: Promise<void> = Promise.resolve();
+
+  const normalizeNominatimKey = (query: string) => query
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const cleanupNominatimCache = () => {
+    const expiresBefore = Date.now() - NOMINATIM_CACHE_TTL_MS;
+    for (const [key, entry] of nominatimCache) {
+      if (entry.createdAt < expiresBefore) nominatimCache.delete(key);
+    }
+    while (nominatimCache.size > NOMINATIM_CACHE_MAX_ENTRIES) {
+      const oldestKey = nominatimCache.keys().next().value;
+      if (!oldestKey) break;
+      nominatimCache.delete(oldestKey);
+    }
+  };
+
+  app.get("/api/nominatim/search", async (req, res) => {
+    try {
+      const { q } = req.query;
+      if (!q || typeof q !== 'string') {
+        return res.status(400).json({ error: "Missing query 'q'" });
+      }
+
+      const cacheKey = normalizeNominatimKey(q);
+      cleanupNominatimCache();
+      const cached = nominatimCache.get(cacheKey);
+      if (cached) {
+        return res.json(cached.value);
+      }
+
+      // Serialize misses. Each request enters after the prior external request,
+      // so two simultaneous callers cannot leave the one-request/second gate together.
+      const previous = nominatimQueue;
+      let releaseQueue!: () => void;
+      nominatimQueue = new Promise<void>((resolve) => { releaseQueue = resolve; });
+      await previous;
+
+      try {
+        // A prior queued caller may have populated this key while we waited.
+        const queuedCacheHit = nominatimCache.get(cacheKey);
+        if (queuedCacheHit) return res.json(queuedCacheHit.value);
+
+        const elapsed = Date.now() - lastNominatimRequestTime;
+        if (elapsed < 1000) {
+          await new Promise(resolve => setTimeout(resolve, 1000 - elapsed));
+        }
+        lastNominatimRequestTime = Date.now();
+
+        const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(q)}&format=json&addressdetails=1&countrycodes=br&limit=8`;
+        const response = await new Promise<unknown>((resolve, reject) => {
+          const upstream = https.get(url, {
+            headers: {
+              'User-Agent': 'LeadsProspector-CRM/1.0',
+              'Accept-Language': 'pt-BR,pt;q=0.9'
+            },
+            timeout: 10_000,
+          }, (upstreamResponse) => {
+            const status = upstreamResponse.statusCode ?? 502;
+            if (status !== 200) {
+              upstreamResponse.resume();
+              reject(Object.assign(new Error(`Nominatim upstream returned HTTP ${status}`), { status }));
+              return;
+            }
+            let data = '';
+            upstreamResponse.on('data', chunk => data += chunk);
+            upstreamResponse.on('end', () => {
+              try { resolve(JSON.parse(data)); }
+              catch { reject(Object.assign(new Error('Invalid JSON from Nominatim'), { status: 502 })); }
+            });
+          });
+          upstream.on('timeout', () => {
+            upstream.destroy();
+            reject(Object.assign(new Error('Nominatim request timed out'), { status: 504 }));
+          });
+          upstream.on('error', (error) => reject(Object.assign(error, { status: 502 })));
+        });
+
+        nominatimCache.set(cacheKey, { value: response, createdAt: Date.now() });
+        cleanupNominatimCache();
+        return res.json(response);
+      } finally {
+        releaseQueue();
+      }
+    } catch (error) {
+      console.error("Nominatim Proxy Error:", error);
+      const status = typeof (error as { status?: unknown })?.status === 'number'
+        ? (error as { status: number }).status
+        : 502;
+      const message = status === 429
+        ? 'Nominatim rate limit reached; try again shortly.'
+        : status === 504
+        ? 'Nominatim request timed out.'
+        : 'Nominatim upstream service is unavailable.';
+      res.status(status).json({ error: message });
+    }
+  });
+
+
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
