@@ -2,7 +2,7 @@ import express from "express";
 import path from "path";
 import http from "http";
 import { createServer as createViteServer } from "vite";
-import { GoogleGenAI } from "@google/genai";
+import { siteGenerationRouter } from "./server/routes/siteGeneration";
 import dotenv from "dotenv";
 import https from "https";
 import querystring from "querystring";
@@ -13,9 +13,10 @@ dotenv.config();
 async function startServer() {
   const app = express();
   const server = http.createServer(app);
-  const PORT = 3000;
+  const PORT = Number(process.env.PORT || 3000);
 
-  app.use(express.json());
+  app.use(express.json({ limit: '128kb' }));
+  app.use('/api/ai', siteGenerationRouter());
 
   // API Routes
   app.get("/api/health", (req, res) => {
@@ -99,36 +100,8 @@ async function startServer() {
 
 
 
-  // IA Generation Route using a current stable Gemini model.
-  app.post("/api/generate-site", async (req, res) => {
-    try {
-      const apiKey = process.env.GEMINI_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "GEMINI_API_KEY environment variable is missing" });
-      }
-
-      const { prompt, leadData } = req.body;
-      if (!prompt || !leadData) {
-         return res.status(400).json({ error: "Missing prompt or leadData in body" });
-      }
-
-      const ai = new GoogleGenAI({ apiKey });
-      
-      const response = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
-        contents: prompt,
-      });
-
-      res.json({
-        success: true,
-        result: response.text,
-      });
-
-    } catch (error) {
-      console.error("AI Generation Error:", error);
-      res.status(500).json({ error: "Failed to generate site content" });
-    }
-  });
+  // Legacy endpoint deliberately retired: sites require a validated Blueprint.
+  app.post('/api/generate-site', (_req, res) => res.status(410).json({ error: 'Use /api/ai/sites/generate.' }));
 
   // Nominatim API Proxy Route
   const NOMINATIM_CACHE_TTL_MS = 24 * 60 * 60 * 1000;

@@ -15,8 +15,10 @@ import {
 } from 'lucide-react';
 import { useCrm } from '../hooks/useCrm';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
+import { useSearchParams } from 'react-router-dom';
 
 export const ContratosView: React.FC = () => {
+  const [searchParams] = useSearchParams();
   const { 
     leads, 
     setupConfig, 
@@ -25,7 +27,8 @@ export const ContratosView: React.FC = () => {
     setActivePage 
   } = useCrm();
 
-  const [selectedLeadId, setSelectedLeadId] = useState<string>(leads[0]?.id || '');
+  const [selectedLeadId, setSelectedLeadId] = useState<string>(searchParams.get('lead') || leads[0]?.id || '');
+  React.useEffect(() => { const id = searchParams.get('lead'); if (id) setSelectedLeadId(id); }, [searchParams]);
   const [signedDoc, setSignedDoc] = useState(false);
 
   const currentLead = leads.find(l => l.id === selectedLeadId) || leads[0];

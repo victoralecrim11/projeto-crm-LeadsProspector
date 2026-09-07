@@ -142,6 +142,12 @@ export interface Appointment {
 }
 
 export interface Project {
+  generationStatus?: 'draft' | 'generating' | 'generated' | 'editing' | 'ready' | 'exported' | 'published' | 'error';
+  siteBlueprint?: import('./site-builder/types').GeneratedSiteBlueprint;
+  siteContext?: import('./site-builder/types').LeadSiteContext;
+  aiGeneration?: import('./site-builder/types').GenerationMetadata;
+  contentReviewed?: boolean;
+  generationError?: string;
   id: string;
   leadId?: string;
   clientName: string;

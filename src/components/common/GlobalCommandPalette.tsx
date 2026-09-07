@@ -31,12 +31,13 @@ import {
 import { useCrm } from '../../hooks/useCrm';
 import { ActivePage, Lead } from '../../types';
 import { registerCommandPaletteShortcut } from '../../utils/commandPaletteShortcut';
+import { useNavigate } from 'react-router-dom';
 
 interface PaletteItem {
   id: string;
   title: string;
   subtitle: string;
-  category: 'lead' | 'page' | 'action';
+  category: 'lead' | 'page' | 'action' | 'project' | 'contract';
   icon: React.ComponentType<{ className?: string }>;
   iconColor: string;
   badge?: string;
@@ -45,6 +46,7 @@ interface PaletteItem {
 }
 
 export const GlobalCommandPalette: React.FC = () => {
+  const navigate = useNavigate();
   const {
     isCommandPaletteOpen,
     setIsCommandPaletteOpen,
@@ -54,11 +56,12 @@ export const GlobalCommandPalette: React.FC = () => {
     toggleTheme,
     theme,
     exportLeadsCsv,
-    leads
+    leads,
+    projects
   } = useCrm();
 
   const [query, setQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState<'all' | 'lead' | 'page' | 'action'>('all');
+  const [activeCategory, setActiveCategory] = useState<'all' | PaletteItem['category']>('all');
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -112,7 +115,7 @@ export const GlobalCommandPalette: React.FC = () => {
     {
       id: 'page-redesenhar',
       title: 'Redesenho & Prévia IA',
-      subtitle: 'Comparador interativo Antes vs Depois pronto para pitch',
+      subtitle: 'Dados conhecidos do lead e prévia do site gerado',
       category: 'page',
       icon: Palette,
       iconColor: 'text-purple-400',
@@ -124,7 +127,7 @@ export const GlobalCommandPalette: React.FC = () => {
     {
       id: 'page-editor',
       title: 'Editor Visual de Sites',
-      subtitle: 'Personalize títulos, fotos, cores e botões de WhatsApp',
+      subtitle: 'Edite conteúdo, cores e seções do site gerado',
       category: 'page',
       icon: Edit3,
       iconColor: 'text-amber-400',
@@ -197,8 +200,8 @@ export const GlobalCommandPalette: React.FC = () => {
     },
     {
       id: 'page-projetos',
-      title: 'Sites Publicados & Clientes',
-      subtitle: 'Projetos entregues com apontamento de domínio',
+      title: 'Projetos e Sites',
+      subtitle: 'Sites gerados, revisão e exportação',
       category: 'page',
       icon: Globe,
       iconColor: 'text-cyan-400',
@@ -323,11 +326,22 @@ export const GlobalCommandPalette: React.FC = () => {
     }));
   }, [leads, setSelectedLeadForModal, setIsCommandPaletteOpen]);
 
+  const projectItems: PaletteItem[] = projects.map(project => ({
+    id: 'project-' + project.id, title: project.title, subtitle: project.clientName + ' · ' + project.category,
+    category: 'project', icon: Globe, iconColor: 'text-cyan-400', badge: 'Projeto',
+    action: () => { navigate('/editor?project=' + encodeURIComponent(project.id)); setIsCommandPaletteOpen(false); },
+  }));
+  const contractItems: PaletteItem[] = leads.filter(l => l.contract).map(lead => ({
+    id: 'contract-' + lead.id, title: lead.contract!.contractNumber + ' — ' + lead.name,
+    subtitle: lead.contract!.clientName + ' · ' + lead.contract!.contractStatus,
+    category: 'contract', icon: ScrollText, iconColor: 'text-teal-400', badge: 'Contrato',
+    action: () => { navigate('/contratos?lead=' + encodeURIComponent(lead.id)); setIsCommandPaletteOpen(false); },
+  }));
   // Filter items based on query & category
   const filteredItems = useMemo(() => {
     let pool: PaletteItem[] = [];
     if (activeCategory === 'all') {
-      pool = [...actionItems, ...pageItems, ...leadItems];
+      pool = [...actionItems, ...pageItems, ...leadItems, ...projectItems, ...contractItems];
     } else if (activeCategory === 'lead') {
       pool = leadItems;
     } else if (activeCategory === 'page') {
@@ -336,17 +350,19 @@ export const GlobalCommandPalette: React.FC = () => {
       pool = actionItems;
     }
 
+    if (activeCategory === 'project') pool = projectItems;
+    if (activeCategory === 'contract') pool = contractItems;
     if (!query.trim()) {
       return pool;
     }
 
-    const cleanQuery = query.toLowerCase().trim();
+    const cleanQuery = query.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     return pool.filter(item => 
-      item.title.toLowerCase().includes(cleanQuery) ||
-      item.subtitle.toLowerCase().includes(cleanQuery) ||
+      item.title.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(cleanQuery) ||
+      item.subtitle.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(cleanQuery) ||
       (item.badge && item.badge.toLowerCase().includes(cleanQuery))
     );
-  }, [activeCategory, query, actionItems, pageItems, leadItems]);
+  }, [activeCategory, query, actionItems, pageItems, leadItems, projects]);
 
   // Keep selected index in bounds
   useEffect(() => {
@@ -455,7 +471,7 @@ export const GlobalCommandPalette: React.FC = () => {
                 : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
-            Todos ({actionItems.length + pageItems.length + leadItems.length})
+            Todos ({actionItems.length + pageItems.length + leadItems.length + projectItems.length + contractItems.length})
           </button>
           <button
             onClick={() => { setActiveCategory('lead'); setSelectedIndex(0); }}
@@ -492,6 +508,10 @@ export const GlobalCommandPalette: React.FC = () => {
           </button>
         </div>
 
+        <div className="flex gap-3 px-4 py-2 text-xs">
+          <button onClick={() => { setActiveCategory('project'); setSelectedIndex(0); }}>Projetos ({projectItems.length})</button>
+          <button onClick={() => { setActiveCategory('contract'); setSelectedIndex(0); }}>Contratos ({contractItems.length})</button>
+        </div>
         {/* Results List */}
         <div 
           ref={listRef}

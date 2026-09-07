@@ -60,7 +60,7 @@ export const Header: React.FC = () => {
       case 'redesenhar':
         return { title: 'Redesenho & Prévia IA', subtitle: 'Comparador interativo Antes vs Depois pronto para conversão' };
       case 'editor':
-        return { title: 'Editor Visual de Sites', subtitle: 'Personalize títulos, fotos, cores e botões de WhatsApp' };
+        return { title: 'Editor Visual de Sites', subtitle: 'Edite conteúdo, cores e seções do site gerado' };
       case 'propostas':
         return { title: 'Propostas Comerciais & EmailService', subtitle: 'Envie templates persuasivos com link de demonstração' };
       case 'crm':
@@ -72,7 +72,7 @@ export const Header: React.FC = () => {
       case 'agendamentos':
         return { title: 'Agendamentos', subtitle: 'Controle de reuniões, visitas e chamadas com clientes' };
       case 'projetos':
-        return { title: 'Sites Publicados & Clientes', subtitle: 'Sites e landing pages entregues com apontamento de domínio' };
+        return { title: 'Projetos e Sites', subtitle: 'Sites gerados, revisados e exportados' };
       case 'cobrar':
         return { title: 'Financeiro & MRR Recorrente', subtitle: 'Faturamento de setup e mensalidades de hospedagem' };
       case 'setup':

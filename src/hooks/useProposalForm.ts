@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { safeStorage } from '../utils/safeStorage';
+import { toast } from '../store/toastStore';
 import { downloadProposalPdf } from '../utils/pdfGenerator';
 import { generateAiContent } from '../services/aiService';
 import { useCrm } from './useCrm';
@@ -358,9 +359,10 @@ export const useProposalForm = () => {
       } else {
         setWhatsappScript(generatedCopy);
       }
+      toast('Texto da proposta gerado com IA.');
 
     } catch (error: any) {
-      alert(error.message || 'Falha ao gerar texto com IA. Verifique suas configurações.');
+      toast(error.message || 'Falha ao gerar texto com IA. Verifique suas configurações.', 'error');
     } finally {
       setIsGeneratingAi(false);
     }

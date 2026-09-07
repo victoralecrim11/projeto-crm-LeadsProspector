@@ -6,6 +6,8 @@ O fluxo principal reúne prospecção geográfica, auditoria, abordagem comercia
 
 ## Estado atual
 
+O gerador de sites agora usa IA real no backend, Blueprint validado, edição por seção e exportação estática. Veja o [relatório da implementação e evidências](AI_SITE_IMPLEMENTATION.md).
+
 | Área | Recursos disponíveis |
 |---|---|
 | **Radar local OSM** | Consulta negócios reais cadastrados no OpenStreetMap por cidade, bairro/região, nicho e raio de 5 a 50 km. As consultas passam pelo proxy Overpass do servidor, com fallback entre endpoints. |
@@ -58,6 +60,22 @@ A aplicação fica disponível em [http://localhost:3000](http://localhost:3000)
 
 ### Inteligência artificial
 
+**Sites:** o catálogo é consultado em `GET /api/ai/models`. Escolha Automático, Rápido, Qualidade, Premium ou Local; a seleção explícita não troca de modelo silenciosamente. Gemini é o provedor principal e Ollama é opcional. Modelos listados não garantem disponibilidade/cota no momento da geração.
+
+Para credenciais da plataforma, configure no servidor:
+
+```env
+GEMINI_API_KEY=sua_chave
+SITE_AI_ACCESS_TOKEN=um_segredo_longo
+# Opcional, acessível apenas pelo backend:
+# OLLAMA_BASE_URL=http://127.0.0.1:11434
+# SITE_AI_DISABLED_MODELS=gemini:id-do-modelo
+```
+
+Em produção, o uso da chave interna/Ollama exige o token em **Conexão avançada** do gerador/editor. Ele fica somente em memória na sessão atual; não é incluído no bundle. Isso é proteção de MVP, não substitui autenticação individual e rate limiting distribuído. Use HTTPS e não exponha o Ollama publicamente. A chave BYOK Gemini cadastrada no CRM continua disponível como alternativa separada.
+
+**Scripts comerciais (legado):** mantêm a integração existente descrita abaixo, separada do novo pipeline de sites.
+
 Os provedores podem ser cadastrados em **Configurações → Inteligência Artificial**. Para o Gemini, a aplicação tenta modelos estáveis em ordem de fallback e não inclui a chave na URL da requisição.
 
 Use **Testar Conexão da API** para executar uma chamada real. O resultado aparece:
@@ -94,6 +112,11 @@ Mantenha sempre a atribuição exigida pelo fornecedor dos tiles.
 5. Use os botões de coordenada e origem OSM para confirmar o ponto geográfico.
 6. Abra **Ver detalhes**, adicione o lead ao CRM e prepare a abordagem.
 7. Gere ou melhore o script com IA, registre o contato e avance o lead pelo funil.
+8. Em **Gerar Site IA**, selecione lead, template, estilo, objetivo e estratégia/modelo.
+9. No editor, revise textos e sugestões, confira Desktop/Mobile, ajuste seções e salve.
+10. Confirme a revisão e aceite ou remova os serviços sugeridos para exportar `site.zip`. Extraia e abra `index.html` fora do CRM. Exportar não publica o site.
+
+Projetos persistem Blueprint, contexto e modelo utilizado. O salvamento acusa falhas de armazenamento em vez de confirmar dados não gravados. A paleta existente também pesquisa projetos e contratos. Toasts dão feedback temporário sem substituir o histórico de notificações.
 
 ## Comandos disponíveis
 
@@ -111,14 +134,22 @@ Os testes ficam fora do código de produção e espelham as áreas verificadas:
 
 ```text
 tests/
+├── fixtures/
+│   └── siteFixture.ts
 ├── services/
-│   └── aiService.test.ts
+│   ├── aiService.test.ts
+│   ├── siteGeneration.test.ts
+│   └── siteRoutes.test.ts
 └── utils/
     ├── commandPaletteShortcut.test.ts
     └── openGoogleMaps.test.ts
 ```
 
 A suíte cobre atualmente:
+
+- Blueprint estrito, ausências, contatos, sugestões, escape HTML e ordem de seções;
+- seleção explícita/automática, falhas, regeneração parcial, persistência e ZIP;
+- entrada HTTP inválida e proteção de origem;
 
 - autenticação e fallback de modelos Gemini sem expor a chave na URL;
 - resposta do teste real de conexão com IA;
@@ -128,12 +159,14 @@ A suíte cobre atualmente:
 
 ## Documentação do projeto
 
-Todos os documentos Markdown são mantidos na pasta `docs/`:
+Documentos humanos são mantidos na pasta `docs/`; especificações formais desta fase ficam em `openspec/`, conforme solicitado:
 
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual do sistema;
 - [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md): análise do uso da BrasilAPI no fluxo de prospecção.
+- [AI_SITE_AUDIT.md](AI_SITE_AUDIT.md): classificação inicial real/simulada/parcial/legado;
+- [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md): arquitetura, evidências e limitações do gerador.
 
-Novos arquivos `.md` também devem ser criados dentro de `docs/`, preservando a raiz do repositório para código e arquivos de configuração.
+Novos documentos humanos `.md` devem ser criados dentro de `docs/`. A exceção é o workflow OpenSpec em `openspec/`.
 
 ## Persistência local
 

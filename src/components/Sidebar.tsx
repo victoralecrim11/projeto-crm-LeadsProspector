@@ -99,7 +99,7 @@ export const Sidebar: React.FC = () => {
 
   const managementNav: { id: ActivePage; label: string; icon: React.ReactNode; badge?: string }[] = [
     { id: 'agendamentos', label: 'Agendamentos', icon: <Calendar className="w-4 h-4" /> },
-    { id: 'projetos', label: 'Sites Publicados', icon: <Globe className="w-4 h-4" /> },
+    { id: 'projetos', label: 'Projetos e Sites', icon: <Globe className="w-4 h-4" /> },
     { id: 'cobrar', label: 'Financeiro & MRR', icon: <CreditCard className="w-4 h-4" /> },
     { id: 'setup', label: 'Setup HostGator', icon: <Server className="w-4 h-4" /> },
     { id: 'configuracoes', label: 'Configurações CRM', icon: <Settings className="w-4 h-4" /> },

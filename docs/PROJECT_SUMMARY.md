@@ -41,6 +41,22 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 
 ## IA e Google Gemini
 
+### Sites: pipeline novo
+
+- `SiteGeneratorModal` chama o backend; não usa timer, URL fictícia ou publicação simulada.
+- Contexto mínimo do lead → JSON Schema/structured output → Zod → Blueprint v1 → renderer React compartilhado pelo editor, prévia e ZIP.
+- Quatro templates, SEO, branding, hero/CTA, sobre, serviços sugeridos, contato, localização, visibilidade e ordem editáveis.
+- `/api/ai/models` descobre modelos; `/api/ai/sites/generate` gera; `/api/ai/sites/regenerate-section` altera apenas a seção solicitada.
+- Estratégias auto/fast/quality/premium/local e modelo explícito. Fallback entre modelos somente em automático; falhas não viram sucesso.
+- Gemini via backend; Ollama opcional no servidor. Credenciais internas exigem token em produção; BYOK dos scripts permanece separado.
+- Projetos salvam contexto, Blueprint, status, revisão e metadata IA no navegador, com falha explícita de persistência. Registros antigos sem Blueprint continuam acessíveis, sem prévia fictícia.
+- Exportação estática com `index.html`, `blueprint.json` e `context.json`. Sem deploy, dependência do CRM ou scripts gerados pela IA.
+- Informações ausentes são omitidas; serviços de IA são sugestões sem preço. Export exige revisão humana e resolução das sugestões. Validação estrutural não é verificação semântica automática de toda afirmação textual.
+- Toasts temporários convivem com notificações persistentes. A busca global existente inclui projetos e contratos.
+- Evidências e pendências: [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md).
+
+### Scripts comerciais: integração preservada
+
 - Os scripts de abordagem, follow-up e objeção podem ser gerados ou melhorados no detalhe do lead, com restauração do texto original.
 - A configuração aceita provedores de IA cadastrados na interface e geração pelo servidor com `GEMINI_API_KEY`.
 - O Gemini usa a sequência de fallback `gemini-3.5-flash`, `gemini-2.5-flash` e `gemini-3.1-flash-lite`.
@@ -71,8 +87,12 @@ Os testes automatizados ficam separados do código de produção e espelham a es
 
 ```text
 tests/
+├── fixtures/
+│   └── siteFixture.ts
 ├── services/
-│   └── aiService.test.ts
+│   ├── aiService.test.ts
+│   ├── siteGeneration.test.ts
+│   └── siteRoutes.test.ts
 └── utils/
     ├── commandPaletteShortcut.test.ts
     └── openGoogleMaps.test.ts
@@ -97,7 +117,7 @@ O build atual pode emitir avisos não bloqueantes sobre o tamanho de alguns chun
 
 ## Convenção de documentação
 
-Todos os arquivos Markdown do projeto são mantidos em `docs/`. Novos documentos `.md` devem ser criados diretamente nessa pasta, e links entre documentos devem usar caminhos relativos ao próprio diretório.
+Documentação humana fica em `docs/`. Specs, design e tarefas formais ficam em `openspec/`, exceção solicitada para esta fase. Links usam caminhos relativos ao documento.
 
 - [README.md](README.md): apresentação, instalação, configuração e uso.
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual.

@@ -5,6 +5,8 @@ import confetti from 'canvas-confetti';
 import { useCrmConfigStore } from './crmConfigStore';
 import { migrateLegacyLeads } from '../utils/leadMigration';
 import { isVerifiedOsmLead, normalizeStoredOsmLead } from '../utils/osmLead';
+import { toast } from './toastStore';
+import { loadProjects, persistProjects } from '../site-builder/projectPersistence';
 
 interface LeadState {
   leads: Lead[];
@@ -39,7 +41,8 @@ interface LeadState {
 
   addAppointment: (appointment: Omit<Appointment, 'id'>) => void;
   updateAppointmentStatus: (id: string, status: Appointment['status']) => void;
-  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => void;
+  addProject: (project: Omit<Project, 'id' | 'createdAt'>) => Project;
+  updateProject: (project: Project) => void;
 }
 
 const STORAGE_KEYS = {
@@ -94,16 +97,7 @@ const getInitialAppointments = (): Appointment[] => {
   return [];
 };
 
-const getInitialProjects = (): Project[] => {
-  const saved = localStorage.getItem(STORAGE_KEYS.PROJECTS);
-  if (saved) {
-    try {
-      const parsed = JSON.parse(saved) as Project[];
-      return parsed;
-    } catch(e){}
-  }
-  return [];
-};
+const getInitialProjects = (): Project[] => loadProjects(safeStorage);
 
 const getInitialNotifications = (): AppNotification[] => {
   const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
@@ -131,7 +125,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
 
   projects: getInitialProjects(),
   setProjects: (projs) => {
-    localStorage.setItem(STORAGE_KEYS.PROJECTS, JSON.stringify(projs));
+    persistProjects(localStorage, projs);
     set({ projects: projs });
   },
 
@@ -171,6 +165,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
     get().setLeads(leads);
     const targetLead = leads.find(l => l.id === leadId);
     if (targetLead) {
+      toast('Lead adicionado ao CRM.');
       get().addNotification({
         id: 'notif-' + Date.now(),
         title: 'Lead enviado para o CRM',
@@ -293,43 +288,8 @@ export const useLeadStore = create<LeadState>((set, get) => ({
     get().setLeads(leads);
   },
 
-  redesignLeadSite: (leadId) => {
-    const setupConfig = useCrmConfigStore.getState().setupConfig;
-    const leads = get().leads.map(lead => {
-      if (lead.id === leadId) {
-        const slug = lead.name.toLowerCase().replace(/[^a-z0-9]/g, '-');
-        return {
-          ...lead,
-          crmStage: 'redesenhado' as LeadStatus,
-          customization: lead.customization || {
-            heroTitle: `O melhor atendimento de ${lead.category} em ${lead.city}`,
-            heroSubtitle: `Atendimento exclusivo com agendamento online rápido sem esperas. Reserve seu horário no WhatsApp.`,
-            ctaText: 'Agendar Horário no WhatsApp',
-            primaryColor: '#4f46e5',
-            accentColor: '#0ea5e9',
-            workingHours: 'Segunda a Sábado das 09h às 19h',
-            services: [
-              { title: 'Atendimento Completo VIP', price: 'R$ 80,00', description: 'Serviço personalizado com profissionais experientes.' },
-              { title: 'Procedimento Especializado', price: 'R$ 150,00', description: 'Tecnologia moderna e foco na sua satisfação total.' }
-            ],
-            testimonials: [{ author: 'Exemplo de depoimento', role: 'Cliente', text: 'Exemplo de depoimento — substitua por uma avaliação real do cliente.', rating: 5 }]
-          },
-          proposal: lead.proposal || {
-            title: `Proposta Comercial - ${lead.name}`,
-            emailSubject: `Ideia para acelerar agendamentos de ${lead.name}`,
-            emailBody: `Olá equipe ${lead.name}!\n\nCriamos uma prévia de um site moderno e ultra rápido para vocês atraírem mais clientes: https://${setupConfig.baseDomain}/clientes/${slug}`,
-            whatsappMessage: `Olá ${lead.name}! Criamos uma prévia gratuita de um site novo ultra rápido para vocês: https://${setupConfig.baseDomain}/clientes/${slug}`,
-            proposalSlug: slug,
-            dealValue: lead.dealValue || 1800,
-            mrrValue: lead.mrrValue || 197,
-            viewsCount: 1,
-            sentAt: new Date().toISOString()
-          }
-        };
-      }
-      return lead;
-    });
-    get().setLeads(leads);
+  redesignLeadSite: () => {
+    toast('Abra Gerar Site com IA para criar um projeto real.');
   },
 
   updateLeadCustomization: (leadId, customization) => {
@@ -340,13 +300,13 @@ export const useLeadStore = create<LeadState>((set, get) => ({
           customization: {
             heroTitle: customization.heroTitle ?? lead.customization?.heroTitle ?? '',
             heroSubtitle: customization.heroSubtitle ?? lead.customization?.heroSubtitle ?? '',
-            ctaText: customization.ctaText ?? lead.customization?.ctaText ?? 'Agendar no WhatsApp',
+            ctaText: customization.ctaText ?? lead.customization?.ctaText ?? '',
             primaryColor: customization.primaryColor ?? lead.customization?.primaryColor ?? '#4f46e5',
             accentColor: customization.accentColor ?? lead.customization?.accentColor ?? '#0ea5e9',
             logoUrl: customization.logoUrl ?? lead.customization?.logoUrl,
             services: customization.services ?? lead.customization?.services ?? [],
             testimonials: customization.testimonials ?? lead.customization?.testimonials ?? [],
-            workingHours: customization.workingHours ?? lead.customization?.workingHours ?? 'Segunda a Sexta'
+            workingHours: customization.workingHours ?? lead.customization?.workingHours ?? ''
           }
         };
       }
@@ -379,6 +339,7 @@ export const useLeadStore = create<LeadState>((set, get) => ({
       return lead;
     });
     get().setLeads(leads);
+    toast('Proposta gerada.');
   },
 
   generateContractForLead: (leadId) => {
@@ -434,27 +395,8 @@ export const useLeadStore = create<LeadState>((set, get) => ({
     get().setLeads(leads);
   },
 
-  publishSiteToHostGator: (leadId) => {
-    const leads = get().leads.map(lead => {
-      if (lead.id === leadId) {
-        const setupConfig = useCrmConfigStore.getState().setupConfig;
-        return {
-          ...lead,
-          publishedUrl: `https://${setupConfig.baseDomain}/${lead.name.toLowerCase().replace(/[^a-z0-9]/g, '-')}`
-        };
-      }
-      return lead;
-    });
-    get().setLeads(leads);
-    get().addNotification({
-      id: 'notif-' + Date.now(),
-      title: 'Deploy Concluído!',
-      message: 'O site foi publicado com sucesso no servidor.',
-      timestamp: 'Agora mesmo',
-      read: false,
-      type: 'system',
-      leadId
-    });
+  publishSiteToHostGator: () => {
+    toast('Deploy ainda não disponível. Exporte o ZIP do projeto.', 'error');
   },
 
   addAppointment: (appointment) => {
@@ -468,8 +410,12 @@ export const useLeadStore = create<LeadState>((set, get) => ({
   },
 
   addProject: (project) => {
-    const newProject = { ...project, id: 'proj-' + Date.now(), createdAt: new Date().toISOString() };
+    const newProject = { ...project, id: 'proj-' + crypto.randomUUID(), createdAt: new Date().toISOString() };
     get().setProjects([newProject, ...get().projects]);
+    return newProject;
+  },
+  updateProject: (project) => {
+    get().setProjects(get().projects.map(p => p.id === project.id ? project : p));
   },
 
 }));

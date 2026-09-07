@@ -7,6 +7,7 @@ import { SiteGeneratorModal } from './components/SiteGeneratorModal';
 import { UpgradeModal } from './components/UpgradeModal';
 import { EmailDispatchModal } from './components/EmailDispatchModal';
 import { GlobalCommandPalette } from './components/common/GlobalCommandPalette';
+import { ToastViewport } from './components/common/ToastViewport';
 
 // Lazy load views for Code Splitting
 const DashboardView = React.lazy(() => import('./components/DashboardView').then(m => ({ default: m.DashboardView })));
@@ -79,6 +80,7 @@ const MainLayout: React.FC = () => {
       <UpgradeModal />
       <EmailDispatchModal />
       <GlobalCommandPalette />
+      <ToastViewport />
     </div>
   );
 };
