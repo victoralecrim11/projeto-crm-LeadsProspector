@@ -1,5 +1,8 @@
 import type { AiModelDefinition } from "../../../../src/site-builder/types";
-import { generatedSiteJsonSchema } from "../../../schemas/generatedSiteSchema";
+import {
+  generatedSiteJsonSchema,
+  geminiGeneratedSiteJsonSchema,
+} from "../../../schemas/generatedSiteSchema";
 import { SiteAiError, type Credentials } from "../modelRegistry";
 export async function requestBlueprint(
   model: AiModelDefinition,
@@ -23,7 +26,7 @@ export async function requestBlueprint(
             contents: [{ role: "user", parts: [{ text: prompt }] }],
             generationConfig: {
               responseMimeType: "application/json",
-              responseJsonSchema: generatedSiteJsonSchema,
+              responseJsonSchema: geminiGeneratedSiteJsonSchema,
             },
           }),
           signal: AbortSignal.timeout(60000),
