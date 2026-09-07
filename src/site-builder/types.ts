@@ -16,6 +16,7 @@ export const templates = [
   "minimal-professional",
   "appointment-focused",
 ] as const;
+export const templatePreferences = ["auto", ...templates] as const;
 export const tones = [
   "premium",
   "moderno",
@@ -23,6 +24,24 @@ export const tones = [
   "acolhedor",
   "profissional",
 ] as const;
+export const designBriefSchema = z
+  .object({
+    paletteMode: z
+      .enum(["recommended", "custom", "imported"])
+      .default("recommended"),
+    primaryColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#153a50"),
+    accentColor: z
+      .string()
+      .regex(/^#[0-9a-fA-F]{6}$/)
+      .default("#d8aa63"),
+    designSystemInput: z.string().trim().max(4000).default(""),
+    motion: z.enum(["subtle", "cinematic", "none"]).default("subtle"),
+    referenceNotes: z.string().trim().max(600).default(""),
+  })
+  .strict();
 export const contextSchema = z
   .object({
     business: z.object({
@@ -91,12 +110,17 @@ export const blueprintSchema = z
     warnings: z.array(short).max(20),
   })
   .strict();
-export const preferencesSchema = z.object({
-  siteType: z.enum(["landing-page", "institutional"]).default("landing-page"),
-  templateId: z.enum(templates),
-  style: z.enum(tones),
-  goal: z.enum(["contact", "phone", "whatsapp", "none"]),
-});
+export const preferencesSchema = z
+  .object({
+    siteType: z
+      .enum(["landing-page", "institutional"])
+      .default("landing-page"),
+    templateId: z.enum(templatePreferences),
+    style: z.enum(tones),
+    goal: z.enum(["contact", "phone", "whatsapp", "none"]),
+    designBrief: designBriefSchema.optional(),
+  })
+  .strict();
 export const selectionSchema = z
   .object({
     mode: z.enum(["auto", "fast", "quality", "premium", "local", "explicit"]),
@@ -109,6 +133,7 @@ export const selectionSchema = z
 export type LeadSiteContext = z.infer<typeof contextSchema>;
 export type GeneratedSiteBlueprint = z.infer<typeof blueprintSchema>;
 export type SitePreferences = z.infer<typeof preferencesSchema>;
+export type DesignBrief = z.infer<typeof designBriefSchema>;
 export type ModelSelection = z.infer<typeof selectionSchema>;
 export type GenerationMetadata = {
   provider: string;

@@ -16,6 +16,7 @@ import {
 } from "./modelRegistry";
 import { buildSitePrompt } from "./sitePromptBuilder";
 import { requestBlueprint } from "./providers/siteProviders";
+import { normalizeDesignBrief } from "../../../src/site-builder/designBrief";
 export async function generateSite(
   input: {
     context: LeadSiteContext;
@@ -27,6 +28,15 @@ export async function generateSite(
   credentials: Credentials,
   dependencies = { discoverModels, requestBlueprint },
 ) {
+  let design: ReturnType<typeof normalizeDesignBrief>;
+  try {
+    design = normalizeDesignBrief(input.context, input.preferences);
+  } catch (error) {
+    throw new SiteAiError(
+      error instanceof Error ? error.message : "Briefing visual inválido.",
+      400,
+    );
+  }
   const catalog = await dependencies.discoverModels(credentials);
   const candidates = resolveModels(
     catalog.models,
@@ -56,7 +66,12 @@ export async function generateSite(
           credentials,
         );
         let blueprint = constrainBlueprint(raw, input.context, true);
-        blueprint.templateId = input.preferences.templateId;
+        if (input.preferences.templateId !== "auto")
+          blueprint.templateId = input.preferences.templateId;
+        if (input.preferences.designBrief?.paletteMode !== "recommended") {
+          blueprint.brand.primaryColor = design.colors[0];
+          blueprint.brand.accentColor = design.colors[1] ?? design.colors[0];
+        }
         blueprint.brand.tone = input.preferences.style;
         if (input.blueprint && input.section)
           blueprint = mergeSection(
