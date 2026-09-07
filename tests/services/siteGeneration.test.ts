@@ -10,7 +10,10 @@ import {
   buildLeadSiteContext,
   constrainBlueprint,
 } from "../../src/site-builder/context";
-import { resolveModels } from "../../server/services/ai/modelRegistry";
+import {
+  resolveModels,
+  SiteAiError,
+} from "../../server/services/ai/modelRegistry";
 import {
   generateSite,
   mergeSection,
@@ -189,6 +192,67 @@ test("auto permite fallback; explícito nunca troca de modelo", async () => {
   );
   assert.equal(result.generation.modelId, second.id);
   assert.ok(calls.includes(model.id));
+});
+test("falha transitória aguarda e tenta novamente", async () => {
+  let calls = 0;
+  const delays: number[] = [];
+  const result = await generateSite(
+    {
+      context,
+      preferences: {
+        siteType: "landing-page",
+        templateId: "premium-service",
+        style: "moderno",
+        goal: "none",
+      },
+      modelSelection: { mode: "explicit", modelId: model.id },
+    },
+    {},
+    {
+      discoverModels: async () => ({ models: [model], warnings: [] }),
+      requestBlueprint: async () => {
+        calls++;
+        if (calls === 1)
+          throw new SiteAiError("Temporariamente indisponível.", 503, true);
+        return blueprint;
+      },
+      delay: async (milliseconds: number) => {
+        delays.push(milliseconds);
+      },
+    },
+  );
+  assert.equal(result.success, true);
+  assert.equal(calls, 2);
+  assert.deepEqual(delays, [250]);
+});
+test("falha não retentável não repete a chamada", async () => {
+  let calls = 0;
+  await assert.rejects(
+    () =>
+      generateSite(
+        {
+          context,
+          preferences: {
+            siteType: "landing-page",
+            templateId: "premium-service",
+            style: "moderno",
+            goal: "none",
+          },
+          modelSelection: { mode: "explicit", modelId: model.id },
+        },
+        {},
+        {
+          discoverModels: async () => ({ models: [model], warnings: [] }),
+          requestBlueprint: async () => {
+            calls++;
+            throw new SiteAiError("Requisição incompatível.", 400, false);
+          },
+          delay: async () => {},
+        },
+      ),
+    /Requisição incompatível/,
+  );
+  assert.equal(calls, 1);
 });
 test("JSON inválido esgota tentativas e não retorna sucesso", async () => {
   let calls = 0;
