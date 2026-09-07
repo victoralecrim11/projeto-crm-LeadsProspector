@@ -10,3 +10,4 @@ coverage/
 .kilo
 tsconfig.tsbuildinfo
 scratch/
+.worktrees/
