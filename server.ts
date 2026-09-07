@@ -211,6 +211,11 @@ async function startServer() {
   });
 
 
+  // Never let the SPA fallback turn a missing API endpoint into index.html.
+  // Clients can then handle the response as JSON instead of failing while parsing HTML.
+  app.use('/api', (_req, res) => {
+    res.status(404).json({ error: 'Endpoint de API não encontrado.' });
+  });
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

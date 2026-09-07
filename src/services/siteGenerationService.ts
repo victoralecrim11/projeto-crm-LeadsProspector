@@ -44,6 +44,14 @@ async function api(path: string, settings: CrmSettingsConfig, body?: unknown) {
       "Servidor local indisponível. Inicie ou reinicie o aplicativo e tente novamente.",
     );
   }
+
+  const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+  if (contentType.includes("text/html")) {
+    throw new Error(
+      "A API de IA não está disponível nesta execução: o servidor devolveu a página HTML do aplicativo. Inicie com npm run dev e recarregue a página.",
+    );
+  }
+
   let data: unknown;
   try {
     data = await response.json();

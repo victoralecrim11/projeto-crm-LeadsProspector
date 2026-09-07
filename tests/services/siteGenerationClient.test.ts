@@ -52,6 +52,23 @@ test("informa quando o backend retorna JSON inválido", async () => {
   }
 });
 
+test("explica quando a SPA responde HTML no lugar da API de IA", async () => {
+  const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () =>
+    new Response("<!doctype html><html><head></head></html>", {
+      status: 200,
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  try {
+    await assert.rejects(
+      () => getSiteModels(settings),
+      /API de IA não está disponível.*npm run dev/i,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("preserva mensagem segura devolvida pelo backend", async () => {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async () =>
