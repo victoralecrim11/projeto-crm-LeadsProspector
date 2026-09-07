@@ -5,12 +5,31 @@ import { buildLeadSiteContext } from "../site-builder/context";
 import {
   templates,
   tones,
+  type DesignBrief,
   type ModelSelection,
   type SitePreferences,
 } from "../site-builder/types";
+import { normalizeDesignBrief } from "../site-builder/designBrief";
 import { generateSiteBlueprint } from "../services/siteGenerationService";
 import { ModelControls } from "../site-builder/components/ModelControls";
+import { DesignBriefControls } from "../site-builder/components/DesignBriefControls";
 import { toast } from "../store/toastStore";
+
+const defaultDesignBrief: DesignBrief = {
+  paletteMode: "recommended",
+  primaryColor: "#153a50",
+  accentColor: "#d8aa63",
+  designSystemInput: "",
+  motion: "subtle",
+  referenceNotes: "",
+};
+
+const lensLabels = {
+  "local-conversion": "Conversão local",
+  "premium-editorial": "Editorial premium",
+  "trust-institutional": "Confiança institucional",
+  "appointment-flow": "Fluxo de agendamento",
+} as const;
 
 export const SiteGeneratorModal: React.FC = () => {
   const crm = useCrm();
@@ -21,9 +40,10 @@ export const SiteGeneratorModal: React.FC = () => {
   const [selection, setSelection] = useState<ModelSelection>({ mode: "auto" });
   const [prefs, setPrefs] = useState<SitePreferences>({
     siteType: "landing-page",
-    templateId: "premium-service",
+    templateId: "auto",
     style: "moderno",
     goal: "contact",
+    designBrief: defaultDesignBrief,
   });
   useEffect(() => {
     if (crm.isCreateSiteModalOpen) {
@@ -35,6 +55,17 @@ export const SiteGeneratorModal: React.FC = () => {
   const lead =
     crm.leads.find((l) => l.id === leadId) ||
     (crm.siteGeneratorLead?.id === leadId ? crm.siteGeneratorLead : undefined);
+  const designBrief = prefs.designBrief ?? defaultDesignBrief;
+  let designPreview: ReturnType<typeof normalizeDesignBrief> | null = null;
+  let designPreviewError = "";
+  if (lead) {
+    try {
+      designPreview = normalizeDesignBrief(buildLeadSiteContext(lead), prefs);
+    } catch (previewError) {
+      designPreviewError =
+        previewError instanceof Error ? previewError.message : "Briefing inválido.";
+    }
+  }
   const close = () => {
     if (!busy) {
       crm.setIsCreateSiteModalOpen(false);
@@ -123,8 +154,8 @@ export const SiteGeneratorModal: React.FC = () => {
           Crie uma página editável a partir dos dados do lead. Revise as
           sugestões antes de exportar.
         </p>
-        <fieldset disabled={busy} className="space-y-3">
-          <label className="block">
+        <fieldset disabled={busy} className="site-generator-grid">
+          <label className="generator-field-wide">
             Lead
             <select
               className="block w-full p-2 bg-slate-800 rounded-lg"
@@ -167,6 +198,7 @@ export const SiteGeneratorModal: React.FC = () => {
                 })
               }
             >
+              <option value="auto">✨ Deixar a IA decidir</option>
               {templates.map((t) => (
                 <option key={t}>{t}</option>
               ))}
@@ -208,6 +240,24 @@ export const SiteGeneratorModal: React.FC = () => {
             </select>
           </label>
         </fieldset>
+        <DesignBriefControls
+          value={designBrief}
+          onChange={(next) => setPrefs({ ...prefs, designBrief: next })}
+          disabled={busy}
+        />
+        {designPreview && (
+          <p className="design-strategy-preview" role="status">
+            Estratégia sugerida: <strong>{lensLabels[designPreview.lens]}</strong>
+            {prefs.templateId === "auto" && (
+              <> · prioridade {designPreview.templateCandidates[0]}</>
+            )}
+          </p>
+        )}
+        {designPreviewError && (
+          <p className="design-strategy-error" role="alert">
+            {designPreviewError}
+          </p>
+        )}
         <ModelControls
           settings={crm.crmSettings}
           value={selection}
@@ -223,6 +273,7 @@ export const SiteGeneratorModal: React.FC = () => {
           disabled={
             busy ||
             !lead ||
+            Boolean(designPreviewError) ||
             (selection.mode === "explicit" && !selection.modelId)
           }
           onClick={generate}
