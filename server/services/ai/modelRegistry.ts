@@ -6,6 +6,7 @@ export class SiteAiError extends Error {
   constructor(
     message: string,
     public status = 502,
+    public retryable = status === 429 || status >= 500,
   ) {
     super(message);
   }

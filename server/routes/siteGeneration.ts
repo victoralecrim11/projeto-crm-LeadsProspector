@@ -69,6 +69,11 @@ export function siteGenerationRouter() {
       try {
         res.json(await generateSite(parsed.data, credentials(req)));
       } catch (e) {
+        if (
+          e instanceof SiteAiError &&
+          (e.status === 429 || e.status === 503)
+        )
+          res.setHeader("Retry-After", "2");
         res
           .status(e instanceof SiteAiError ? e.status : 500)
           .json({

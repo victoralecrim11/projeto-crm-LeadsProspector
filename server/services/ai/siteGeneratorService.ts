@@ -16,6 +16,7 @@ import {
 } from "./modelRegistry";
 import { buildSitePrompt } from "./sitePromptBuilder";
 import { requestBlueprint } from "./providers/siteProviders";
+import { normalizeDesignBrief } from "../../../src/site-builder/designBrief";
 export async function generateSite(
   input: {
     context: LeadSiteContext;
@@ -25,8 +26,21 @@ export async function generateSite(
     section?: RegenerationSection;
   },
   credentials: Credentials,
-  dependencies = { discoverModels, requestBlueprint },
+  dependencies: {
+    discoverModels: typeof discoverModels;
+    requestBlueprint: typeof requestBlueprint;
+    delay?: (milliseconds: number) => Promise<void>;
+  } = { discoverModels, requestBlueprint },
 ) {
+  let design: ReturnType<typeof normalizeDesignBrief>;
+  try {
+    design = normalizeDesignBrief(input.context, input.preferences);
+  } catch (error) {
+    throw new SiteAiError(
+      error instanceof Error ? error.message : "Briefing visual inválido.",
+      400,
+    );
+  }
   const catalog = await dependencies.discoverModels(credentials);
   const candidates = resolveModels(
     catalog.models,
@@ -34,6 +48,10 @@ export async function generateSite(
     Boolean(input.section),
   );
   let lastError: unknown;
+  const delay =
+    dependencies.delay ??
+    ((milliseconds: number) =>
+      new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
   for (const model of candidates) {
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -56,7 +74,12 @@ export async function generateSite(
           credentials,
         );
         let blueprint = constrainBlueprint(raw, input.context, true);
-        blueprint.templateId = input.preferences.templateId;
+        if (input.preferences.templateId !== "auto")
+          blueprint.templateId = input.preferences.templateId;
+        if (input.preferences.designBrief?.paletteMode !== "recommended") {
+          blueprint.brand.primaryColor = design.colors[0];
+          blueprint.brand.accentColor = design.colors[1] ?? design.colors[0];
+        }
         blueprint.brand.tone = input.preferences.style;
         if (input.blueprint && input.section)
           blueprint = mergeSection(
@@ -80,14 +103,16 @@ export async function generateSite(
         };
       } catch (e) {
         lastError = e;
-        if (e instanceof SiteAiError && e.status === 401) throw e;
+        if (e instanceof SiteAiError && !e.retryable) throw e;
+        if (attempt === 0) await delay(250);
       }
     }
   }
+  if (lastError instanceof SiteAiError) throw lastError;
   throw new SiteAiError(
-    lastError instanceof SiteAiError
-      ? lastError.message
-      : "A IA retornou um Blueprint incompatível após as tentativas permitidas.",
+    "A IA retornou um Blueprint incompatível após as tentativas permitidas.",
+    502,
+    true,
   );
 }
 export function mergeSection(

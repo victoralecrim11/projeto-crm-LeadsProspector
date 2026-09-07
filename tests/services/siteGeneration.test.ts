@@ -10,11 +10,15 @@ import {
   buildLeadSiteContext,
   constrainBlueprint,
 } from "../../src/site-builder/context";
-import { resolveModels } from "../../server/services/ai/modelRegistry";
+import {
+  resolveModels,
+  SiteAiError,
+} from "../../server/services/ai/modelRegistry";
 import {
   generateSite,
   mergeSection,
 } from "../../server/services/ai/siteGeneratorService";
+import { buildSitePrompt } from "../../server/services/ai/sitePromptBuilder";
 import { renderSiteDocument } from "../../src/site-builder/renderer/SiteRenderer";
 import { createSiteZip } from "../../src/site-builder/exportSite";
 import {
@@ -189,6 +193,67 @@ test("auto permite fallback; explícito nunca troca de modelo", async () => {
   assert.equal(result.generation.modelId, second.id);
   assert.ok(calls.includes(model.id));
 });
+test("falha transitória aguarda e tenta novamente", async () => {
+  let calls = 0;
+  const delays: number[] = [];
+  const result = await generateSite(
+    {
+      context,
+      preferences: {
+        siteType: "landing-page",
+        templateId: "premium-service",
+        style: "moderno",
+        goal: "none",
+      },
+      modelSelection: { mode: "explicit", modelId: model.id },
+    },
+    {},
+    {
+      discoverModels: async () => ({ models: [model], warnings: [] }),
+      requestBlueprint: async () => {
+        calls++;
+        if (calls === 1)
+          throw new SiteAiError("Temporariamente indisponível.", 503, true);
+        return blueprint;
+      },
+      delay: async (milliseconds: number) => {
+        delays.push(milliseconds);
+      },
+    },
+  );
+  assert.equal(result.success, true);
+  assert.equal(calls, 2);
+  assert.deepEqual(delays, [250]);
+});
+test("falha não retentável não repete a chamada", async () => {
+  let calls = 0;
+  await assert.rejects(
+    () =>
+      generateSite(
+        {
+          context,
+          preferences: {
+            siteType: "landing-page",
+            templateId: "premium-service",
+            style: "moderno",
+            goal: "none",
+          },
+          modelSelection: { mode: "explicit", modelId: model.id },
+        },
+        {},
+        {
+          discoverModels: async () => ({ models: [model], warnings: [] }),
+          requestBlueprint: async () => {
+            calls++;
+            throw new SiteAiError("Requisição incompatível.", 400, false);
+          },
+          delay: async () => {},
+        },
+      ),
+    /Requisição incompatível/,
+  );
+  assert.equal(calls, 1);
+});
 test("JSON inválido esgota tentativas e não retorna sucesso", async () => {
   let calls = 0;
   await assert.rejects(() =>
@@ -214,6 +279,98 @@ test("JSON inválido esgota tentativas e não retorna sucesso", async () => {
     ),
   );
   assert.equal(calls, 2);
+});
+test("template automático preserva escolha válida da IA e manual prevalece", async () => {
+  const dependencies = {
+    discoverModels: async () => ({ models: [model], warnings: [] }),
+    requestBlueprint: async () => ({
+      ...blueprint,
+      templateId: "minimal-professional" as const,
+    }),
+  };
+  const base = {
+    context,
+    preferences: {
+      siteType: "landing-page" as const,
+      templateId: "auto" as const,
+      style: "moderno" as const,
+      goal: "none" as const,
+      designBrief: {
+        paletteMode: "recommended" as const,
+        primaryColor: "#153a50",
+        accentColor: "#d8aa63",
+        designSystemInput: "",
+        motion: "subtle" as const,
+        referenceNotes: "",
+      },
+    },
+    modelSelection: { mode: "auto" as const },
+  };
+
+  const automatic = await generateSite(base, {}, dependencies);
+  assert.equal(automatic.blueprint.templateId, "minimal-professional");
+
+  const manual = await generateSite(
+    {
+      ...base,
+      preferences: {
+        ...base.preferences,
+        templateId: "premium-service" as const,
+      },
+    },
+    {},
+    dependencies,
+  );
+  assert.equal(manual.blueprint.templateId, "premium-service");
+});
+test("paleta personalizada prevalece sobre as cores retornadas pela IA", async () => {
+  const result = await generateSite(
+    {
+      context,
+      preferences: {
+        siteType: "landing-page",
+        templateId: "auto",
+        style: "moderno",
+        goal: "none",
+        designBrief: {
+          paletteMode: "custom",
+          primaryColor: "#112233",
+          accentColor: "#AABBCC",
+          designSystemInput: "",
+          motion: "subtle",
+          referenceNotes: "",
+        },
+      },
+      modelSelection: { mode: "auto" },
+    },
+    {},
+    {
+      discoverModels: async () => ({ models: [model], warnings: [] }),
+      requestBlueprint: async () => blueprint,
+    },
+  );
+  assert.equal(result.blueprint.brand.primaryColor, "#112233");
+  assert.equal(result.blueprint.brand.accentColor, "#aabbcc");
+});
+test("prompt usa briefing normalizado sem incluir tokens brutos", () => {
+  const prompt = buildSitePrompt(context, {
+    siteType: "landing-page",
+    templateId: "auto",
+    style: "premium",
+    goal: "contact",
+    designBrief: {
+      paletteMode: "imported",
+      primaryColor: "#000000",
+      accentColor: "#ffffff",
+      designSystemInput: "--brand: #102030; RAW_MARKER_NAO_INCLUIR",
+      motion: "cinematic",
+      referenceNotes: "Referência editorial",
+    },
+  });
+  assert.match(prompt, /premium-editorial/);
+  assert.match(prompt, /#102030/);
+  assert.doesNotMatch(prompt, /RAW_MARKER_NAO_INCLUIR/);
+  assert.doesNotMatch(prompt, /designSystemInput/);
 });
 test("regenerar uma seção conserva serviços aprovados e outras edições", () => {
   const current = {

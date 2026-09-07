@@ -46,14 +46,26 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - `SiteGeneratorModal` chama o backend; não usa timer, URL fictícia ou publicação simulada.
 - Contexto mínimo do lead → JSON Schema/structured output → Zod → Blueprint v1 → renderer React compartilhado pelo editor, prévia e ZIP.
 - Quatro templates, SEO, branding, hero/CTA, sobre, serviços sugeridos, contato, localização, visibilidade e ordem editáveis.
+- O modal usa um briefing compacto: campos principais em duas colunas no desktop e uma no celular, com direção de design opcional recolhida por padrão.
+- O template pode ser escolhido pelo usuário ou ficar em **Deixar a IA decidir**. O backend restringe a escolha automática aos quatro templates validados.
+- Paletas podem ser recomendadas pelo contexto, definidas por duas cores ou importadas de JSON/variáveis CSS. A importação extrai no máximo 12 cores hexadecimais; não executa CSS, URLs, scripts ou conteúdo arbitrário.
+- Lentes internas (`local-conversion`, `premium-editorial`, `trust-institutional` e `appointment-flow`) orientam hierarquia, template e movimento de acordo com tipo, objetivo e estilo. Elas são regras do aplicativo, não execução de arquivos `SKILL.md` do Codex no servidor.
 - `/api/ai/models` descobre modelos; `/api/ai/sites/generate` gera; `/api/ai/sites/regenerate-section` altera apenas a seção solicitada.
 - Estratégias auto/fast/quality/premium/local e modelo explícito. Fallback entre modelos somente em automático; falhas não viram sucesso.
-- Gemini via backend; Ollama opcional no servidor. Credenciais internas exigem token em produção; BYOK dos scripts permanece separado.
+- Gemini via backend; Ollama opcional no servidor. Credenciais internas exigem token em produção; BYOK dos scripts permanece separado. O token do servidor é uma autorização temporária `Bearer`, não a chave Gemini nem autenticação individual.
+- Erros de transporte local são separados de erros do provedor: backend parado retorna uma orientação de reinício; timeout, 401, 429, 502 e 503 mantêm categorias próprias. Falhas transitórias recebem espera curta e fallback permitido; falhas de autenticação ou formato não são repetidas.
 - Projetos salvam contexto, Blueprint, status, revisão e metadata IA no navegador, com falha explícita de persistência. Registros antigos sem Blueprint continuam acessíveis, sem prévia fictícia.
 - Exportação estática com `index.html`, `blueprint.json` e `context.json`. Sem deploy, dependência do CRM ou scripts gerados pela IA.
 - Informações ausentes são omitidas; serviços de IA são sugestões sem preço. Export exige revisão humana e resolução das sugestões. Validação estrutural não é verificação semântica automática de toda afirmação textual.
 - Toasts temporários convivem com notificações persistentes. A busca global existente inclui projetos e contratos.
 - Evidências e pendências: [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md).
+
+### Pesquisa, imagens, movimento e MCP
+
+- Pesquisa web automática de referências não está implementada. Antes dela, o backend precisa de provedor definido, fontes registradas, cache, timeout e defesa contra prompt injection.
+- Geração de imagens não está implementada. A próxima fase precisa definir contrato de assets, armazenamento, moderação, licença/consentimento, limites de custo e empacotamento seguro no ZIP.
+- O briefing aceita intenção de movimento cinematográfico, mas o renderer atual não adiciona WebGL ou 3D. Qualquer movimento futuro deverá respeitar `prefers-reduced-motion`.
+- MCP não está integrado ao runtime do CRM. Uma integração futura deverá usar adapters permitidos no backend, com consentimento e servidores confiáveis; o navegador não poderá fornecer endpoints MCP arbitrários.
 
 ### Scripts comerciais: integração preservada
 
@@ -87,10 +99,14 @@ Os testes automatizados ficam separados do código de produção e espelham a es
 
 ```text
 tests/
+├── components/
+│   └── designBriefControls.test.tsx
 ├── fixtures/
 │   └── siteFixture.ts
 ├── services/
 │   ├── aiService.test.ts
+│   ├── designBrief.test.ts
+│   ├── siteGenerationClient.test.ts
 │   ├── siteGeneration.test.ts
 │   └── siteRoutes.test.ts
 └── utils/
@@ -101,6 +117,10 @@ tests/
 O script `npm test` executa `tests/**/*.test.ts`, e o `tsconfig.json` inclui `tests/**/*` na verificação de tipos. A suíte cobre:
 
 - seleção, autenticação, retentativa e fallback do Gemini;
+- parsing seguro de design systems, paletas e lentes de design;
+- template automático versus escolha manual e precedência de cores explícitas;
+- mensagens de backend indisponível, timeout e resposta inválida;
+- estrutura acessível dos estados recomendado, personalizado e importado do briefing;
 - retorno do teste real de conexão;
 - captura de `Ctrl + K` pela busca global;
 - composição da busca comercial no Google Maps;

@@ -26,23 +26,45 @@ function headers(settings: CrmSettingsConfig) {
   };
 }
 async function api(path: string, settings: CrmSettingsConfig, body?: unknown) {
-  const response = await fetch("/api/ai/" + path, {
-    method: body ? "POST" : "GET",
-    headers: headers(settings),
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(420000),
-  });
-  const data = await response.json();
+  let response: Response;
+  try {
+    response = await fetch("/api/ai/" + path, {
+      method: body ? "POST" : "GET",
+      headers: headers(settings),
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(420000),
+    });
+  } catch (error) {
+    if (
+      error instanceof DOMException &&
+      (error.name === "TimeoutError" || error.name === "AbortError")
+    )
+      throw new Error("A solicitação excedeu o tempo limite. Tente novamente.");
+    throw new Error(
+      "Servidor local indisponível. Inicie ou reinicie o aplicativo e tente novamente.",
+    );
+  }
+  let data: unknown;
+  try {
+    data = await response.json();
+  } catch {
+    throw new Error("O servidor retornou uma resposta inválida.");
+  }
   if (!response.ok)
     throw new Error(
-      typeof data.error === "string" ? data.error : "A operação de IA falhou.",
+      typeof (data as { error?: unknown })?.error === "string"
+        ? (data as { error: string }).error
+        : "A operação de IA falhou.",
     );
   return data;
 }
 export async function getSiteModels(
   settings: CrmSettingsConfig,
 ): Promise<{ models: AiModelDefinition[]; warnings: string[] }> {
-  return api("models", settings);
+  return api("models", settings) as Promise<{
+    models: AiModelDefinition[];
+    warnings: string[];
+  }>;
 }
 export type SiteRequest = {
   leadId: string;
@@ -65,5 +87,10 @@ export async function generateSiteBlueprint(
     settings,
     request,
   );
-  return { ...result, blueprint: blueprintSchema.parse(result.blueprint) };
+  const payload = result as {
+    blueprint: unknown;
+    generation: GenerationMetadata;
+    warnings: string[];
+  };
+  return { ...payload, blueprint: blueprintSchema.parse(payload.blueprint) };
 }

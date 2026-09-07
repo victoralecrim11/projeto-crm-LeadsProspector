@@ -18,14 +18,17 @@ export function ModelControls({
 }) {
   const [models, setModels] = useState<AiModelDefinition[]>([]);
   const [message, setMessage] = useState("Consultando modelos…");
+  const [failed, setFailed] = useState(false);
   const [refresh, setRefresh] = useState(0);
   useEffect(() => {
     let active = true;
     setMessage("Consultando modelos…");
+    setFailed(false);
     getSiteModels(settings)
       .then((data) => {
         if (active) {
           setModels(data.models);
+          setFailed(false);
           setMessage(
             data.warnings.join(" ") ||
               data.models.length + " modelos disponíveis.",
@@ -35,6 +38,7 @@ export function ModelControls({
       .catch((e) => {
         if (active) {
           setModels([]);
+          setFailed(true);
           setMessage(e.message);
         }
       });
@@ -84,27 +88,36 @@ export function ModelControls({
           </select>
         </label>
       )}
-      <p className="text-xs text-slate-300" role="status">
-        {message}
-      </p>
+      <div className="model-status-row">
+        <p
+          className={failed ? "model-status-error" : "text-xs text-slate-300"}
+          role={failed ? "alert" : "status"}
+        >
+          {message}
+        </p>
+        <button
+          type="button"
+          className="models-refresh-button"
+          onClick={() => setRefresh((n) => n + 1)}
+        >
+          {failed ? "Tentar novamente" : "Atualizar modelos"}
+        </button>
+      </div>
       <details className="text-xs">
         <summary>Conexão avançada</summary>
         <label>
-          Token de acesso do servidor (somente nesta sessão)
+          Token do servidor — não é a chave Gemini
           <input
             type="password"
             autoComplete="off"
             className="w-full p-2 bg-slate-800"
             onChange={(e) => setSiteAccessToken(e.target.value)}
           />
+          <span className="design-field-help">
+            Necessário apenas quando o servidor de produção exige autorização.
+            O valor permanece somente nesta sessão.
+          </span>
         </label>
-        <button
-          type="button"
-          className="underline p-2"
-          onClick={() => setRefresh((n) => n + 1)}
-        >
-          Atualizar modelos
-        </button>
       </details>
     </fieldset>
   );

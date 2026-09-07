@@ -44,13 +44,38 @@ export async function requestBlueprint(
         signal: AbortSignal.timeout(60000),
       });
     }
-    if (!response.ok)
+    if (!response.ok) {
+      const status = response.status;
+      if (status === 401 || status === 403)
+        throw new SiteAiError(
+          "O provedor recusou a autenticação. Verifique a chave configurada.",
+          401,
+          false,
+        );
+      if (status === 429)
+        throw new SiteAiError(
+          "O limite de requisições do provedor foi atingido. Tente novamente em instantes.",
+          429,
+          true,
+        );
+      if (status === 503 || status === 504)
+        throw new SiteAiError(
+          "O provedor está temporariamente indisponível.",
+          503,
+          true,
+        );
+      if (status >= 400 && status < 500)
+        throw new SiteAiError(
+          "O provedor recusou o formato da solicitação.",
+          400,
+          false,
+        );
       throw new SiteAiError(
-        "O provedor recusou a geração (HTTP " +
-          response.status +
-          "). Verifique autenticação, cota ou disponibilidade.",
-        response.status === 401 || response.status === 403 ? 401 : 502,
+        "O provedor falhou ao processar a geração.",
+        502,
+        true,
       );
+    }
     const data = await response.json();
     const content =
       model.provider === "gemini"
@@ -60,7 +85,11 @@ export async function requestBlueprint(
             .join("")
         : data.response;
     if (typeof content !== "string" || !content.trim())
-      throw new SiteAiError("O provedor não retornou conteúdo utilizável.");
+      throw new SiteAiError(
+        "O provedor não retornou conteúdo utilizável.",
+        502,
+        true,
+      );
     return JSON.parse(content);
   } catch (e) {
     if (e instanceof SiteAiError) throw e;
@@ -68,6 +97,8 @@ export async function requestBlueprint(
       e instanceof SyntaxError
         ? "A IA retornou JSON inválido."
         : "Tempo limite ou falha de comunicação com a IA.",
+      e instanceof SyntaxError ? 502 : 503,
+      true,
     );
   }
 }
