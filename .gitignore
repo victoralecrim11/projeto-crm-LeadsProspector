@@ -11,3 +11,5 @@ coverage/
 tsconfig.tsbuildinfo
 scratch/
 .worktrees/
+
+.vercel

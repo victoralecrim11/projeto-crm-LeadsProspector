@@ -3,7 +3,7 @@ import {
   type DesignBrief,
   type LeadSiteContext,
   type SitePreferences,
-} from "./types";
+} from "./types.js";
 
 export type DesignLens =
   | "local-conversion"

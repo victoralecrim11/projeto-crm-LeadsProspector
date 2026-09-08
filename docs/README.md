@@ -34,14 +34,14 @@ O radar local usa **OpenStreetMap/Overpass** como fonte. O selo `REAL OSM` signi
 - React 19, TypeScript 5.8 e Vite 6.
 - Tailwind CSS 4 e Lucide React.
 - Zustand para estado global e `safeStorage` para persistência no navegador.
-- Express para servir a aplicação e os proxies locais.
+- Express para servir a aplicação e os proxies locais; na Vercel, o mesmo app é uma única Function Node.js.
 - Leaflet, OpenStreetMap, Overpass API, Nominatim e BrasilAPI/IBGE.
 - Google GenAI e provedores configuráveis para recursos de inteligência artificial.
 - ExcelJS, FileSaver, jsPDF e HTML2Canvas para exportações e documentos.
 
 ## Requisitos
 
-- Node.js 20 ou superior.
+- Node.js 22 LTS.
 - npm compatível com a versão instalada do Node.js.
 - Acesso à internet para consultas OSM, busca externa no Maps e provedores de IA em nuvem.
 
@@ -126,6 +126,8 @@ Projetos persistem Blueprint, contexto e modelo utilizado. O salvamento acusa fa
 | `npm test` | Executa todos os testes automatizados da pasta `tests/`. |
 | `npm run lint` | Valida a tipagem TypeScript sem gerar arquivos. |
 | `npm run build` | Gera o frontend e o servidor de produção em `dist/`. |
+| `npm run build:client` | Gera somente os arquivos estáticos do Vite, usado pela Vercel. |
+| `npm run build:server` | Gera o bundle do servidor Node local em `dist/server.cjs`. |
 | `npm start` | Inicia o bundle de produção previamente gerado. |
 
 ## Organização dos testes
@@ -139,7 +141,8 @@ tests/
 ├── services/
 │   ├── aiService.test.ts
 │   ├── siteGeneration.test.ts
-│   └── siteRoutes.test.ts
+│   ├── siteRoutes.test.ts
+│   └── vercelRuntime.test.ts
 └── utils/
     ├── commandPaletteShortcut.test.ts
     └── openGoogleMaps.test.ts
@@ -192,6 +195,22 @@ NODE_ENV=production npm start
 ```
 
 O servidor entrega os arquivos compilados de `dist/` e mantém disponíveis as rotas locais usadas pelos proxies e pela geração via servidor.
+
+### Deploy na Vercel
+
+O deploy usa `api/index.ts` como uma única Vercel Function Express. O `vercel.json` encaminha `/api/*` para essa função e envia as demais rotas sem arquivo para `index.html`, preservando a navegação da SPA.
+
+A Vercel executa apenas `npm run build:client`. Assim, `dist/server.cjs` continua disponível para hospedagem Node tradicional, mas não é publicado como arquivo estático. A Function usa Node.js 22 e duração máxima de 60 segundos.
+
+Configure `GEMINI_API_KEY` e `SITE_AI_ACCESS_TOKEN` em **Vercel → Project Settings → Environment Variables** quando quiser oferecer a credencial interna do servidor. Sem essas variáveis, a geração continua disponível por BYOK configurado no CRM. Um `OLLAMA_BASE_URL` local (`127.0.0.1`) não é acessível a partir da Vercel.
+
+Para reproduzir o empacotamento e as rotas antes de publicar:
+
+```bash
+vercel pull --yes
+vercel build
+vercel dev
+```
 
 ---
 

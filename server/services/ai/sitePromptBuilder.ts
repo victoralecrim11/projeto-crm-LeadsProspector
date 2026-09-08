@@ -1,8 +1,8 @@
 import type {
   LeadSiteContext,
   SitePreferences,
-} from "../../../src/site-builder/types";
-import { normalizeDesignBrief } from "../../../src/site-builder/designBrief";
+} from "../../../src/site-builder/types.js";
+import { normalizeDesignBrief } from "../../../src/site-builder/designBrief.js";
 export function buildSitePrompt(
   context: LeadSiteContext,
   preferences: SitePreferences,

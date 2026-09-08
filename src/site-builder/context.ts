@@ -1,10 +1,10 @@
-import type { Lead } from "../types";
+import type { Lead } from "../types.js";
 import {
   contextSchema,
   blueprintSchema,
   type LeadSiteContext,
   type GeneratedSiteBlueprint,
-} from "./types";
+} from "./types.js";
 
 const clean = (s?: string) =>
   typeof s === "string" ? s.trim().slice(0, 180) : "";

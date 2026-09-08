@@ -5,7 +5,7 @@ import {
   selectionSchema,
   blueprintSchema,
   regenerationSections,
-} from "../../src/site-builder/types";
+} from "../../src/site-builder/types.js";
 export { blueprintSchema };
 export const generationRequestSchema = z
   .object({

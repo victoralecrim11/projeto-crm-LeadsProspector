@@ -1,9 +1,9 @@
-import type { AiModelDefinition } from "../../../../src/site-builder/types";
+import type { AiModelDefinition } from "../../../../src/site-builder/types.js";
 import {
   generatedSiteJsonSchema,
   geminiGeneratedSiteJsonSchema,
-} from "../../../schemas/generatedSiteSchema";
-import { SiteAiError, type Credentials } from "../modelRegistry";
+} from "../../../schemas/generatedSiteSchema.js";
+import { SiteAiError, type Credentials } from "../modelRegistry.js";
 export async function requestBlueprint(
   model: AiModelDefinition,
   prompt: string,

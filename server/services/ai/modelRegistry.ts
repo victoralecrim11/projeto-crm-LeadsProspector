@@ -1,7 +1,7 @@
 import type {
   AiModelDefinition,
   ModelSelection,
-} from "../../../src/site-builder/types";
+} from "../../../src/site-builder/types.js";
 export class SiteAiError extends Error {
   constructor(
     message: string,

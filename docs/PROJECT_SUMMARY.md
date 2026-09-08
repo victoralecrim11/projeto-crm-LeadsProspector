@@ -84,6 +84,15 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - O proxy normaliza a chave de busca, mantém cache com TTL de 24 horas e até 500 entradas e limita as saídas externas a uma por segundo.
 - Rate limit, timeout e falhas do serviço de origem retornam respostas específicas.
 
+## Runtime local e Vercel
+
+- O backend compartilhado é criado por `server/app.ts`; `server.ts` abre a porta apenas no runtime Node local e `api/index.ts` exporta o app como uma única Vercel Function.
+- O `vercel.json` encaminha `/api/*` para a função antes do fallback de SPA para `index.html`. Rotas de API ausentes continuam retornando JSON, nunca HTML.
+- A Vercel executa `npm run build:client`, publica apenas os assets do Vite e não expõe `dist/server.cjs`. O build Node completo continua disponível em `npm run build` para hospedagem tradicional.
+- O runtime serverless está fixado em Node.js 22 LTS, com duração máxima de 60 segundos para acomodar fallbacks de IA e Overpass.
+- `GEMINI_API_KEY` e `SITE_AI_ACCESS_TOKEN` devem ser configurados nas variáveis de ambiente da Vercel para o modo de credencial interna. BYOK continua funcionando sem essas variáveis.
+- O cache e a fila do Nominatim vivem na memória de cada instância aquecida da Function; não constituem persistência distribuída entre instâncias.
+
 ## CRM e experiência de uso
 
 - O **Radar Local** é o ponto de varredura; a grade apresenta os mesmos resultados OSM em outra visualização.
@@ -108,7 +117,8 @@ tests/
 │   ├── designBrief.test.ts
 │   ├── siteGenerationClient.test.ts
 │   ├── siteGeneration.test.ts
-│   └── siteRoutes.test.ts
+│   ├── siteRoutes.test.ts
+│   └── vercelRuntime.test.ts
 └── utils/
     ├── commandPaletteShortcut.test.ts
     └── openGoogleMaps.test.ts
@@ -125,12 +135,15 @@ O script `npm test` executa `tests/**/*.test.ts`, e o `tsconfig.json` inclui `te
 - captura de `Ctrl + K` pela busca global;
 - composição da busca comercial no Google Maps;
 - preservação das coordenadas exatas em Google Maps e OpenStreetMap.
+- configuração, imports ESM e contrato HTTP da Function da Vercel.
 
 ## Comandos de verificação e produção
 
 - `npm test`: executa a suíte automatizada.
 - `npm run lint`: executa `tsc --noEmit`.
 - `npm run build`: gera o frontend Vite e o backend em `dist/server.cjs`.
+- `npm run build:client`: gera somente o frontend estático usado pela Vercel.
+- `npm run build:server`: gera somente o servidor Node para hospedagem tradicional.
 - `npm start`: inicia o bundle de produção previamente gerado.
 
 O build atual pode emitir avisos não bloqueantes sobre o tamanho de alguns chunks e sobre `leadStore.ts` ser importado de forma estática e dinâmica.

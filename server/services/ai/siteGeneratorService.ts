@@ -1,4 +1,4 @@
-import { constrainBlueprint } from "../../../src/site-builder/context";
+import { constrainBlueprint } from "../../../src/site-builder/context.js";
 import type {
   GeneratedSiteBlueprint,
   GenerationMetadata,
@@ -7,16 +7,16 @@ import type {
   ModelSelection,
   RegenerationSection,
   AiModelDefinition,
-} from "../../../src/site-builder/types";
+} from "../../../src/site-builder/types.js";
 import {
   discoverModels,
   resolveModels,
   SiteAiError,
   type Credentials,
-} from "./modelRegistry";
-import { buildSitePrompt } from "./sitePromptBuilder";
-import { requestBlueprint } from "./providers/siteProviders";
-import { normalizeDesignBrief } from "../../../src/site-builder/designBrief";
+} from "./modelRegistry.js";
+import { buildSitePrompt } from "./sitePromptBuilder.js";
+import { requestBlueprint } from "./providers/siteProviders.js";
+import { normalizeDesignBrief } from "../../../src/site-builder/designBrief.js";
 export async function generateSite(
   input: {
     context: LeadSiteContext;

@@ -2,13 +2,13 @@ import { Router, type Request } from "express";
 import {
   generationRequestSchema,
   regenerateRequestSchema,
-} from "../schemas/generatedSiteSchema";
+} from "../schemas/generatedSiteSchema.js";
 import {
   discoverModels,
   SiteAiError,
   type Credentials,
-} from "../services/ai/modelRegistry";
-import { generateSite } from "../services/ai/siteGeneratorService";
+} from "../services/ai/modelRegistry.js";
+import { generateSite } from "../services/ai/siteGeneratorService.js";
 export function siteGenerationRouter() {
   const router = Router();
   let active = 0;
