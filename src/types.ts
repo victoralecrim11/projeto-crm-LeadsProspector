@@ -250,6 +250,8 @@ export interface AIProviderConfig {
   provider: AIProvider;
   apiKey: string;
   baseUrl?: string;
+  /** Modelo opcional. Em branco, o servidor escolhe um modelo compatível e atual. */
+  model?: string;
 }
 
 export interface CrmSettingsConfig {

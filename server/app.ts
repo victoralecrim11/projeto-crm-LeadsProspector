@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import https from "https";
 import querystring from "querystring";
+import { aiProviderRouter } from "./routes/aiProvider.js";
 import { siteGenerationRouter } from "./routes/siteGeneration.js";
 
 dotenv.config({ quiet: true });
@@ -11,6 +12,7 @@ export function createApiApp() {
 
   app.disable("x-powered-by");
   app.use(express.json({ limit: "128kb" }));
+  app.use("/api/ai", aiProviderRouter());
   app.use("/api/ai", siteGenerationRouter());
 
   app.get("/api/health", (_req, res) => {

@@ -143,7 +143,7 @@ export const CrmSettingsView: React.FC = () => {
     }));
   };
 
-  // CORREÇÃO: Auto-injetar a Base URL correta quando o usuário trocar o provedor no dropdown
+  // URLs de provedores em nuvem são mantidas no backend para evitar endpoints quebrados ou inseguros.
   const updateAiProvider = (id: string, field: string, value: string) => {
     setFormData(prev => {
       const updatedProviders = (prev.aiProviders || []).map(p => {
@@ -151,10 +151,8 @@ export const CrmSettingsView: React.FC = () => {
           const updated = { ...p, [field]: value };
           if (field === 'provider') {
             if (value === 'ollama') updated.baseUrl = 'http://localhost:11434';
-            else if (value === 'openrouter') updated.baseUrl = 'https://openrouter.ai/api/v1';
-            else if (value === 'groq') updated.baseUrl = 'https://api.groq.com/openai/v1';
-            else if (value === 'github') updated.baseUrl = 'https://models.inference.ai.azure.com';
-            else updated.baseUrl = ''; // Limpa para provedores que usam a URL padrão (Gemini, OpenAI)
+            else updated.baseUrl = undefined;
+            updated.model = undefined;
           }
           return updated;
         }
@@ -780,10 +778,9 @@ export const CrmSettingsView: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Exibir o Base URL automaticamente se o provedor permitir customização */}
-                      {['ollama', 'openrouter', 'huggingface', 'github', 'cohere'].includes(prov.provider) && (
+                      {prov.provider === 'ollama' && (
                         <div className="space-y-1.5 md:col-span-2">
-                          <label className="text-[11px] font-semibold text-slate-300">Base URL (Obrigatório para Ollama/Custom):</label>
+                          <label className="text-[11px] font-semibold text-slate-300">Base URL do Ollama:</label>
                           <input
                             type="text"
                             value={prov.baseUrl || ''}
@@ -793,6 +790,18 @@ export const CrmSettingsView: React.FC = () => {
                           />
                         </div>
                       )}
+
+                      <div className="space-y-1.5 md:col-span-2">
+                        <label className="text-[11px] font-semibold text-slate-300">Modelo (opcional):</label>
+                        <input
+                          type="text"
+                          value={prov.model || ''}
+                          onChange={(e) => updateAiProvider(prov.id, 'model', e.target.value)}
+                          placeholder="Automático — usa um modelo compatível e atualizado"
+                          className="w-full p-2.5 bg-slate-950 border border-white/10 rounded-xl text-xs text-white font-mono focus:border-sky-400 focus:outline-none"
+                        />
+                        <p className="text-[10px] text-slate-500">Deixe em branco para o sistema escolher. A chave é enviada somente para o backend durante a solicitação, nunca para o provedor pelo navegador.</p>
+                      </div>
                     </div>
 
                     <div className="pt-2 flex items-center justify-between">

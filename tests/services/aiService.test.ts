@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { generateAiContent, testAiProviderConnection } from '../../src/services/aiService';
-import type { CrmSettingsConfig } from '../../src/types';
+import type { AIProvider, CrmSettingsConfig } from '../../src/types';
 
-const settingsWithGemini = (apiKey: string): CrmSettingsConfig => ({
+const settings = (provider: AIProvider): CrmSettingsConfig => ({
   closerName: '',
   closerTitle: '',
   closerEmail: '',
@@ -19,128 +19,55 @@ const settingsWithGemini = (apiKey: string): CrmSettingsConfig => ({
   emailProvider: 'direct',
   autoEnrichLeads: false,
   notifyOnLeadStall: false,
-  aiProviders: [{ id: 'gemini-test', provider: 'gemini', apiKey }],
+  aiProviders: [{ id: 'provider-test', provider, apiKey: 'test-secret-key' }],
 });
 
-test('Gemini usa modelo atual e não expõe a chave na URL', async () => {
+test('provedores em nuvem são chamados pelo gateway interno', async () => {
   const originalFetch = globalThis.fetch;
-  let requestedUrl = '';
-  let requestedHeaders: HeadersInit | undefined;
+  let requestUrl = '';
+  let requestBody: Record<string, unknown> = {};
 
   globalThis.fetch = async (input, init) => {
-    requestedUrl = String(input);
-    requestedHeaders = init?.headers;
-    return new Response(JSON.stringify({
-      candidates: [{ content: { parts: [{ text: 'OK' }] } }],
-    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    requestUrl = String(input);
+    requestBody = JSON.parse(String(init?.body));
+    return Response.json({ content: 'Conteúdo gerado', model: 'modelo-testado' });
   };
 
   try {
-    const result = await generateAiContent(settingsWithGemini('AIza-test-secret'), 'Teste');
-    const headers = new Headers(requestedHeaders);
-
-    assert.equal(result, 'OK');
-    assert.match(requestedUrl, /models\/gemini-3\.5-flash:generateContent/);
-    assert.equal(new URL(requestedUrl).searchParams.has('key'), false);
-    assert.equal(headers.get('x-goog-api-key'), 'AIza-test-secret');
+    const result = await generateAiContent(settings('nvidia'), 'Teste');
+    assert.equal(result, 'Conteúdo gerado');
+    assert.equal(requestUrl, '/api/ai/chat');
+    assert.equal(requestBody.provider, 'nvidia');
+    assert.equal(requestBody.apiKey, 'test-secret-key');
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('teste de conexão informa o modelo que respondeu após um fallback', async () => {
+test('teste de conexão mostra o modelo usado pelo backend', async () => {
   const originalFetch = globalThis.fetch;
-
-  globalThis.fetch = async (input) => {
-    const url = String(input);
-    if (url.includes('gemini-3.5-flash')) {
-      return new Response(JSON.stringify({ error: { message: 'Service unavailable' } }), {
-        status: 503,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-    if (url.includes('gemini-2.5-flash')) {
-      return new Response(JSON.stringify({
-        candidates: [{ content: { parts: [{ text: 'OK' }] } }],
-      }), { status: 200, headers: { 'Content-Type': 'application/json' } });
-    }
-    return new Response(JSON.stringify({ error: { message: 'Modelo inesperado' } }), {
-      status: 404,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
+  globalThis.fetch = async () => Response.json({ content: 'OK', model: 'openai/gpt-oss-20b' });
 
   try {
-    const message = await testAiProviderConnection({
-      id: 'gemini-test',
-      provider: 'gemini',
-      apiKey: 'AIza-test-secret',
-    });
-    assert.match(message, /gemini-2\.5-flash/);
+    const message = await testAiProviderConnection(settings('groq').aiProviders[0]);
+    assert.match(message, /groq/);
+    assert.match(message, /openai\/gpt-oss-20b/);
   } finally {
     globalThis.fetch = originalFetch;
   }
 });
 
-test('OpenAI informa cota esgotada sem tentar outro modelo', async () => {
+test('o cliente mantém o erro detalhado vindo do gateway', async () => {
   const originalFetch = globalThis.fetch;
-  const requestedModels: string[] = [];
-
-  globalThis.fetch = async (_input, init) => {
-    requestedModels.push(JSON.parse(String(init?.body)).model);
-    return new Response(JSON.stringify({
-      error: {
-        message: 'You exceeded your current quota, please check your plan and billing details.',
-        type: 'insufficient_quota',
-        code: 'insufficient_quota',
-      },
-    }), {
-      status: 429,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  };
+  globalThis.fetch = async () => Response.json(
+    { error: 'O provedor atingiu um limite de uso ou a conta não possui créditos disponíveis.' },
+    { status: 429 },
+  );
 
   try {
     await assert.rejects(
-      testAiProviderConnection({
-        id: 'openai-test',
-        provider: 'openai',
-        apiKey: 'sk-test-secret',
-      }),
-      /cota.*créditos|créditos.*cota/i,
-    );
-    assert.deepEqual(requestedModels, ['gpt-4o-mini']);
-  } finally {
-    globalThis.fetch = originalFetch;
-  }
-});
-
-test('OpenAI orienta aguardar quando a API informa Retry-After', async () => {
-  const originalFetch = globalThis.fetch;
-
-  globalThis.fetch = async () =>
-    new Response(JSON.stringify({
-      error: {
-        message: 'Rate limit reached for requests.',
-        type: 'rate_limit_error',
-        code: 'rate_limit_exceeded',
-      },
-    }), {
-      status: 429,
-      headers: {
-        'Content-Type': 'application/json',
-        'Retry-After': '17',
-      },
-    });
-
-  try {
-    await assert.rejects(
-      testAiProviderConnection({
-        id: 'openai-test',
-        provider: 'openai',
-        apiKey: 'sk-test-secret',
-      }),
-      /aguarde 17 segundos/i,
+      generateAiContent(settings('openai'), 'Teste'),
+      /limite de uso|créditos/i,
     );
   } finally {
     globalThis.fetch = originalFetch;
