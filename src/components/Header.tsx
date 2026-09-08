@@ -202,13 +202,13 @@ export const Header: React.FC = () => {
 
           {/* Notifications Dropdown */}
           {isNotifOpen && (
-            <div className="absolute right-0 mt-2 w-80 sm:w-96 glass-panel border border-white/15 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-white/10 bg-white/[0.04]">
+            <div className="absolute -right-2 sm:right-0 mt-2 w-[calc(100vw-24px)] max-w-[320px] sm:max-w-none sm:w-96 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/50">
                 <div className="flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-sky-400" />
-                  <span className="font-semibold text-sm text-white">Notificações</span>
+                  <Bell className="w-4 h-4 text-indigo-500 dark:text-sky-400" />
+                  <span className="font-semibold text-sm text-slate-900 dark:text-white">Notificações</span>
                   {unreadCount > 0 && (
-                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-500/30 text-indigo-300 border border-indigo-400/30">
+                    <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-indigo-100 text-indigo-700 dark:bg-indigo-500/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-400/30">
                       {unreadCount} novas
                     </span>
                   )}
@@ -216,7 +216,7 @@ export const Header: React.FC = () => {
                 {unreadCount > 0 && (
                   <button
                     onClick={markAllNotificationsAsRead}
-                    className="text-xs text-slate-400 hover:text-sky-300 transition-colors flex items-center gap-1"
+                    className="text-xs text-slate-500 hover:text-indigo-600 dark:text-slate-400 dark:hover:text-sky-300 transition-colors flex items-center gap-1"
                   >
                     <CheckCheck className="w-3.5 h-3.5" />
                     Marcar lidas
@@ -224,9 +224,9 @@ export const Header: React.FC = () => {
                 )}
               </div>
 
-              <div className="max-h-80 overflow-y-auto divide-y divide-white/5">
+              <div className="max-h-[60vh] sm:max-h-80 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/50">
                 {notifications.length === 0 ? (
-                  <div className="p-6 text-center text-xs text-slate-400">
+                  <div className="p-6 text-center text-xs text-slate-500 dark:text-slate-400">
                     Nenhuma notificação no momento.
                   </div>
                 ) : (
@@ -242,17 +242,17 @@ export const Header: React.FC = () => {
                           }
                         }
                       }}
-                      className={`p-3.5 transition-colors cursor-pointer hover:bg-white/[0.08] ${
-                        !n.read ? 'bg-indigo-500/10' : ''
+                      className={`p-3.5 transition-colors cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800/50 ${
+                        !n.read ? 'bg-indigo-50/50 dark:bg-indigo-500/10' : ''
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <span className={`text-xs font-semibold ${!n.read ? 'text-white' : 'text-slate-300'}`}>
+                        <span className={`text-xs font-semibold ${!n.read ? 'text-slate-900 dark:text-white' : 'text-slate-600 dark:text-slate-300'}`}>
                           {n.title}
                         </span>
                         <span className="text-[10px] text-slate-400 shrink-0">{n.timestamp}</span>
                       </div>
-                      <p className="text-xs text-slate-300/80 mt-1 leading-relaxed">{n.message}</p>
+                      <p className="text-xs text-slate-600 dark:text-slate-300/80 mt-1 leading-relaxed">{n.message}</p>
                     </div>
                   ))
                 )}
