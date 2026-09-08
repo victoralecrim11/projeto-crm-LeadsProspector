@@ -81,3 +81,68 @@ test('teste de conexão informa o modelo que respondeu após um fallback', async
     globalThis.fetch = originalFetch;
   }
 });
+
+test('OpenAI informa cota esgotada sem tentar outro modelo', async () => {
+  const originalFetch = globalThis.fetch;
+  const requestedModels: string[] = [];
+
+  globalThis.fetch = async (_input, init) => {
+    requestedModels.push(JSON.parse(String(init?.body)).model);
+    return new Response(JSON.stringify({
+      error: {
+        message: 'You exceeded your current quota, please check your plan and billing details.',
+        type: 'insufficient_quota',
+        code: 'insufficient_quota',
+      },
+    }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  };
+
+  try {
+    await assert.rejects(
+      testAiProviderConnection({
+        id: 'openai-test',
+        provider: 'openai',
+        apiKey: 'sk-test-secret',
+      }),
+      /cota.*créditos|créditos.*cota/i,
+    );
+    assert.deepEqual(requestedModels, ['gpt-4o-mini']);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test('OpenAI orienta aguardar quando a API informa Retry-After', async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async () =>
+    new Response(JSON.stringify({
+      error: {
+        message: 'Rate limit reached for requests.',
+        type: 'rate_limit_error',
+        code: 'rate_limit_exceeded',
+      },
+    }), {
+      status: 429,
+      headers: {
+        'Content-Type': 'application/json',
+        'Retry-After': '17',
+      },
+    });
+
+  try {
+    await assert.rejects(
+      testAiProviderConnection({
+        id: 'openai-test',
+        provider: 'openai',
+        apiKey: 'sk-test-secret',
+      }),
+      /aguarde 17 segundos/i,
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

@@ -22,10 +22,26 @@ async function readApiError(response: Response): Promise<string> {
   try {
     const payload = await response.json();
     const message = payload?.error?.message || payload?.message || payload?.error;
-    return typeof message === 'string' ? message.slice(0, 500) : `HTTP ${response.status}`;
+    const code = payload?.error?.code || payload?.code;
+    const detail = typeof message === 'string' ? message.slice(0, 500) : `HTTP ${response.status}`;
+    return typeof code === 'string' && !detail.includes(code) ? `${detail} (${code})` : detail;
   } catch {
     return `HTTP ${response.status}`;
   }
+}
+
+function openAiRateLimitError(response: Response, detail: string): Error {
+  if (/insufficient_quota|quota|credit|billing|spend|usage.limit/i.test(detail)) {
+    return new Error(
+      `A OpenAI recusou a solicitação por cota ou créditos indisponíveis. Verifique o saldo, faturamento e limites de uso da conta. Detalhe: ${detail}`,
+    );
+  }
+
+  const retryAfter = Number(response.headers.get('retry-after'));
+  const waitMessage = Number.isFinite(retryAfter) && retryAfter > 0
+    ? `Aguarde ${Math.ceil(retryAfter)} segundos antes de tentar novamente.`
+    : 'Aguarde alguns instantes antes de tentar novamente.';
+  return new Error(`A OpenAI atingiu um limite temporário de requisições. ${waitMessage} Detalhe: ${detail}`);
 }
 
 const wait = (delayMs: number) => new Promise(resolve => setTimeout(resolve, delayMs));
@@ -208,7 +224,7 @@ const generateWithProvider = async (
       let modelsToTry = ['gpt-3.5-turbo'];
 
       if (!apiUrl) {
-          if (activeConfig.provider === 'openai') { apiUrl = 'https://api.openai.com/v1'; modelsToTry = ['gpt-4o-mini', 'gpt-3.5-turbo']; }
+          if (activeConfig.provider === 'openai') { apiUrl = 'https://api.openai.com/v1'; modelsToTry = ['gpt-4o-mini']; }
           if (activeConfig.provider === 'groq') { apiUrl = 'https://api.groq.com/openai/v1'; modelsToTry = ['llama3-8b-8192', 'mixtral-8x7b-32768', 'gemma-7b-it']; }
           if (activeConfig.provider === 'openrouter') { apiUrl = 'https://openrouter.ai/api/v1'; modelsToTry = ['meta-llama/llama-3-8b-instruct:free', 'mistralai/mistral-7b-instruct:free', 'google/gemma-7b-it:free']; }
           if (activeConfig.provider === 'together') { apiUrl = 'https://api.together.xyz/v1'; modelsToTry = ['meta-llama/Llama-3-8b-chat-hf', 'mistralai/Mixtral-8x7B-Instruct-v0.1']; }
@@ -236,16 +252,20 @@ const generateWithProvider = async (
           });
           
           if (!apiRes.ok) {
+            const detail = await readApiError(apiRes);
             if (apiRes.status === 401 || apiRes.status === 403) {
               throw new Error(`Erro de autenticação na API (${activeConfig.provider}). Chave inválida.`);
             }
-            throw new Error(`Erro na API (${activeConfig.provider} - Status ${apiRes.status}) com modelo ${model}.`);
+            if (apiRes.status === 429 && activeConfig.provider === 'openai') {
+              throw openAiRateLimitError(apiRes, detail);
+            }
+            throw new Error(`Erro na API (${activeConfig.provider} - Status ${apiRes.status}) com modelo ${model}: ${detail}`);
           }
           const apiData = await apiRes.json();
           return apiData.choices[0].message.content;
         } catch (err: any) {
           lastApiError = err;
-          if (err.message.includes('Erro de autenticação')) throw err;
+          if (err.message.includes('Erro de autenticação') || err.message.includes('A OpenAI')) throw err;
           console.warn(`[Fallback Modelo ${activeConfig.provider}] Modelo '${model}' falhou. Tentando o próximo...`);
         }
       }
