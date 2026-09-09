@@ -1,5 +1,5 @@
 {
   "name": "react-dev-toolkit-antigravity",
-  "version": "1.2.8",
-  "description": "Tech Lead e mentor para projetos React, Next.js e React Native/Expo: discovery de MVP, scaffolding TypeScript, code review didatico, deploy assistido e Project Hub local."
+  "version": "1.3.3",
+  "description": "Tech Lead e mentor para projetos React, Next.js e React Native/Expo com camada agentica opcional de especialistas, discovery de MVP, scaffolding TypeScript, review didatico, deploy assistido e Project Hub local."
 }

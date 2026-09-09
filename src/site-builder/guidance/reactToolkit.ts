@@ -3,9 +3,9 @@ import type { VisualVariants } from "../types.js";
 export const reactToolkitProfile = {
   id: "react-dev-toolkit-site-builder",
   version: 1,
-  sourceVersion: "1.2.8",
+  sourceVersion: "1.3.3",
   sourceRepository: "https://github.com/victoralecrim11/react-dev-toolkit-antigravity",
-  sourceCommit: "36bab26c247b547c749008798bda04f6f900fd88",
+  sourceCommit: "3dabf36a9826a80d4b6f2404ed58295cb9557f6a",
   sources: ["skills/react-dev/references/react-core.md", "skills/react-dev/references/project-builder.md", "skills/ui-ux/references/design-routing.md", "skills/ui-ux/references/reasoning-rules.md", "skills/ui-ux/references/accessibility.md", "skills/ui-ux/references/responsive-design.md"],
   engineeringRules: [
     "Componentes funcionais, props tipadas e responsabilidades pequenas e explícitas.",

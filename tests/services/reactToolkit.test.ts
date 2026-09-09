@@ -28,7 +28,7 @@ test("geração e regeneração usam referências Antigravity e registram proven
     assert.ok(observed.includes(reactToolkitProfile.sourceCommit));
     assert.ok(observed.includes("editorial-split"));
     assert.ok(observed.includes("reduced-motion"));
-    assert.equal(result.generation.guidance?.sourceVersion, "1.2.8");
+    assert.equal(result.generation.guidance?.sourceVersion, "1.3.3");
     assert.equal(result.generation.guidance?.sourceCommit, reactToolkitProfile.sourceCommit);
     assert.equal(result.blueprint.version, 2);
   }

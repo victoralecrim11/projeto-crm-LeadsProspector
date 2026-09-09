@@ -1,14 +1,28 @@
-# Referências incorporadas ao Site Builder
+# React Dev Toolkit Antigravity
 
-Fonte indicada pelo usuário: https://github.com/victoralecrim11/react-dev-toolkit-antigravity
+Este repositório contém uma vendorização local de um subconjunto selecionado das diretrizes (guidance) do React Dev Toolkit, utilizadas pelo ProspectorCRM para moldar o raciocínio da IA durante a geração de sites (Site Builder).
 
-- Versão do plugin: **1.2.8**
-- Commit consultado: **36bab26c247b547c749008798bda04f6f900fd88**
-- Licença: MIT, preservada em `LICENSE`.
-- Os documentos em `skills/` são cópias de referência desse commit. Não são carregados ou executados no servidor.
+## Origem e Snapshot
 
-## Integração em execução
+- **Plugin:** `react-dev-toolkit-antigravity`
+- **Versão Integrada:** 1.3.3
+- **Commit Referenciado:** 3dabf36a9826a80d4b6f2404ed58295cb9557f6a
+- **Modo de Snapshot:** CURATED GUIDANCE SNAPSHOT
 
+O CRM copia estrategicamente os documentos de diretrizes fundamentais:
+- `skills/react-dev/references/react-core.md`
+- `skills/react-dev/references/project-builder.md`
+- `skills/ui-ux/references/accessibility.md`
+- `skills/ui-ux/references/responsive-design.md`
+- `skills/ui-ux/references/design-routing.md`
+- `skills/ui-ux/references/reasoning-rules.md`
+
+**IMPORTANTE:**
+- `integrationMode`: `guidance-snapshot`
+- `runtimeAgents`: `false`
+- `runtimeMcp`: `false`
+
+Os subagents, scripts de runtime (`subagent-runtime.js`) e configurações MCP (`mcp_config.json`) presentes no repositório original (v1.3.x) **não são clonados nem executados** pelo ProspectorCRM no ambiente de produção. Eles permanecem como ferramentas exclusivas de desenvolvimento (development tooling) e não integram a pipeline de site-builder da Fase B.
 `src/site-builder/guidance/reactToolkit.ts` contém a adaptação versionada: regras de engenharia, regras de design e descrições dos componentes realmente disponíveis. `buildSitePrompt()` inclui essa orientação em todas as gerações e regenerações. A metadata `generation.guidance` registra perfil, versão da fonte e commit para rastreabilidade.
 
 O catálogo descreve hero, about, services, contact, location, navigation e footer, incluindo comportamento mobile. Um teste compara suas chaves com o registry do renderer para evitar orientar a IA a usar componentes inexistentes. O schema continua limitando o resultado a Blueprint v2.

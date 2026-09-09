@@ -1,16 +1,36 @@
-# Guidance operacional — Fase A
+# Guidance operacional — Fase A + Fase B
 
 Esta pasta é a fonte operacional do Site Builder. Não há outra pasta Guidance.
 
-| Módulo | Responsabilidade | Uso atual |
+| Módulo | Responsabilidade | Estado |
 | --- | --- | --- |
 | `reactToolkit.ts` | Engenharia e catálogo de componentes, procedência do toolkit | Consumido pelos prompts existentes; preservado |
-| `index.ts` | Catálogo interno que compõe as responsabilidades | Fundação para próximas fases; não altera o prompt |
+| `index.ts` | Catálogo interno que compõe as responsabilidades | Registra legacy-default e pilotFamilies |
 | `foundations/` | Princípios e adaptação de LeadSiteContext para BusinessContext | Adaptador puro, sem classificação inferida |
-| `niches/` | Estado das regras de nicho | Explicitamente não pesquisado; nenhum perfil inventado |
+| `niches/index.ts` | Estado das regras de nicho e pilotos conhecidos | Pilotos (dentistry, restaurant) com pesquisa curada |
+| `niches/market.ts` | Referências de mercado curadas para nichos piloto | Pesquisa verificada 2026-09-08; expira em 90 dias |
 | `design-families/legacy-default.ts` | Apresentação legada e adaptação para DesignSpecification | CSS, paletas e fallback existentes consumidos pelo renderer |
-| `generation/` | Ordem alvo e capacidades implementadas/ausentes | Declaração; não executa pesquisa, agentes ou mídia |
+| `design-families/pilots.ts` | Famílias de design para nichos piloto | health-trust (dentistry), hospitality-editorial (restaurant) |
+| `generation/` | Ordem alvo e capacidades implementadas/ausentes | Pesquisa implementada para pilotos; mídia não implementada |
 | `quality/` | Critérios da fundação | Compatibilidade, integridade e equivalência preview/export |
+
+## Funcionalidades implementadas na Fase B
+
+| Funcionalidade | Estado | Módulo principal |
+| --- | --- | --- |
+| LeadSourceContext | Implementado | `../leadSource.ts` |
+| SourcedBusinessContext | Implementado | `../leadSource.ts` |
+| Current Site Audit | Implementado | `server/services/research/currentSiteAudit.ts` |
+| SSRF protections | Implementado | `server/services/research/safeWebsite.ts` |
+| CurrentBusinessReference | Implementado | `../contracts/research.ts` |
+| Market References | Implementado para pilotos | `niches/market.ts` |
+| Design Families (pilot) | Implementado | `design-families/pilots.ts` |
+| DesignSpecification | Implementado | `../contracts/index.ts` |
+| ResolvedDesign | Implementado | `../contracts/research.ts`, `../designPipeline.ts` |
+| Standard Design-First | Implementado | `../designPipeline.ts` |
+| DESIGN.md export | Implementado | `../designPipeline.ts`, `../exportSite.ts` |
+| Stitch abstraction | Implementado (provider opcional) | `server/services/research/stitch.ts` |
+| Media pipeline | **NÃO IMPLEMENTADO** (Fase C) | — |
 
 ## Contratos
 
@@ -22,7 +42,12 @@ Esta pasta é a fonte operacional do Site Builder. Não há outra pasta Guidance
 - **DesignSpecification**: família/versionamento, template, variantes, apresentação e tokens resolvidos. Movimento e tipografia devem concordar nos dois contratos.
 - **MediaPlan**: lista de solicitações por seção existente, finalidade, preferência de origem, proporção e alt. IDs únicos; decorativas com alt vazio. Não contém arquivos gerados, providers, URLs ou status de sucesso. Lista vazia é válida.
 
-Não foram adicionados campos de modelo comercial, equipe, prova social ou features sem consumidor atual. A Fase B poderá ampliar contratos mediante necessidade concreta e testes de compatibilidade.
+`../contracts/research.ts` estende com:
+
+- **LeadSourceContext**: fonte normalizada do lead (overpass, manual, other).
+- **SourcedBusinessContext**: fatos derivados com provenance rastreada.
+- **CurrentBusinessReference**: auditoria do site atual com problemas e oportunidades.
+- **ResolvedDesign**: direção visual completa incluindo reference brief combinado, specification, composition, trace e markdown.
 
 ## Família legada
 
@@ -30,7 +55,13 @@ Não foram adicionados campos de modelo comercial, equipe, prova social ou featu
 
 `legacy-default` v1 preserva quatro templates, variantes, duas superfícies (light/dark), fontes locais, cores de marca e movimento. `renderer/presentation.ts` é uma fachada de compatibilidade. O CSS foi extraído sem alteração da saída; 40 hashes de HTML/CSS foram capturados antes da extração e verificados depois.
 
-Tokens são uma descrição parcial resolvida da família, não uma API de temas arbitrários já consumida pelo renderer. O CSS legado continua definindo detalhes específicos das seções. Próximas famílias precisarão de um contrato de aplicação explícito, sem ifs de nicho no renderer.
+## Famílias piloto
+
+`health-trust` (dentistry) e `hospitality-editorial` (restaurant) são resolvidas por `pilotSpecification()` em `design-families/pilots.ts`. Utilizam pesquisa curada de `niches/market.ts`, não geração dinâmica.
+
+## Stitch
+
+Provider opcional em `server/services/research/stitch.ts`. Requer API key não fornecida. Estado padrão: `STITCH_NOT_CONFIGURED`. Não é erro nem blocker.
 
 ## Fonte canônica
 
