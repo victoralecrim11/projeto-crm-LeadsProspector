@@ -5,6 +5,7 @@ import { businessFromSource } from './leadSource.js';
 import { getMarketReference, marketReferenceKey } from './guidance/niches/market.js';
 import { pilotFamilies, pilotSpecification } from './guidance/design-families/pilots.js';
 import { foregroundFor } from './renderer/baseStyles.js';
+import { designSystemContractSchema, type DesignSystemContract } from './contracts/index.js';
 
 export function resolveStandardDesign(source: LeadSourceContext, currentBusiness: CurrentBusinessReference,
   overrides?: { primary: string; accent: string }, now = new Date()): ResolvedDesign {
@@ -53,6 +54,26 @@ export function designMarkdown(d: ResolvedDesign) {
     Provenance: d.trace.map(x => `${x.decision}: ${x.origin}`).join('\n'),
   };
   return `# DESIGN.md\n\nFamília ${s.family.id} v${s.family.version}; resolução ${d.resolution.resolvedAt}.\n\n` + Object.entries(sections).map(([k,v]) => `## ${k}\n\n${v}\n`).join('\n');
+}
+export function buildDesignSystemContract(d: ResolvedDesign): DesignSystemContract {
+  const s = resolvedDesignSchema.parse(d), tokens = s.specification.tokens;
+  return designSystemContractSchema.parse({
+    version: 1,
+    productContext: { niche: s.referenceBrief.business.derivedNiche, businessType: s.referenceBrief.business.businessType, goal: s.conversionStrategy },
+    visualStyle: { family: s.specification.family.id, variant: s.variant, principles: s.referenceBrief.market.patterns.slice(0, 12) },
+    color: tokens.color,
+    typography: { strategy: tokens.typography, headingFamily: tokens.typography === 'editorial' ? 'playfair-display' : 'manrope', bodyFamily: 'nunito-sans', headingFallback: 'Georgia, serif', bodyFallback: 'system-ui, sans-serif', source: 'system', typographyProfile: tokens.typographyProfile },
+    spacing: tokens.spacing, radius: tokens.radius,
+    shadow: { level: tokens.radius.card > 8 ? 'soft' : 'subtle' },
+    container: { maxWidth: 1200, sectionGap: tokens.spacing.section },
+    motion: { preference: tokens.motion, reducedMotion: true },
+    accessibility: { contrast: 'AA', visibleFocus: true, semanticLandmarks: true },
+    responsive: { mobile: s.responsiveBehavior, desktop: `Composição ${s.composition.join(' -> ')}; contêiner máximo 1200px.` },
+    implementation: { templates: [s.specification.templateId], visualVariants: s.specification.visual, renderer: 'blueprint-v2' },
+  });
+}
+export function designSystemMarkdown(contract: DesignSystemContract) {
+  return `# Design System Contract\n\n${Object.entries(contract).map(([key, value]) => `## ${key}\n\n${typeof value === 'string' ? value : '```json\n' + JSON.stringify(value, null, 2) + '\n```'}\n`).join('\n')}`;
 }
 // Content is deterministic: unknown services, proof, hours, staff and prices stay absent.
 export function blueprintFromDesign(input: ResolvedDesign): GeneratedSiteBlueprint {

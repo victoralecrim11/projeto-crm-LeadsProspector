@@ -10,7 +10,7 @@ import {
   type SitePreferences,
 } from "../site-builder/types";
 import { normalizeDesignBrief } from "../site-builder/designBrief";
-import { generateSiteBlueprint, generateStandardBlueprint } from "../services/siteGenerationService";
+import { generateSiteBlueprint, generateStandardAiBlueprint } from "../services/siteGenerationService";
 import { normalizeLeadSource } from '../site-builder/leadSource';
 import { resolvedDesignSchema } from '../site-builder/contracts/research';
 import { ModelControls } from "../site-builder/components/ModelControls";
@@ -98,7 +98,7 @@ export const SiteGeneratorModal: React.FC = () => {
         generationStatus: "generating",
         contentReviewed: false,
       });
-      const result = generationMode === 'standard' ? await generateStandardBlueprint(crm.crmSettings, normalizeLeadSource(lead),
+      const result = generationMode === 'standard' ? await generateStandardAiBlueprint(crm.crmSettings, normalizeLeadSource(lead), selection,
         designBrief.paletteMode === 'custom' ? { primary: designBrief.primaryColor, accent: designBrief.accentColor } : undefined) : await generateSiteBlueprint(crm.crmSettings, {
         leadId: lead.id,
         context,
@@ -121,7 +121,9 @@ export const SiteGeneratorModal: React.FC = () => {
         type: "system",
         leadId: lead.id,
       });
-      toast("Site gerado. Revise o conteúdo no editor.");
+      toast(result.generation.fallbackUsed
+        ? "A IA não estava disponível. Site criado com fallback determinístico; você pode regenerá-lo com IA depois."
+        : "Site gerado. Revise o conteúdo no editor.");
       crm.setIsCreateSiteModalOpen(false);
       crm.setSiteGeneratorLead(null);
       navigate("/editor?project=" + encodeURIComponent(project.id));
@@ -162,10 +164,10 @@ export const SiteGeneratorModal: React.FC = () => {
         <fieldset disabled={busy} className="site-generator-grid">
           <label className="generator-field-wide">Modo de criação
             <select className="block w-full p-2 bg-slate-800 rounded-lg" value={generationMode} onChange={e => setGenerationMode(e.target.value as 'standard' | 'existing')}>
-              <option value="standard">Standard — design pesquisado (clínica/restaurante)</option>
+              <option value="standard">Standard — Design pesquisado + IA (clínica/restaurante)</option>
               <option value="existing">Gerador existente — sugestões com IA</option>
             </select>
-            {generationMode === 'standard' && <p className="text-sm text-slate-300">Analisa o site informado e resolve a direção visual antes de criar a página. Usa apenas dados disponíveis; não exige modelo de IA.</p>}
+            {generationMode === 'standard' && <p className="text-sm text-slate-300">Analisa o negócio e o site atual, resolve a direção visual antes da geração e usa IA para criar a página seguindo essa especificação. Se a IA estiver indisponível, utiliza fallback determinístico.</p>}
           </label>
           <label className="generator-field-wide">
             Lead
@@ -270,7 +272,7 @@ export const SiteGeneratorModal: React.FC = () => {
             {designPreviewError}
           </p>
         )}
-        {generationMode === 'existing' && <ModelControls
+        {<ModelControls
           settings={crm.crmSettings}
           value={selection}
           onChange={setSelection}

@@ -2,11 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import JSZip from 'jszip';
 import { pilotLead } from '../fixtures/phaseB';
+import { blueprint } from '../fixtures/siteFixture';
 import { normalizeLeadSource, businessFromSource } from '../../src/site-builder/leadSource';
 import { auditCurrentSite } from '../../server/services/research/currentSiteAudit';
 import { authorizeWebsite, fetchWebsite, isPublicAddress, lookupForAddress } from '../../server/services/research/safeWebsite';
 import { generateStandardSite } from '../../server/services/research/designService';
-import { resolveStandardDesign, blueprintFromDesign } from '../../src/site-builder/designPipeline';
+import { resolveStandardDesign, blueprintFromDesign, buildDesignSystemContract } from '../../src/site-builder/designPipeline';
 import { getMarketReference } from '../../src/site-builder/guidance/niches/market';
 import { renderSiteDocument } from '../../src/site-builder/renderer/SiteRenderer';
 import { createSiteZip } from '../../src/site-builder/exportSite';
@@ -14,6 +15,8 @@ import { loadProjects, persistProjects } from '../../src/site-builder/projectPer
 import { probeStitch, explorePremium, stitchDesignInput } from '../../server/services/research/stitch';
 import { fetchLeadsFromOverpass } from '../../src/services/overpassService';
 import type { Project } from '../../src/types';
+import { generateStandardAiSite } from '../../server/services/research/standardAiService';
+import { buildStandardAiPrompt } from '../../server/services/ai/sitePromptBuilder';
 
 const date = new Date('2026-09-08T23:00:00Z');
 const resolve = async () => [{ address: '93.184.216.34', family: 4 }];
@@ -95,6 +98,43 @@ test('design before blueprint, distinct families, missing facts omitted; Standar
   assert.notEqual(results[0].blueprint.visual.hero, results[1].blueprint.visual.hero);
   assert.notDeepEqual(results[0].blueprint.sectionOrder, results[1].blueprint.sectionOrder);
 });
+test('Standard AI preserva ResolvedDesign, guidance e regras de conteúdo', async () => {
+  const source = normalizeLeadSource(pilotLead('restaurant'));
+  const result = await generateStandardAiSite(source, { mode: 'explicit', modelId: 'gemini:test' }, undefined, {}, {
+    audit: async () => await auditCurrentSite(),
+    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
+    requestBlueprint: async () => ({ ...blueprint, templateId: 'minimal-professional', visual: { ...blueprint.visual, hero: 'minimal' }, brand: { ...blueprint.brand, primaryColor: '#ffffff' } }),
+  });
+  assert.equal(result.generation.mode, 'standard-ai');
+  assert.equal(result.generation.fallbackUsed, false);
+  assert.equal(result.blueprint.templateId, result.design.specification.templateId);
+  assert.deepEqual(result.blueprint.visual, result.design.specification.visual);
+  assert.deepEqual(result.blueprint.sectionOrder, result.design.composition);
+  assert.equal(result.blueprint.brand.primaryColor, result.design.specification.tokens.color.primary);
+  const prompt = buildStandardAiPrompt(source, result.design, result.contract);
+  assert.match(prompt, /AI Site Composer/);
+  assert.match(prompt, /Não invente telefone/);
+  assert.match(prompt, /React Dev Toolkit/);
+  assert.equal(result.contract.implementation.renderer, 'blueprint-v2');
+});
+test('Standard AI rejeita Blueprint inválido e não mascara violação de contrato como fallback', async () => {
+  await assert.rejects(() => generateStandardAiSite(normalizeLeadSource(pilotLead('dentistry')), { mode: 'auto' }, undefined, {}, {
+    audit: async () => await auditCurrentSite(),
+    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
+    requestBlueprint: async () => ({ invalid: true }),
+  }));
+});
+test('Standard AI sem provider usa fallback determinístico e registra procedência', async () => {
+  const result = await generateStandardAiSite(normalizeLeadSource(pilotLead('dentistry')), { mode: 'auto' }, undefined, {}, {
+    audit: async () => await auditCurrentSite(),
+    discoverModels: async () => ({ models: [], warnings: ['sem provider'] }),
+  });
+  assert.equal(result.generation.mode, 'standard-fallback');
+  assert.equal(result.generation.fallbackUsed, true);
+  assert.equal(result.generation.fallbackReason, 'provider-unavailable');
+  assert.ok(result.warnings.some((warning) => warning.includes('fallback determinístico')));
+  assert.ok(buildDesignSystemContract(result.design).visualStyle.family);
+});
 test('sidecar persists and export matches preview with DESIGN.md', async () => {
   const lead = pilotLead('restaurant'), source = normalizeLeadSource(lead);
   const d = resolveStandardDesign(source, await auditCurrentSite(), undefined, date);
@@ -106,6 +146,7 @@ test('sidecar persists and export matches preview with DESIGN.md', async () => {
   const zip = await JSZip.loadAsync(await createSiteZip(project));
   assert.equal(await zip.file('index.html')!.async('string'), renderSiteDocument(b, source.context, d));
   assert.equal(await zip.file('DESIGN.md')!.async('string'), d.designMarkdown);
+  assert.ok((await zip.file('.design/design-system.md')!.async('string')).includes('Design System Contract'));
 });
 test('Stitch operational states and privacy; no pretend variants', async () => {
   assert.equal(await probeStitch(), 'STITCH_NOT_CONFIGURED');

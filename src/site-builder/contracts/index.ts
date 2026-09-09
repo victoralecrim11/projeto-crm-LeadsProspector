@@ -38,6 +38,11 @@ export const designTokensSchema = z.object({
     primary: hex, accent: hex, primaryForeground: hex, accentForeground: hex,
   }).strict(),
   typography: z.enum(["modern", "editorial"]),
+  typographyProfile: z.object({
+    headingFamily: z.enum(["rubik", "nunito-sans", "inter", "manrope", "playfair-display", "source-serif"]),
+    bodyFamily: z.enum(["rubik", "nunito-sans", "inter", "manrope", "playfair-display", "source-serif"]),
+    headingFallback: label, bodyFallback: label, source: z.enum(["system", "google-font"]),
+  }).strict().optional(),
   spacing: z.object({ section: z.number().int().min(0).max(160), sectionCompact: z.number().int().min(0).max(160) }).strict(),
   radius: z.object({ card: z.number().int().min(0).max(64), cta: z.number().int().min(0).max(64) }).strict(),
   motion: z.enum(["none", "subtle"]),
@@ -50,6 +55,26 @@ export const designSpecificationSchema = z.object({
   tokens: designTokensSchema,
 }).strict().refine((value) => value.tokens.typography === value.presentation.typography && value.tokens.motion === value.presentation.motion,
   "Tokens e apresentação devem representar a mesma decisão.");
+
+export const designSystemContractSchema = z.object({
+  version: z.literal(1),
+  productContext: z.object({ niche: label, businessType: label, goal: description }).strict(),
+  visualStyle: z.object({ family: id, variant: label, principles: z.array(description).min(1).max(12) }).strict(),
+  color: designTokensSchema.shape.color,
+  typography: z.object({
+    strategy: z.enum(["modern", "editorial"]), headingFamily: label, bodyFamily: label,
+    headingFallback: label, bodyFallback: label, source: z.enum(["system", "google-font"]),
+    typographyProfile: designTokensSchema.shape.typographyProfile,
+  }).strict(),
+  spacing: designTokensSchema.shape.spacing,
+  radius: designTokensSchema.shape.radius,
+  shadow: z.object({ level: z.enum(["none", "subtle", "soft"]) }).strict(),
+  container: z.object({ maxWidth: z.number().int().min(640).max(1600), sectionGap: z.number().int().min(0).max(160) }).strict(),
+  motion: z.object({ preference: z.enum(["none", "subtle"]), reducedMotion: z.literal(true) }).strict(),
+  accessibility: z.object({ contrast: z.literal("AA"), visibleFocus: z.literal(true), semanticLandmarks: z.literal(true) }).strict(),
+  responsive: z.object({ mobile: description, desktop: description }).strict(),
+  implementation: z.object({ templates: z.array(z.enum(templates)).min(1), visualVariants: visualSchema, renderer: z.literal("blueprint-v2") }).strict(),
+}).strict();
 
 export const mediaPlanSchema = z.object({
   version: z.literal(1),
@@ -68,4 +93,5 @@ export type BusinessContext = z.infer<typeof businessContextSchema>;
 export type ReferenceBrief = z.infer<typeof referenceBriefSchema>;
 export type DesignTokens = z.infer<typeof designTokensSchema>;
 export type DesignSpecification = z.infer<typeof designSpecificationSchema>;
+export type DesignSystemContract = z.infer<typeof designSystemContractSchema>;
 export type MediaPlan = z.infer<typeof mediaPlanSchema>;

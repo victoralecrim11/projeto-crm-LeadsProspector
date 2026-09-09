@@ -12,6 +12,7 @@ import { generateSite } from "../services/ai/siteGeneratorService.js";
 import { z } from 'zod';
 import { leadSourceContextSchema } from '../../src/site-builder/contracts/research.js';
 import { generateStandardSite } from '../services/research/designService.js';
+import { generateStandardAiSite } from '../services/research/standardAiService.js';
 import { probeStitch } from '../services/research/stitch.js';
 export function siteGenerationRouter() {
   const router = Router();
@@ -56,6 +57,17 @@ export function siteGenerationRouter() {
     active++;
     try { return res.json(await generateStandardSite(parsed.data.source, parsed.data.overrides)); }
     catch { return res.status(422).json({ error: 'Não foi possível resolver o design. Verifique nicho e referências.' }); }
+    finally { active--; }
+  });
+  router.post('/sites/standard-ai', async (req, res) => {
+    const token = process.env.SITE_AI_ACCESS_TOKEN;
+    if (process.env.NODE_ENV === 'production' && (!token || req.get('authorization') !== 'Bearer ' + token)) return res.status(403).json({ error: 'Acesso à geração não autorizado.' });
+    const parsed = z.object({ source: leadSourceContextSchema, selection: z.object({ mode: z.enum(['auto', 'fast', 'quality', 'premium', 'local', 'explicit']), modelId: z.string().max(180).nullable().optional() }).strict(), overrides: z.object({ primary: z.string().regex(/^#[0-9a-fA-F]{6}$/), accent: z.string().regex(/^#[0-9a-fA-F]{6}$/) }).strict().optional() }).strict().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Contexto ou seleção de modelo inválidos.' });
+    if (active >= 2) return res.status(429).json({ error: 'Aguarde a geração em andamento.' });
+    active++;
+    try { return res.json(await generateStandardAiSite(parsed.data.source, parsed.data.selection, parsed.data.overrides, credentials(req))); }
+    catch (error) { return res.status(error instanceof SiteAiError ? error.status : 422).json({ error: error instanceof Error ? error.message : 'Não foi possível gerar o site.' }); }
     finally { active--; }
   });
   router.get("/models", async (req, res) => {

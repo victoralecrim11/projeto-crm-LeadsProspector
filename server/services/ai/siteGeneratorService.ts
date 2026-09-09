@@ -100,6 +100,7 @@ export async function generateSite(
           modelId: model.id,
           generatedAt: new Date().toISOString(),
           blueprintVersion: blueprint.version,
+          mode: "legacy",
           guidance: { id: reactToolkitProfile.id, version: reactToolkitProfile.version, sourceVersion: reactToolkitProfile.sourceVersion, sourceCommit: reactToolkitProfile.sourceCommit },
         };
         return {

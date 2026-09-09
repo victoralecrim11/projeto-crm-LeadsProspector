@@ -1,5 +1,6 @@
 import type { CrmSettingsConfig } from "../types";
 import { resolvedDesignSchema, type LeadSourceContext } from '../site-builder/contracts/research';
+import { designSystemContractSchema } from '../site-builder/contracts';
 import {
   blueprintSchema,
   type AiModelDefinition,
@@ -14,6 +15,10 @@ let accessToken = "";
 export async function generateStandardBlueprint(settings: CrmSettingsConfig, source: LeadSourceContext, overrides?: { primary: string; accent: string }) {
   const result = await api('sites/standard', settings, { source, overrides }) as { blueprint: unknown; design: unknown; generation: GenerationMetadata; warnings: string[] };
   return { ...result, blueprint: blueprintSchema.parse(result.blueprint), design: resolvedDesignSchema.parse(result.design) };
+}
+export async function generateStandardAiBlueprint(settings: CrmSettingsConfig, source: LeadSourceContext, selection: ModelSelection = { mode: 'auto' }, overrides?: { primary: string; accent: string }) {
+  const result = await api('sites/standard-ai', settings, { source, selection, overrides }) as { blueprint: unknown; design: unknown; contract: unknown; generation: GenerationMetadata; warnings: string[] };
+  return { ...result, blueprint: blueprintSchema.parse(result.blueprint), design: resolvedDesignSchema.parse(result.design), contract: designSystemContractSchema.parse(result.contract) };
 }
 export function setSiteAccessToken(value: string) {
   accessToken = value;

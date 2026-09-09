@@ -3,7 +3,7 @@ import { renderSiteDocument } from "./renderer/SiteRenderer";
 import { contextSchema } from "./types";
 import { normalizeForRender } from "./sections/registry";
 import type { Project } from "../types";
-import { designForBlueprint } from './designPipeline';
+import { designForBlueprint, designSystemMarkdown, buildDesignSystemContract } from './designPipeline';
 export async function createSiteZip(project: Project) {
   if (!project.siteBlueprint || !project.siteContext)
     throw new Error("Este projeto ainda não tem site gerado.");
@@ -23,6 +23,7 @@ export async function createSiteZip(project: Project) {
   if (design) {
     zip.file('DESIGN.md', design.designMarkdown);
     zip.file('design.json', JSON.stringify(design, null, 2));
+    zip.file('.design/design-system.md', designSystemMarkdown(buildDesignSystemContract(design)));
   }
   zip.file("blueprint.json", JSON.stringify(blueprint, null, 2));
   zip.file("context.json", JSON.stringify(context, null, 2));

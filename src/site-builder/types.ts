@@ -184,6 +184,10 @@ export type GenerationMetadata = {
   generatedAt: string;
   blueprintVersion: number;
   guidance?: { id: string; version: number; sourceVersion: string; sourceCommit?: string };
+  mode?: "standard-ai" | "standard-fallback" | "legacy" | "standard";
+  fallbackUsed?: boolean;
+  fallbackReason?: "provider-unavailable" | "rate-limit" | "temporary-provider-error";
+  designFamily?: string;
 };
 export type AiModelDefinition = {
   id: string;
