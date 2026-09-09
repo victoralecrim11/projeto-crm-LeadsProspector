@@ -49,7 +49,7 @@ test("Gemini recebe somente palavras-chave de JSON Schema suportadas", async () 
         unsupported,
       );
     }
-    assert.match(serializedSchema, /"enum":\[1\]/);
+    assert.match(serializedSchema, /"enum":\[2\]/);
   } finally {
     globalThis.fetch = originalFetch;
   }

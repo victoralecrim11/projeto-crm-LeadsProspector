@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "mode": "premium",
+  "referenceBrief": {
+    "version": 1,
+    "business": {
+      "version": 1,
+      "lead": {
+        "business": {
+          "name": "Mesa Exemplo Fictício",
+          "category": "Restaurante & Pizzaria",
+          "city": "Cidade Exemplo",
+          "neighborhood": ""
+        },
+        "contact": {
+          "phone": "",
+          "whatsapp": "",
+          "email": "contato@example.invalid",
+          "address": "Rua Fictícia, 0"
+        },
+        "onlinePresence": {
+          "hasWebsite": false,
+          "websiteUrl": ""
+        },
+        "reputation": {
+          "rating": null,
+          "reviewsCount": null
+        }
+      },
+      "confirmed": {},
+      "source": {
+        "leadId": "fictional-restaurant",
+        "source": "overpass",
+        "context": {
+          "business": {
+            "name": "Mesa Exemplo Fictício",
+            "category": "Restaurante & Pizzaria",
+            "city": "Cidade Exemplo",
+            "neighborhood": ""
+          },
+          "contact": {
+            "phone": "",
+            "whatsapp": "",
+            "email": "contato@example.invalid",
+            "address": "Rua Fictícia, 0"
+          },
+          "onlinePresence": {
+            "hasWebsite": false,
+            "websiteUrl": ""
+          },
+          "reputation": {
+            "rating": null,
+            "reviewsCount": null
+          }
+        },
+        "state": "EX",
+        "niche": "restaurant",
+        "osmElement": "node/0"
+      },
+      "businessType": "local-business",
+      "derivedNiche": "restaurant",
+      "facts": {
+        "name": {
+          "value": "Mesa Exemplo Fictício",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "category": {
+          "value": "Restaurante & Pizzaria",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "city": {
+          "value": "Cidade Exemplo",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "state": {
+          "value": "EX",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "email": {
+          "value": "contato@example.invalid",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "address": {
+          "value": "Rua Fictícia, 0",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "niche": {
+          "value": "restaurant",
+          "provenance": "DERIVED",
+          "verified": false,
+          "evidence": "Classificação por categoria/nicho persistidos; não confirma subnicho ou posicionamento premium."
+        }
+      }
+    },
+    "currentBusiness": {
+      "kind": "current-business",
+      "status": "absent",
+      "auditedAt": "2026-09-08T22:37:27.801Z",
+      "method": "bounded-static-html",
+      "observations": [],
+      "structure": [],
+      "identity": [],
+      "technicalProblems": [],
+      "visualProblems": [],
+      "conversionProblems": [],
+      "contentProblems": [],
+      "accessibilityProblems": [],
+      "opportunities": [],
+      "limitations": [
+        "HTML estático; JavaScript, CSS externo, contraste e viewports não avaliados. Ausência no HTML não comprova ausência no site."
+      ]
+    },
+    "market": {
+      "version": 1,
+      "id": "restaurant-market-v1",
+      "niche": "restaurant",
+      "researchedAt": "2026-09-08T22:30:00.000Z",
+      "references": [
+        {
+          "url": "https://www.evvai.com.br/",
+          "reason": "Navegação curta; acesso a reservas; apresentação editorial do menu."
+        },
+        {
+          "url": "https://www.restaurantemani.com.br/",
+          "reason": "Gastronomia, ambiente e identidade em percursos distintos; reservas recorrentes."
+        },
+        {
+          "url": "https://lasai.com.br/",
+          "reason": "Narrativa, menu e reserva em sequência; galeria separada."
+        }
+      ],
+      "patterns": [
+        "Composição editorial com título amplo e ritmo assimétrico.",
+        "Menu confirmado antes de narrativa longa; contato para reserva no fechamento.",
+        "Ambiente e gastronomia dependem de imagens reais autorizadas, pendentes para Fase C."
+      ],
+      "avoid": [
+        "Não copiar pratos, preços, chef, prêmios ou horários.",
+        "Não simular reserva confirmada em um link de contato.",
+        "Não inventar ambiente ou fotografias reais."
+      ]
+    },
+    "marketKey": "[\"restaurant\",\"unspecified\",\"premium-design\",1]",
+    "opportunities": []
+  },
+  "specification": {
+    "version": 1,
+    "family": {
+      "id": "hospitality-editorial",
+      "version": 1
+    },
+    "templateId": "premium-service",
+    "visual": {
+      "hero": "full-bleed",
+      "about": "editorial-split",
+      "services": "editorial-list",
+      "contact": "contact-split",
+      "location": "location-editorial",
+      "navigation": "inline",
+      "footer": "editorial"
+    },
+    "presentation": {
+      "theme": "dark",
+      "typography": "editorial",
+      "motion": "subtle"
+    },
+    "tokens": {
+      "color": {
+        "background": "#1e1915",
+        "surface": "#29221c",
+        "surfaceElevated": "#352b22",
+        "text": "#fcf3e4",
+        "textMuted": "#d4c2ad",
+        "border": "#8e7961",
+        "primary": "#422a21",
+        "accent": "#e7b777",
+        "primaryForeground": "#ffffff",
+        "accentForeground": "#000000"
+      },
+      "typography": "editorial",
+      "spacing": {
+        "section": 104,
+        "sectionCompact": 64
+      },
+      "radius": {
+        "card": 2,
+        "cta": 2
+      },
+      "motion": "subtle"
+    }
+  },
+  "variant": "editorial-dining",
+  "resolution": {
+    "status": "resolved",
+    "reason": "Seleção técnica após exploração visual manual no Stitch em 2026-09-08. Mantém hierarquia e paleta compatíveis; usa fontes locais e componentes existentes. Afirmações inventadas e controles sem destino rejeitados. Aprovação comercial do usuário pendente.",
+    "resolvedAt": "2026-09-08T22:37:27.830Z"
+  },
+  "composition": [
+    "hero",
+    "about",
+    "services",
+    "contact",
+    "location"
+  ],
+  "conversionStrategy": "Facilitar contato para consultar reservas; não simular disponibilidade.",
+  "imageryDirection": "Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.",
+  "responsiveBehavior": "Desktop 1440: composição da família. Tablet 768 e mobile 390: colunas empilhadas, CTA acessível, sem rolagem horizontal; movimento reduzido respeitado.",
+  "preservedBrandElements": [
+    "Identidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial."
+  ],
+  "designMarkdown": "# DESIGN.md\n\nFamília hospitality-editorial v1; resolução 2026-09-08T22:37:27.830Z.\n\n## Purpose\n\nFacilitar contato para consultar reservas; não simular disponibilidade.\n\n## Brand Personality\n\nhospitality-editorial / editorial-dining; direção de design, não característica confirmada do negócio.\n\n## Visual Principles\n\nComposição editorial com título amplo e ritmo assimétrico.\n- Menu confirmado antes de narrativa longa; contato para reserva no fechamento.\n- Ambiente e gastronomia dependem de imagens reais autorizadas, pendentes para Fase C.\n\n## Brand Elements to Preserve\n\nIdentidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial.\n\n## Colors\n\nbackground: #1e1915\nsurface: #29221c\nsurfaceElevated: #352b22\ntext: #fcf3e4\ntextMuted: #d4c2ad\nborder: #8e7961\nprimary: #422a21\naccent: #e7b777\nprimaryForeground: #ffffff\naccentForeground: #000000\n\n## Typography\n\nGeorgia nos títulos; Segoe UI/system-ui no corpo.\n\n## Spacing\n\nSeções 104px; compacto 64px.\n\n## Radius\n\nCards 2px; botões 2px.\n\n## Shadows\n\nSombra discreta nos controles; sem profundidade decorativa excessiva.\n\n## Layout\n\nhero → about → services → contact → location\n\n## Grid\n\nContêiner fluido; máximo 1200px; empilhar abaixo de 800px.\n\n## Hero\n\nfull-bleed\n\n## Cards\n\neditorial-list\n\n## Navigation\n\nLinks apenas para seções presentes; skip link.\n\n## Buttons\n\nContato confirmado no lead; rótulos não simulam conclusão de reserva.\n\n## Forms\n\nSem formulário sem backend. Usar canais de contato disponíveis.\n\n## Imagery\n\nFase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.\n\n## Motion\n\nsubtle; respeitar prefers-reduced-motion.\n\n## Responsive\n\nDesktop 1440: composição da família. Tablet 768 e mobile 390: colunas empilhadas, CTA acessível, sem rolagem horizontal; movimento reduzido respeitado.\n\n## Accessibility\n\nContraste AA para textos; foco visível; landmarks semânticos; não depender apenas de cor.\n\n## Patterns to Avoid\n\nNão copiar pratos, preços, chef, prêmios ou horários.\n- Não simular reserva confirmada em um link de contato.\n- Não inventar ambiente ou fotografias reais.\n\n## Provenance\n\nNome, contatos e localização: Lead overpass; dados ausentes omitidos\nNicho: Classificação derivada de categoria/nicho persistidos\nComposição e CTA: restaurant-market-v1 + Guidance\nPaleta e tipografia: hospitality-editorial@1\nDireção visual Premium: Stitch: https://stitch.withgoogle.com/projects/16495453154449814409; seleção editorial-dining. Mapeamento para componentes suportados; copy externa não importada.\n",
+  "trace": [
+    {
+      "decision": "Nome, contatos e localização",
+      "origin": "Lead overpass; dados ausentes omitidos"
+    },
+    {
+      "decision": "Nicho",
+      "origin": "Classificação derivada de categoria/nicho persistidos"
+    },
+    {
+      "decision": "Composição e CTA",
+      "origin": "restaurant-market-v1 + Guidance"
+    },
+    {
+      "decision": "Paleta e tipografia",
+      "origin": "hospitality-editorial@1"
+    },
+    {
+      "decision": "Direção visual Premium",
+      "origin": "Stitch: https://stitch.withgoogle.com/projects/16495453154449814409; seleção editorial-dining. Mapeamento para componentes suportados; copy externa não importada."
+    }
+  ],
+  "stitch": {
+    "projectUrl": "https://stitch.withgoogle.com/projects/16495453154449814409",
+    "alternatives": [
+      "editorial-dining",
+      "warm-contemporary"
+    ],
+    "selected": "editorial-dining",
+    "review": "Seleção técnica após exploração visual manual no Stitch em 2026-09-08. Mantém hierarquia e paleta compatíveis; usa fontes locais e componentes existentes. Afirmações inventadas e controles sem destino rejeitados. Aprovação comercial do usuário pendente."
+  }
+}

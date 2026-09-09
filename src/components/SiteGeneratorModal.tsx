@@ -10,7 +10,9 @@ import {
   type SitePreferences,
 } from "../site-builder/types";
 import { normalizeDesignBrief } from "../site-builder/designBrief";
-import { generateSiteBlueprint } from "../services/siteGenerationService";
+import { generateSiteBlueprint, generateStandardBlueprint } from "../services/siteGenerationService";
+import { normalizeLeadSource } from '../site-builder/leadSource';
+import { resolvedDesignSchema } from '../site-builder/contracts/research';
 import { ModelControls } from "../site-builder/components/ModelControls";
 import { DesignBriefControls } from "../site-builder/components/DesignBriefControls";
 import { toast } from "../store/toastStore";
@@ -36,6 +38,7 @@ export const SiteGeneratorModal: React.FC = () => {
   const navigate = useNavigate();
   const [leadId, setLeadId] = useState("");
   const [busy, setBusy] = useState(false);
+  const [generationMode, setGenerationMode] = useState<'existing' | 'standard'>('standard');
   const [error, setError] = useState("");
   const [selection, setSelection] = useState<ModelSelection>({ mode: "auto" });
   const [prefs, setPrefs] = useState<SitePreferences>({
@@ -95,7 +98,8 @@ export const SiteGeneratorModal: React.FC = () => {
         generationStatus: "generating",
         contentReviewed: false,
       });
-      const result = await generateSiteBlueprint(crm.crmSettings, {
+      const result = generationMode === 'standard' ? await generateStandardBlueprint(crm.crmSettings, normalizeLeadSource(lead),
+        designBrief.paletteMode === 'custom' ? { primary: designBrief.primaryColor, accent: designBrief.accentColor } : undefined) : await generateSiteBlueprint(crm.crmSettings, {
         leadId: lead.id,
         context,
         preferences: prefs,
@@ -104,6 +108,7 @@ export const SiteGeneratorModal: React.FC = () => {
       crm.updateProject({
         ...project,
         siteBlueprint: result.blueprint,
+        siteDesign: 'design' in result ? resolvedDesignSchema.parse(result.design) : undefined,
         aiGeneration: result.generation,
         generationStatus: "generated",
       });
@@ -155,6 +160,13 @@ export const SiteGeneratorModal: React.FC = () => {
           sugestões antes de exportar.
         </p>
         <fieldset disabled={busy} className="site-generator-grid">
+          <label className="generator-field-wide">Modo de criação
+            <select className="block w-full p-2 bg-slate-800 rounded-lg" value={generationMode} onChange={e => setGenerationMode(e.target.value as 'standard' | 'existing')}>
+              <option value="standard">Standard — design pesquisado (clínica/restaurante)</option>
+              <option value="existing">Gerador existente — sugestões com IA</option>
+            </select>
+            {generationMode === 'standard' && <p className="text-sm text-slate-300">Analisa o site informado e resolve a direção visual antes de criar a página. Usa apenas dados disponíveis; não exige modelo de IA.</p>}
+          </label>
           <label className="generator-field-wide">
             Lead
             <select
@@ -186,7 +198,7 @@ export const SiteGeneratorModal: React.FC = () => {
               <option value="institutional">Site institucional</option>
             </select>
           </label>
-          <label className="block">
+          {generationMode === 'existing' && <><label className="block">
             Template
             <select
               className="block w-full p-2 bg-slate-800 rounded-lg"
@@ -238,14 +250,14 @@ export const SiteGeneratorModal: React.FC = () => {
               <option value="whatsapp">WhatsApp</option>
               <option value="none">Apresentação</option>
             </select>
-          </label>
+          </label></>}
         </fieldset>
-        <DesignBriefControls
+        {generationMode === 'existing' && <DesignBriefControls
           value={designBrief}
           onChange={(next) => setPrefs({ ...prefs, designBrief: next })}
           disabled={busy}
-        />
-        {designPreview && (
+        />}
+        {generationMode === 'existing' && designPreview && (
           <p className="design-strategy-preview" role="status">
             Estratégia sugerida: <strong>{lensLabels[designPreview.lens]}</strong>
             {prefs.templateId === "auto" && (
@@ -258,12 +270,12 @@ export const SiteGeneratorModal: React.FC = () => {
             {designPreviewError}
           </p>
         )}
-        <ModelControls
+        {generationMode === 'existing' && <ModelControls
           settings={crm.crmSettings}
           value={selection}
           onChange={setSelection}
           disabled={busy}
-        />
+        />}
         {error && (
           <p role="alert" className="text-rose-300">
             {error}
@@ -274,12 +286,12 @@ export const SiteGeneratorModal: React.FC = () => {
             busy ||
             !lead ||
             Boolean(designPreviewError) ||
-            (selection.mode === "explicit" && !selection.modelId)
+            (generationMode === 'existing' && selection.mode === "explicit" && !selection.modelId)
           }
           onClick={generate}
           className="w-full p-3 rounded-xl bg-indigo-600 disabled:opacity-50 font-bold"
         >
-          {busy ? "Gerando site… aguarde a resposta da IA" : "✨ Gerar Site"}
+          {busy ? generationMode === 'standard' ? 'Analisando referências e criando site…' : 'Gerando site… aguarde a resposta da IA' : '✨ Gerar Site'}
         </button>
         {!lead && <p>Adicione um lead no radar ou no CRM para continuar.</p>}
       </section>

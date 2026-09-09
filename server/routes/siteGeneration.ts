@@ -9,6 +9,10 @@ import {
   type Credentials,
 } from "../services/ai/modelRegistry.js";
 import { generateSite } from "../services/ai/siteGeneratorService.js";
+import { z } from 'zod';
+import { leadSourceContextSchema } from '../../src/site-builder/contracts/research.js';
+import { generateStandardSite } from '../services/research/designService.js';
+import { probeStitch } from '../services/research/stitch.js';
 export function siteGenerationRouter() {
   const router = Router();
   let active = 0;
@@ -38,6 +42,21 @@ export function siteGenerationRouter() {
       }
     }
     next();
+  });
+  router.get('/design-capabilities', async (_req, res) => res.json({ standard: true, stitch: await probeStitch() }));
+  router.post('/sites/standard', async (req, res) => {
+    const token = process.env.SITE_AI_ACCESS_TOKEN;
+    if (process.env.NODE_ENV === 'production' && (!token || req.get('authorization') !== 'Bearer ' + token))
+      return res.status(403).json({ error: 'Acesso à auditoria não autorizado.' });
+    const parsed = z.object({ source: leadSourceContextSchema, overrides: z.object({
+      primary: z.string().regex(/^#[0-9a-fA-F]{6}$/), accent: z.string().regex(/^#[0-9a-fA-F]{6}$/),
+    }).strict().optional() }).strict().safeParse(req.body);
+    if (!parsed.success) return res.status(400).json({ error: 'Contexto inválido.' });
+    if (active >= 2) return res.status(429).json({ error: 'Aguarde a auditoria em andamento.' });
+    active++;
+    try { return res.json(await generateStandardSite(parsed.data.source, parsed.data.overrides)); }
+    catch { return res.status(422).json({ error: 'Não foi possível resolver o design. Verifique nicho e referências.' }); }
+    finally { active--; }
   });
   router.get("/models", async (req, res) => {
     try {

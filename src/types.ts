@@ -142,6 +142,7 @@ export interface Appointment {
 }
 
 export interface Project {
+  siteDesign?: import('./site-builder/contracts/research').ResolvedDesign;
   generationStatus?: 'draft' | 'generating' | 'generated' | 'editing' | 'ready' | 'exported' | 'published' | 'error';
   siteBlueprint?: import('./site-builder/types').GeneratedSiteBlueprint;
   siteContext?: import('./site-builder/types').LeadSiteContext;

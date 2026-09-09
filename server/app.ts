@@ -2,6 +2,7 @@ import dotenv from "dotenv";
 import express from "express";
 import https from "https";
 import querystring from "querystring";
+import { createOverpassAgent, overpassFailure } from "./services/overpassTransport.js";
 import { aiProviderRouter } from "./routes/aiProvider.js";
 import { siteGenerationRouter } from "./routes/siteGeneration.js";
 
@@ -9,6 +10,7 @@ dotenv.config({ quiet: true });
 
 export function createApiApp() {
   const app = express();
+  const overpassAgent = createOverpassAgent();
 
   app.disable("x-powered-by");
   app.use(express.json({ limit: "128kb" }));
@@ -21,8 +23,8 @@ export function createApiApp() {
 
   app.post("/api/overpass", async (req, res) => {
     try {
-      const { query } = req.body;
-      if (!query) {
+      const query = req.body?.query;
+      if (typeof query !== "string" || !query.trim()) {
         return res.status(400).json({ error: "Missing query" });
       }
 
@@ -42,6 +44,7 @@ export function createApiApp() {
             const request = https.request(
               {
                 hostname,
+                agent: overpassAgent,
                 port: 443,
                 path: "/api/interpreter",
                 method: "POST",
@@ -50,7 +53,7 @@ export function createApiApp() {
                   "Content-Length": Buffer.byteLength(postData),
                   "User-Agent": userAgent,
                 },
-                timeout: 15_000,
+                timeout: 30_000,
               },
               (response) => {
                 if (response.statusCode !== 200) {
@@ -60,6 +63,7 @@ export function createApiApp() {
                 }
 
                 let body = "";
+                response.on("error", reject);
                 response.on("data", (chunk) => {
                   body += chunk;
                 });
@@ -89,10 +93,8 @@ export function createApiApp() {
         }
       }
 
-      return res.status(502).json({
-        error: "All Overpass endpoints failed or timed out",
-        details: String(lastError),
-      });
+      const failure = overpassFailure(lastError);
+      return res.status(failure.status).json({ code: failure.code, error: failure.error });
     } catch (error) {
       console.error("Overpass Proxy Error:", error);
       return res.status(500).json({ error: "Failed to fetch from Overpass" });

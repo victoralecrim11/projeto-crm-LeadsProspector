@@ -1,0 +1,107 @@
+[
+  {
+    "id": "restaurante",
+    "requestedWidth": 1440,
+    "animation": "site-enter",
+    "scroll": 1425,
+    "width": 1425
+  },
+  {
+    "id": "restaurante",
+    "requestedWidth": 768,
+    "animation": "site-enter",
+    "scroll": 753,
+    "width": 753
+  },
+  {
+    "id": "restaurante",
+    "requestedWidth": 375,
+    "animation": "site-enter",
+    "scroll": 360,
+    "width": 360
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 1440,
+    "animation": "site-enter",
+    "scroll": 1425,
+    "width": 1425
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 768,
+    "animation": "site-enter",
+    "scroll": 753,
+    "width": 753
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 375,
+    "animation": "site-enter",
+    "scroll": 360,
+    "width": 360
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 1440,
+    "animation": "site-enter",
+    "scroll": 1425,
+    "width": 1425
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 768,
+    "animation": "site-enter",
+    "scroll": 753,
+    "width": 753
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 375,
+    "animation": "site-enter",
+    "scroll": 360,
+    "width": 360
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 1440,
+    "animation": "site-enter",
+    "scroll": 1425,
+    "width": 1425
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 768,
+    "animation": "site-enter",
+    "scroll": 753,
+    "width": 753
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 375,
+    "animation": "site-enter",
+    "scroll": 360,
+    "width": 360
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 1440,
+    "animation": "site-enter",
+    "scroll": 1425,
+    "width": 1425
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 768,
+    "animation": "site-enter",
+    "scroll": 753,
+    "width": 753
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 375,
+    "animation": "site-enter",
+    "scroll": 360,
+    "width": 360
+  }
+]

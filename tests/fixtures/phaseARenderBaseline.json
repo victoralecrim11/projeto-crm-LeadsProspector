@@ -1,0 +1,2206 @@
+[
+  {
+    "input": {
+      "version": 1,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": []
+    },
+    "sha256": "10e3b7f39e3a8fcca6777e75b51bb8de0871aa9a0a9fb7eb3583463218e8e580"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      }
+    },
+    "sha256": "10e3b7f39e3a8fcca6777e75b51bb8de0871aa9a0a9fb7eb3583463218e8e580"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "8ce782b7aeeabca42ca35a1bb9a84479da512b165b857e42fbc9bcb3e9c66d66"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "d37c7a5cb74acf32fd2c8f76fab477df964f6775772b8f86691d1147272d63a1"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "be4f9e2526becb55969715c0e32cfa4f381280785cfffff02d090f4ff0be3ef2"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "60eeb0473221143da63d614f9b9f0dad4ddb7b89da1124373f9d540cbffc66f4"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "97597da6fe8a7c506c123f04c72b44dcf10ea7b89c3ccc8d541fcbd521262fa7"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "10e3b7f39e3a8fcca6777e75b51bb8de0871aa9a0a9fb7eb3583463218e8e580"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "fe2a93792f50d57adbb9f569953c119a9ca8757399d3ca3c4b7f16669b14114b"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "modern-local-business",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "editorial-split",
+        "services": "horizontal-cards",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "4ec4e01798267129eec6c40f4772eec64674142cfac361b6072fe34e78c1915f"
+  },
+  {
+    "input": {
+      "version": 1,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": []
+    },
+    "sha256": "df7bd5d588cb0c0e5ca6daf179f073cb038802bb920bbfe2bd9fc22716223477"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      }
+    },
+    "sha256": "df7bd5d588cb0c0e5ca6daf179f073cb038802bb920bbfe2bd9fc22716223477"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "2da9b01f8b22d26c2ea6bdb90e697bab6c272441fe7fba66e573f559647982d0"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "e77d48c3a1a6ac58eacc22f4808f411fbffe656308b4b0b0240c70a9d32187b1"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "d096272a3033b4ec40dd9aab053404254098007a196e139b07e57ee5591c2e9a"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "486706b8098b7607ebe323a57d698640a675f515a1f0b4d3c26de49f2ca4a5b1"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "69bd111e80cd8b7a529bc6ca83324174c1e6d701abca5442dc73b2d80de73caa"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "df7bd5d588cb0c0e5ca6daf179f073cb038802bb920bbfe2bd9fc22716223477"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "a008a82e0f3d22c7bb15428dcbca7498b80f26c845bdb4bc8b6c5aa164f1b1f2"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "premium-service",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "full-bleed",
+        "about": "editorial-split",
+        "services": "editorial-list",
+        "contact": "contact-split",
+        "footer": "editorial"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "6410056d9983f6b4a3f413e09668a6e3b7e615669a07d4853cc54b0d6f819294"
+  },
+  {
+    "input": {
+      "version": 1,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": []
+    },
+    "sha256": "f3c465b946697c294182b412f6d9259be3b13b07c5d346763d0e784c52b4fb87"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      }
+    },
+    "sha256": "f3c465b946697c294182b412f6d9259be3b13b07c5d346763d0e784c52b4fb87"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "399fa2adadb726f4eea1989091e354c109e831ed81350752d3d685e2d8d2e9e9"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "f3c465b946697c294182b412f6d9259be3b13b07c5d346763d0e784c52b4fb87"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "5b17021d78eb47f5fa5ee30210fdf07e3d2ec90f091c43505ea3d06ec4c7bf3a"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "4b232d4a56b4e1868cba443143515b16cddc868196e264a9b2fc69c32bdc5246"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "6cbd1d8447b2f5b5a3237380ca5652ff08c101d637d7f9d08e681099df8cd89f"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "3b219d28eaeae34454c3bc7fd884910ae22b5cc5b30d8dc949e7c7e2f65d4f9c"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "3af28d870cf35272cc35134972a84b799cd81825fdee57eda41ab834b4f1b846"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "minimal-professional",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "minimal",
+        "about": "centered-story",
+        "services": "editorial-list",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "7cfa4014e00c6fcd16b2774d06c07068cdab514be51fa31fc8060a38886e103e"
+  },
+  {
+    "input": {
+      "version": 1,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": []
+    },
+    "sha256": "40848a1a5c4a9a40c0c00a8cb3f85e204297e4cfbc3efac49921e5b908f04491"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      }
+    },
+    "sha256": "40848a1a5c4a9a40c0c00a8cb3f85e204297e4cfbc3efac49921e5b908f04491"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "14ebb649b310d31bb25d2451d22b02a079a70191ac9379409f18f7d1cf519310"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "40848a1a5c4a9a40c0c00a8cb3f85e204297e4cfbc3efac49921e5b908f04491"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "4f3d196f3abb12f3a5dc6f9651f0b96b0101ae398c782e9829785389f88cf544"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "light",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "ba0a4a582e9fdaecdae901f001bd46d5da12784acef8d08fcf74a16d72938942"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "none"
+      }
+    },
+    "sha256": "23ed3564417ed6699db017e82d539ca78da476a04e68ceae29a6ce629d0a3b6a"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "modern",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "128ce942e337927956249cd23beb1c28a25eb41e0e9884308b62ffb1da7fa5b5"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "none"
+      }
+    },
+    "sha256": "2b4c1c15ab2a3e3452a3ad4183e15cc3b3c525a105f54c4b31d0407ed32e7449"
+  },
+  {
+    "input": {
+      "version": 2,
+      "templateId": "appointment-focused",
+      "seo": {
+        "title": "Salão Renova",
+        "description": "Salão em Belo Horizonte"
+      },
+      "brand": {
+        "primaryColor": "#153a50",
+        "accentColor": "#d8aa63",
+        "tone": "profissional"
+      },
+      "hero": {
+        "headline": "Salão Renova",
+        "subtitle": "Salão em Belo Horizonte",
+        "ctaText": "Contato",
+        "ctaType": "none"
+      },
+      "about": {
+        "title": "Sobre",
+        "description": "Conheça o Salão Renova."
+      },
+      "services": [],
+      "sections": {
+        "hero": true,
+        "about": true,
+        "services": false,
+        "contact": false,
+        "location": false,
+        "testimonials": false
+      },
+      "sectionOrder": [
+        "hero",
+        "about",
+        "services",
+        "contact",
+        "location"
+      ],
+      "warnings": [],
+      "visual": {
+        "location": "location-editorial",
+        "navigation": "inline",
+        "hero": "split",
+        "about": "centered-story",
+        "services": "horizontal-cards",
+        "contact": "contact-minimal",
+        "footer": "minimal"
+      },
+      "presentation": {
+        "theme": "dark",
+        "typography": "editorial",
+        "motion": "subtle"
+      }
+    },
+    "sha256": "cd1f208889d345637ace7078b1fa06e8cfdc0554bd50917101205dd4fefeaf69"
+  }
+]

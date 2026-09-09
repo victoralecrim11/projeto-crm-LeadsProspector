@@ -39,118 +39,76 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - A auditoria técnica não inventa métricas; quando ausente, a interface informa que o lead ainda não foi auditado.
 - Entradas manuais são marcadas explicitamente como `manual` e não recebem localização, WhatsApp, avaliação ou auditoria fictícios.
 
+## Pesquisa Independente (Fase B)
+
+- O serviço de backend possui um módulo de auditoria (`server/services/research`) que visita a URL fornecida de forma estática (HTTP/HTTPS nativo, máximo de 3 redirects, limite de 1 MiB e timeout rigoroso), sem executar headless browsers.
+- O sistema observa criticamente o conteúdo estrutural do website (landmarks, títulos, contatos) para formar um contexto real do lead sem alucinações ("UNTRUSTED DATA").
+- Famílias de design (como `health-trust` e `hospitality-editorial`) orientam um pipeline robusto, combinando contexto e referências curadas antes de qualquer geração via IA, resultando em artefatos de Especificação de Design isolados do Blueprint final.
+
 ## IA e Google Gemini
 
-### Sites: pipeline novo
+### Sites: pipeline novo (Visual Renderer - P0)
 
-- `SiteGeneratorModal` chama o backend; não usa timer, URL fictícia ou publicação simulada.
-- Contexto mínimo do lead → JSON Schema/structured output → Zod → Blueprint v1 → renderer React compartilhado pelo editor, prévia e ZIP.
-- Quatro templates, SEO, branding, hero/CTA, sobre, serviços sugeridos, contato, localização, visibilidade e ordem editáveis.
-- O modal usa um briefing compacto: campos principais em duas colunas no desktop e uma no celular, com direção de design opcional recolhida por padrão.
-- O template pode ser escolhido pelo usuário ou ficar em **Deixar a IA decidir**. O backend restringe a escolha automática aos quatro templates validados.
-- Paletas podem ser recomendadas pelo contexto, definidas por duas cores ou importadas de JSON/variáveis CSS. A importação extrai no máximo 12 cores hexadecimais; não executa CSS, URLs, scripts ou conteúdo arbitrário.
-- Lentes internas (`local-conversion`, `premium-editorial`, `trust-institutional` e `appointment-flow`) orientam hierarquia, template e movimento de acordo com tipo, objetivo e estilo. Elas são regras do aplicativo, não execução de arquivos `SKILL.md` do Codex no servidor.
-- `/api/ai/models` descobre modelos; `/api/ai/sites/generate` gera; `/api/ai/sites/regenerate-section` altera apenas a seção solicitada.
-- Estratégias auto/fast/quality/premium/local e modelo explícito. Fallback entre modelos somente em automático; falhas não viram sucesso.
-- Gemini via backend; Ollama opcional no servidor. Credenciais internas exigem token em produção; BYOK dos scripts permanece separado. O token do servidor é uma autorização temporária `Bearer`, não a chave Gemini nem autenticação individual.
-- Erros de transporte local são separados de erros do provedor: backend parado retorna uma orientação de reinício; timeout, 401, 429, 502 e 503 mantêm categorias próprias. Falhas transitórias recebem espera curta e fallback permitido; falhas de autenticação ou formato não são repetidas.
-- Projetos salvam contexto, Blueprint, status, revisão e metadata IA no navegador, com falha explícita de persistência. Registros antigos sem Blueprint continuam acessíveis, sem prévia fictícia.
-- Exportação estática com `index.html`, `blueprint.json` e `context.json`. Sem deploy, dependência do CRM ou scripts gerados pela IA.
-- Informações ausentes são omitidas; serviços de IA são sugestões sem preço. Export exige revisão humana e resolução das sugestões. Validação estrutural não é verificação semântica automática de toda afirmação textual.
-- Toasts temporários convivem com notificações persistentes. A busca global existente inclui projetos e contratos.
-- Evidências e pendências: [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md).
+- O sistema utiliza um schema `GeneratedSiteBlueprint` atualizado para **v2**. O parse realiza migrações dinâmicas de v1.
+- `SiteGeneratorModal` aciona o backend. O contexto provido via auditoria e pesquisa molda o JSON exigido pelo provider.
+- O antigo renderer monolítico foi substituído por uma **arquitetura de componentes modulares**. Cada seção (Hero, About, Services, Contact, etc.) suporta múltiplas variantes (ex: `full-bleed` vs `split`, `editorial-list` vs `horizontal-cards`), rompendo a limitação de estruturas DOM idênticas.
+- Estilos base e tipografia são encapsulados de forma performática. O preview aceita validação de viewports nativos simulados (Desktop 1440, Tablet 768, Mobile 390) usando URLs via Blob para garantir sandboxing seguro e navegação interna realística no preview.
+- O modal usa um briefing compacto: campos principais com direção de design opcional. O template pode ser decidido pela IA.
+- Paletas de cor podem ser recomendadas ou customizadas. Lentes internas de branding influenciam o prompt.
+- Exportação estática com `index.html`, `blueprint.json`, `design.json` e arquivos de contexto; a apresentação exportada corresponde byte-a-byte à renderização visual do preview local.
+- Projetos salvam contexto, Blueprint v2, status, revisão e metadata IA no navegador.
 
 ### Pesquisa, imagens, movimento e MCP
 
-- Pesquisa web automática de referências não está implementada. Antes dela, o backend precisa de provedor definido, fontes registradas, cache, timeout e defesa contra prompt injection.
-- Geração de imagens não está implementada. A próxima fase precisa definir contrato de assets, armazenamento, moderação, licença/consentimento, limites de custo e empacotamento seguro no ZIP.
-- O briefing aceita intenção de movimento cinematográfico, mas o renderer atual não adiciona WebGL ou 3D. Qualquer movimento futuro deverá respeitar `prefers-reduced-motion`.
-- MCP não está integrado ao runtime do CRM. Uma integração futura deverá usar adapters permitidos no backend, com consentimento e servidores confiáveis; o navegador não poderá fornecer endpoints MCP arbitrários.
+- Geração de imagens e movimento não estão implementados (adiados para P1/P2/P3). Qualquer intenção informada no design briefing não resultará em inserção de placeholders irreais.
+- O MCP não está integrado ao runtime do CRM.
 
 ### Scripts comerciais: integração preservada
 
 - Os scripts de abordagem, follow-up e objeção podem ser gerados ou melhorados no detalhe do lead, com restauração do texto original.
 - A configuração aceita provedores de IA cadastrados na interface e geração pelo servidor com `GEMINI_API_KEY`.
 - O Gemini usa a sequência de fallback `gemini-3.5-flash`, `gemini-2.5-flash` e `gemini-3.1-flash-lite`.
-- Falhas transitórias recebem novas tentativas com espera progressiva antes da troca de modelo.
-- A chave Gemini é enviada no cabeçalho `x-goog-api-key`, sem ser exposta na URL da requisição.
-- **Testar Conexão da API** faz uma chamada real e mostra sucesso ou erro no cartão e no console do navegador. Quando há fallback, informa qual modelo respondeu.
-- Chaves cadastradas pela interface ficam no armazenamento local do navegador; isso não equivale a um cofre criptografado.
+- **Testar Conexão da API** faz uma chamada real e mostra sucesso ou erro, com aviso explícito dos limites do provedor.
+- Chaves cadastradas ficam no armazenamento local do navegador.
 
 ## Nominatim e limites externos
 
-- Digitar no modal de bairro não dispara consultas ao Nominatim.
-- A busca externa acontece somente após a ação explícita do usuário.
-- O proxy normaliza a chave de busca, mantém cache com TTL de 24 horas e até 500 entradas e limita as saídas externas a uma por segundo.
-- Rate limit, timeout e falhas do serviço de origem retornam respostas específicas.
+- Digitar no modal de bairro não dispara consultas ao Nominatim. A busca externa acontece somente após a ação explícita.
+- O proxy normaliza a chave de busca, mantém cache (TTL de 24 horas, até 500 entradas) e limita as saídas a 1/seg. Rate limits e falhas retornam tratamento específico.
 
 ## Runtime local e Vercel
 
-- O backend compartilhado é criado por `server/app.ts`; `server.ts` abre a porta apenas no runtime Node local e `api/index.ts` exporta o app como uma única Vercel Function.
-- O `vercel.json` encaminha `/api/*` para a função antes do fallback de SPA para `index.html`. Rotas de API ausentes continuam retornando JSON, nunca HTML.
-- A Vercel executa `npm run build:client`, publica apenas os assets do Vite e não expõe `dist/server.cjs`. O build Node completo continua disponível em `npm run build` para hospedagem tradicional.
-- O runtime serverless está fixado em Node.js 22 LTS, com duração máxima de 60 segundos para acomodar fallbacks de IA e Overpass.
-- `GEMINI_API_KEY` e `SITE_AI_ACCESS_TOKEN` devem ser configurados nas variáveis de ambiente da Vercel para o modo de credencial interna. BYOK continua funcionando sem essas variáveis.
-- O cache e a fila do Nominatim vivem na memória de cada instância aquecida da Function; não constituem persistência distribuída entre instâncias.
+- O backend compartilhado é criado por `server/app.ts`; `server.ts` abre a porta apenas no runtime Node local e `api/index.ts` exporta o app como uma única **Vercel Function**.
+- O `vercel.json` encaminha `/api/*` para a função antes do fallback de SPA para `index.html`. Rotas de API ausentes continuam retornando JSON.
+- A Vercel executa `npm run build:client`, publica assets Vite e não expõe o runtime clássico na Vercel (este continua disponível para instâncias tradicionais via `build:server`).
+- O runtime serverless fixa-se em Node.js 22 LTS (duração máx de 60s). `GEMINI_API_KEY` e `SITE_AI_ACCESS_TOKEN` precisam existir no ambiente da Vercel para o modo "credencial interna". O cache e a fila vivem na memória de cada instância da Function.
 
 ## CRM e experiência de uso
 
-- O **Radar Local** é o ponto de varredura; a grade apresenta os mesmos resultados OSM em outra visualização.
-- O detalhe do lead reúne etapa do funil, valor de setup, MRR, contato, localização, scripts, notas e ações comerciais.
-- O botão **Melhorar com IA** permanece disponível junto ao script inteligente.
-- O botão **Buscar** e os atalhos `Ctrl + K` ou `Cmd + K` abrem a paleta global antes que o navegador consuma o atalho.
-- Leads podem ser exportados para Excel (`.xlsx`) com dados e resumo comercial.
-- Stores Zustand usam `safeStorage`, tentando `localStorage` e recorrendo a `sessionStorage` quando necessário.
+- O detalhe do lead reúne etapa do funil, valor de setup, MRR, contato, scripts e localização.
+- O botão **Melhorar com IA** permanece disponível.
+- O botão **Buscar** (`Ctrl + K` / `Cmd + K`) abre a paleta global de busca unificada (inclui projetos e contratos).
+- Leads podem ser exportados para `.xlsx`.
+- Stores Zustand usam `safeStorage` (localStorage c/ fallback para sessionStorage).
 
 ## Organização dos testes
 
-Os testes automatizados ficam separados do código de produção e espelham a estrutura correspondente:
-
-```text
-tests/
-├── components/
-│   └── designBriefControls.test.tsx
-├── fixtures/
-│   └── siteFixture.ts
-├── services/
-│   ├── aiService.test.ts
-│   ├── designBrief.test.ts
-│   ├── siteGenerationClient.test.ts
-│   ├── siteGeneration.test.ts
-│   ├── siteRoutes.test.ts
-│   └── vercelRuntime.test.ts
-└── utils/
-    ├── commandPaletteShortcut.test.ts
-    └── openGoogleMaps.test.ts
-```
-
-O script `npm test` executa `tests/**/*.test.ts`, e o `tsconfig.json` inclui `tests/**/*` na verificação de tipos. A suíte cobre:
-
-- seleção, autenticação, retentativa e fallback do Gemini;
-- parsing seguro de design systems, paletas e lentes de design;
-- template automático versus escolha manual e precedência de cores explícitas;
-- mensagens de backend indisponível, timeout e resposta inválida;
-- estrutura acessível dos estados recomendado, personalizado e importado do briefing;
-- retorno do teste real de conexão;
-- captura de `Ctrl + K` pela busca global;
-- composição da busca comercial no Google Maps;
-- preservação das coordenadas exatas em Google Maps e OpenStreetMap.
-- configuração, imports ESM e contrato HTTP da Function da Vercel.
+Os testes automatizados (em `tests/`) refletem rigorosamente serviços e componentes. Novas suítes foram implementadas para garantir a estabilidade do fluxo Phase B e do Visual Blueprint:
+- `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, entre outros.
+- O script `npm test` valida migrações de blueprint (v1 -> v2), estabilidade do renderer em cenários de ausência de dados, renderizações variadas em múltiplas seções, timeouts simulados da Vercel Function e regras de design-families.
 
 ## Comandos de verificação e produção
 
 - `npm test`: executa a suíte automatizada.
 - `npm run lint`: executa `tsc --noEmit`.
-- `npm run build`: gera o frontend Vite e o backend em `dist/server.cjs`.
-- `npm run build:client`: gera somente o frontend estático usado pela Vercel.
-- `npm run build:server`: gera somente o servidor Node para hospedagem tradicional.
-- `npm start`: inicia o bundle de produção previamente gerado.
-
-O build atual pode emitir avisos não bloqueantes sobre o tamanho de alguns chunks e sobre `leadStore.ts` ser importado de forma estática e dinâmica.
+- `npm run build`: gera frontend Vite e backend em `dist/server.cjs`.
+- `npm run build:client`: gera frontend estático (usado na Vercel).
+- `npm run build:server`: gera backend isolado.
+- `npm start`: inicia o bundle de produção.
 
 ## Convenção de documentação
 
-Documentação humana fica em `docs/`. Specs, design e tarefas formais ficam em `openspec/`, exceção solicitada para esta fase. Links usam caminhos relativos ao documento.
+Documentação humana fica em `docs/`. Specs, design e tarefas formais ficam em `openspec/`. Guias do React Toolkit encontram-se em `docs/references/react-dev-toolkit-antigravity/`.
 
 - [README.md](README.md): apresentação, instalação, configuração e uso.
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual.

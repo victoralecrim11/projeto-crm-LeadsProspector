@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "strict": true, "noEmit": true },
+  "include": ["src/site-builder/guidance/**/*.ts", "src/site-builder/contracts/**/*.ts", "src/site-builder/contactLinks.ts"]
+}

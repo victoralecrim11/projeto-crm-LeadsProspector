@@ -6,7 +6,7 @@ O fluxo principal reúne prospecção geográfica, auditoria, abordagem comercia
 
 ## Estado atual
 
-O gerador de sites agora usa IA real no backend, Blueprint validado, edição por seção e exportação estática. Veja o [relatório da implementação e evidências](AI_SITE_IMPLEMENTATION.md).
+O gerador de sites evoluiu para uma nova **Fase B** de auditoria e um pipeline de renderização **Visual P0**. Utilizando um novo Blueprint validado (v2), o sistema usa IA real no backend precedida por curadoria de referências e uma auditoria independente, permitindo edição por seção com renderizações visuais variadas e suporte a viewports nativos, mantendo exportação totalmente estática.
 
 | Área | Recursos disponíveis |
 |---|---|
@@ -16,7 +16,7 @@ O gerador de sites agora usa IA real no backend, Blueprint validado, edição po
 | **Mapa responsivo** | Mapa e popup adaptados para desktop e celular, com ações compactas, detalhes visíveis e altura limitada por breakpoint. |
 | **CRM e funil** | Cadastro de leads, etapas comerciais, valores de setup e MRR, anotações, follow-up, contratos, projetos e agenda. |
 | **Scripts com IA** | Geração e melhoria de textos de abordagem, follow-up e objeção diretamente nos detalhes do lead, com opção de restaurar o texto original. |
-| **Integração Gemini** | Modelos estáveis com retentativas e fallback. O teste de conexão realiza uma chamada real e mostra sucesso ou erro na interface e no console do navegador. |
+| **Integração Gemini & Site Builder** | Modelos estáveis com retentativas e fallback. O editor visual avançado possui visualizações flexíveis (variantes por seção). Exportação de arquivos de design e blueprints atualizados. |
 | **Busca global** | O botão **Buscar** e o atalho `Ctrl + K` ou `Cmd + K` abrem a paleta de empresas, páginas e ações rápidas. |
 | **Exportação** | Exportação da base de leads para Excel (`.xlsx`) com resumo e dados comerciais. |
 
@@ -78,11 +78,7 @@ Em produção, o uso da chave interna/Ollama exige o token em **Conexão avança
 
 Os provedores podem ser cadastrados em **Configurações → Inteligência Artificial**. Para o Gemini, a aplicação tenta modelos estáveis em ordem de fallback e não inclui a chave na URL da requisição.
 
-Use **Testar Conexão da API** para executar uma chamada real. O resultado aparece:
-
-- no próprio cartão do provedor;
-- no console do navegador como sucesso ou erro;
-- com o nome do modelo Gemini que respondeu, quando aplicável.
+Use **Testar Conexão da API** para executar uma chamada real. O resultado aparece no console e na interface, exibindo claramente também os limites de conexões estabelecidos para a conta (p. ex., limites OpenAI).
 
 O endpoint de geração executado pelo servidor também aceita a variável abaixo em um arquivo `.env` local:
 
@@ -113,10 +109,10 @@ Mantenha sempre a atribuição exigida pelo fornecedor dos tiles.
 6. Abra **Ver detalhes**, adicione o lead ao CRM e prepare a abordagem.
 7. Gere ou melhore o script com IA, registre o contato e avance o lead pelo funil.
 8. Em **Gerar Site IA**, selecione lead, template, estilo, objetivo e estratégia/modelo.
-9. No editor, revise textos e sugestões, confira Desktop/Mobile, ajuste seções e salve.
+9. O backend auditará (Fase B) e definirá um design com base em templates modulares (Renderer Visual P0). No editor, revise textos e sugestões, confira Desktop/Tablet/Mobile, ajuste componentes e seções, e salve.
 10. Confirme a revisão e aceite ou remova os serviços sugeridos para exportar `site.zip`. Extraia e abra `index.html` fora do CRM. Exportar não publica o site.
 
-Projetos persistem Blueprint, contexto e modelo utilizado. O salvamento acusa falhas de armazenamento em vez de confirmar dados não gravados. A paleta existente também pesquisa projetos e contratos. Toasts dão feedback temporário sem substituir o histórico de notificações.
+Projetos persistem Blueprint v2, contexto e modelo utilizado. O salvamento acusa falhas de armazenamento em vez de confirmar dados não gravados. A paleta global também pesquisa projetos e contratos.
 
 ## Comandos disponíveis
 
@@ -136,38 +132,34 @@ Os testes ficam fora do código de produção e espelham as áreas verificadas:
 
 ```text
 tests/
+├── components/
 ├── fixtures/
-│   └── siteFixture.ts
+├── manual/
 ├── services/
-│   ├── aiService.test.ts
-│   ├── siteGeneration.test.ts
-│   ├── siteRoutes.test.ts
-│   └── vercelRuntime.test.ts
+│   ├── phaseB.test.ts
+│   ├── visualRenderer.test.ts
+│   ├── visualBlueprint.test.ts
+│   ├── vercelRuntime.test.ts
+│   └── ...
 └── utils/
-    ├── commandPaletteShortcut.test.ts
-    └── openGoogleMaps.test.ts
 ```
 
-A suíte cobre atualmente:
-
-- Blueprint estrito, ausências, contatos, sugestões, escape HTML e ordem de seções;
-- seleção explícita/automática, falhas, regeneração parcial, persistência e ZIP;
-- entrada HTTP inválida e proteção de origem;
-
-- autenticação e fallback de modelos Gemini sem expor a chave na URL;
-- resposta do teste real de conexão com IA;
-- abertura da busca global por `Ctrl + K`;
-- separação entre busca comercial e coordenada exata;
-- preservação das coordenadas nos links Google Maps e OpenStreetMap.
+A suíte cobre amplamente:
+- Auditoria do sistema (Phase B) e resoluções de design-families.
+- Blueprint estrito (v2), renderizações variantes nas seções modulares (Hero, About, etc).
+- Seleção explícita/automática, falhas, regeneração parcial, persistência e export do ZIP com referências de design.
+- Entrada HTTP inválida e proteção de origem.
+- Autenticação e fallback de modelos.
+- Resposta do teste real de conexão com provedores de IA.
+- Busca global e integração Maps.
 
 ## Documentação do projeto
 
-Documentos humanos são mantidos na pasta `docs/`; especificações formais desta fase ficam em `openspec/`, conforme solicitado:
+Documentos humanos são mantidos na pasta `docs/`; especificações formais desta fase ficam em `openspec/`:
 
 - [PROJECT_SUMMARY.md](PROJECT_SUMMARY.md): resumo técnico do estado atual do sistema;
 - [BRASILAPI_VIABILIDADE.md](BRASILAPI_VIABILIDADE.md): análise do uso da BrasilAPI no fluxo de prospecção.
-- [AI_SITE_AUDIT.md](AI_SITE_AUDIT.md): classificação inicial real/simulada/parcial/legado;
-- [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md): arquitetura, evidências e limitações do gerador.
+- [AI_SITE_IMPLEMENTATION.md](AI_SITE_IMPLEMENTATION.md): arquitetura, evidências e limitações do gerador visual.
 
 Novos documentos humanos `.md` devem ser criados dentro de `docs/`. A exceção é o workflow OpenSpec em `openspec/`.
 

@@ -1,0 +1,41 @@
+{
+  "mode": "assistant-authored-demonstration",
+  "providerCalled": false,
+  "reason": "Nenhum modelo configurado no servidor; não representa um teste A/B da IA.",
+  "reference": {
+    "id": "react-dev-toolkit-site-builder",
+    "version": 1,
+    "sourceVersion": "1.2.8",
+    "sourceRepository": "https://github.com/victoralecrim11/react-dev-toolkit-antigravity",
+    "sourceCommit": "36bab26c247b547c749008798bda04f6f900fd88",
+    "sources": [
+      "skills/react-dev/references/react-core.md",
+      "skills/react-dev/references/project-builder.md",
+      "skills/ui-ux/references/design-routing.md",
+      "skills/ui-ux/references/reasoning-rules.md",
+      "skills/ui-ux/references/accessibility.md",
+      "skills/ui-ux/references/responsive-design.md"
+    ],
+    "engineeringRules": [
+      "Componentes funcionais, props tipadas e responsabilidades pequenas e explícitas.",
+      "Clientes de API e regras de negócio ficam separados dos componentes visuais.",
+      "Preferir composição de componentes reutilizáveis à duplicação de telas.",
+      "Evoluir incrementalmente com verificação de tipos, erros, estado vazio e acessibilidade."
+    ],
+    "siteBuilderRules": [
+      "Sua saída é Blueprint v2, nunca código React, HTML, CSS, imports ou scripts.",
+      "Selecione componentes apenas pelo catálogo abaixo; considere composição desktop e comportamento mobile.",
+      "Use títulos descritivos, hierarquia clara e conteúdo curto o suficiente para leitura em celular.",
+      "Não simule formulários, menus interativos ou recursos que o renderer estático não implementa.",
+      "Mantenha a identidade visual confirmada e não transforme sugestões em fatos comerciais."
+    ],
+    "designRules": [
+      "Defina uma direção coerente de tema, tipografia e composição antes de escrever o conteúdo.",
+      "Use superfícies semânticas do renderer, cores sólidas e contraste legível; não invente tokens CSS.",
+      "Considere acessibilidade e usabilidade ao escolher o estilo; evite vidro e sombras que prejudiquem a leitura.",
+      "Planeje leitura mobile, títulos que quebrem em linhas e CTA com foco visível.",
+      "Use apenas movimento none/subtle; o renderer respeita prefers-reduced-motion.",
+      "O handoff é o Blueprint validado: presentation, brand, visual e sectionOrder devem descrever uma composição coerente."
+    ]
+  }
+}

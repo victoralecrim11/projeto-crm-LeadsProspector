@@ -143,6 +143,7 @@ export const RedesenhoView: React.FC = () => {
               <SitePreview
                 blueprint={project.siteBlueprint}
                 context={project.siteContext}
+                design={project.siteDesign}
               />
             ) : (
               <div className="site-preview-empty">

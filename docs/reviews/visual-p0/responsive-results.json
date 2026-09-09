@@ -1,0 +1,137 @@
+[
+  {
+    "id": "restaurante",
+    "requestedWidth": 1440,
+    "about": "editorial-split",
+    "hero": "full-bleed",
+    "scroll": 1425,
+    "services": "editorial-list",
+    "width": 1425
+  },
+  {
+    "id": "restaurante",
+    "requestedWidth": 768,
+    "about": "editorial-split",
+    "hero": "full-bleed",
+    "scroll": 753,
+    "services": "editorial-list",
+    "width": 753
+  },
+  {
+    "id": "restaurante",
+    "requestedWidth": 390,
+    "about": "editorial-split",
+    "hero": "full-bleed",
+    "scroll": 375,
+    "services": "editorial-list",
+    "width": 375
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 1440,
+    "about": "centered-story",
+    "hero": "split",
+    "scroll": 1425,
+    "services": "horizontal-cards",
+    "width": 1425
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 768,
+    "about": "centered-story",
+    "hero": "split",
+    "scroll": 753,
+    "services": "horizontal-cards",
+    "width": 753
+  },
+  {
+    "id": "barbearia",
+    "requestedWidth": 390,
+    "about": "centered-story",
+    "hero": "split",
+    "scroll": 375,
+    "services": "horizontal-cards",
+    "width": 375
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 1440,
+    "about": "centered-story",
+    "hero": "minimal",
+    "scroll": 1425,
+    "services": "editorial-list",
+    "width": 1425
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 768,
+    "about": "centered-story",
+    "hero": "minimal",
+    "scroll": 753,
+    "services": "editorial-list",
+    "width": 753
+  },
+  {
+    "id": "clinica",
+    "requestedWidth": 390,
+    "about": "centered-story",
+    "hero": "minimal",
+    "scroll": 375,
+    "services": "editorial-list",
+    "width": 375
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 1440,
+    "about": "editorial-split",
+    "hero": "split",
+    "scroll": 1425,
+    "services": "horizontal-cards",
+    "width": 1425
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 768,
+    "about": "editorial-split",
+    "hero": "split",
+    "scroll": 753,
+    "services": "horizontal-cards",
+    "width": 753
+  },
+  {
+    "id": "salao",
+    "requestedWidth": 390,
+    "about": "editorial-split",
+    "hero": "split",
+    "scroll": 375,
+    "services": "horizontal-cards",
+    "width": 375
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 1440,
+    "about": "centered-story",
+    "hero": "full-bleed",
+    "scroll": 1425,
+    "services": "horizontal-cards",
+    "width": 1425
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 768,
+    "about": "centered-story",
+    "hero": "full-bleed",
+    "scroll": 753,
+    "services": "horizontal-cards",
+    "width": 753
+  },
+  {
+    "id": "imobiliaria",
+    "requestedWidth": 390,
+    "about": "centered-story",
+    "hero": "full-bleed",
+    "scroll": 375,
+    "services": "horizontal-cards",
+    "width": 375
+  }
+]

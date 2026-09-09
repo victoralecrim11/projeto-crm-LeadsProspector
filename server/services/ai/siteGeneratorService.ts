@@ -17,6 +17,7 @@ import {
 import { buildSitePrompt } from "./sitePromptBuilder.js";
 import { requestBlueprint } from "./providers/siteProviders.js";
 import { normalizeDesignBrief } from "../../../src/site-builder/designBrief.js";
+import { reactToolkitProfile } from "../../../src/site-builder/guidance/reactToolkit.js";
 export async function generateSite(
   input: {
     context: LeadSiteContext;
@@ -81,6 +82,11 @@ export async function generateSite(
           blueprint.brand.accentColor = design.colors[1] ?? design.colors[0];
         }
         blueprint.brand.tone = input.preferences.style;
+        blueprint.presentation = {
+          theme: blueprint.presentation?.theme ?? (blueprint.templateId === "premium-service" || blueprint.templateId === "modern-local-business" ? "dark" : "light"),
+          typography: blueprint.presentation?.typography ?? "modern",
+          motion: design.motion === "none" ? "none" : "subtle",
+        };
         if (input.blueprint && input.section)
           blueprint = mergeSection(
             input.blueprint,
@@ -93,7 +99,8 @@ export async function generateSite(
           model: model.model,
           modelId: model.id,
           generatedAt: new Date().toISOString(),
-          blueprintVersion: 1,
+          blueprintVersion: blueprint.version,
+          guidance: { id: reactToolkitProfile.id, version: reactToolkitProfile.version, sourceVersion: reactToolkitProfile.sourceVersion, sourceCommit: reactToolkitProfile.sourceCommit },
         };
         return {
           success: true as const,

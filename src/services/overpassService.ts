@@ -231,19 +231,23 @@ async function fetchFromProxy(query: string): Promise<any> {
     console.log(`[OverpassService] Resposta HTTP - Status: ${response.status}, StatusText: ${response.statusText}`);
     
     if (!response.ok) {
-      let errorBody = '';
+      const errorBody = await response.text();
+      let errorCode = '';
       try {
-        const json = await response.json();
-        errorBody = JSON.stringify(json);
-      } catch (e) {
-        errorBody = await response.text();
-      }
+        errorCode = JSON.parse(errorBody).code ?? '';
+      } catch { /* Upstream errors can also be plain text or HTML. */ }
       
       console.error(`[OverpassService] Erro bruto da API:`, errorBody);
       
       // Etapa 2: Refatorar o Tratamento de Erros
-      if (response.status === 504 || response.status === 502) {
+      if (errorCode === 'OVERPASS_TLS_ERROR') {
+        throw new Error('Falha de certificado HTTPS ao consultar o Overpass. Verifique os certificados confiáveis do servidor.');
+      }
+      if (response.status === 504) {
         throw new Error(`Timeout da API Overpass: Os servidores demoraram muito para responder ou estão indisponíveis (Status ${response.status}).`);
+      }
+      if (response.status === 502) {
+        throw new Error('Os servidores Overpass estão indisponíveis ou a conexão falhou. Tente novamente em instantes.');
       }
       if (response.status === 400) {
         throw new Error(`Erro de Requisição: A consulta enviada para o Overpass era inválida (Status 400).`);

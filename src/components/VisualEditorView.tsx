@@ -5,15 +5,19 @@ import {
   blueprintSchema,
   templates,
   tones,
+  visualVariants,
+  defaultVisualVariants,
   type GeneratedSiteBlueprint,
   type ModelSelection,
   type RegenerationSection,
 } from "../site-builder/types";
 import { constrainBlueprint } from "../site-builder/context";
 import { SitePreview } from "../site-builder/components/SitePreview";
+import { resolvePresentation } from "../site-builder/renderer/presentation";
 import { ModelControls } from "../site-builder/components/ModelControls";
-import { generateSiteBlueprint } from "../services/siteGenerationService";
+import { generateSiteBlueprint, generateStandardBlueprint } from "../services/siteGenerationService";
 import { downloadSiteZip } from "../site-builder/exportSite";
+import { designForBlueprint } from '../site-builder/designPipeline';
 import { toast } from "../store/toastStore";
 import {
   PanelsTopLeft,
@@ -66,6 +70,7 @@ export const VisualEditorView: React.FC = () => {
     const next = {
       ...project,
       siteBlueprint: blueprint,
+      siteDesign: project.siteDesign ? designForBlueprint(project.siteDesign, blueprint) : undefined,
       contentReviewed: reviewed,
       generationStatus:
         reviewed && blueprint.services.every((s) => s.source === "known")
@@ -83,6 +88,17 @@ export const VisualEditorView: React.FC = () => {
     } catch (e) {
       toast((e as Error).message, "error");
     }
+  };
+  const refreshAudit = async () => {
+    if (!project?.siteDesign || !draft || busy) return;
+    setBusy(true);
+    try {
+      const result = await generateStandardBlueprint(crm.crmSettings, project.siteDesign.referenceBrief.business.source);
+      const next = { ...project.siteDesign, referenceBrief: result.design.referenceBrief };
+      crm.updateProject({ ...project, siteDesign: designForBlueprint(next, draft) });
+      toast('Análise do site anterior atualizada.');
+    } catch (e) { toast((e as Error).message, 'error'); }
+    finally { setBusy(false); }
   };
   const regenerate = async (section: RegenerationSection) => {
     if (!project?.siteContext || !draft || busy) return;
@@ -302,6 +318,7 @@ export const VisualEditorView: React.FC = () => {
                       ...draft,
                       templateId: e.target
                         .value as GeneratedSiteBlueprint["templateId"],
+                      visual: defaultVisualVariants(e.target.value as GeneratedSiteBlueprint["templateId"]),
                     })
                   }
                 >
@@ -351,6 +368,21 @@ export const VisualEditorView: React.FC = () => {
                   ))}
                 </select>
               </label>
+            </section>
+            <section className="editor-control-section">
+              <h4 className="editor-section-title">Composição das seções</h4>
+              {(["theme", "typography", "motion"] as const).map((key) => <label className="block" key={key}>
+                {{ theme: "Tema das superfícies", typography: "Tipografia", motion: "Animações" }[key]}
+                <select className="w-full bg-slate-800 p-2" value={resolvePresentation(draft)[key]} onChange={(event) => change({ ...draft, presentation: { ...resolvePresentation(draft), [key]: event.target.value } })}>
+                  {(key === "theme" ? [["light", "Claro"], ["dark", "Escuro"]] : key === "typography" ? [["modern", "Moderna"], ["editorial", "Editorial"]] : [["subtle", "Suaves"], ["none", "Sem animação"]]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+                </select>
+              </label>)}
+              {(["hero", "about", "services", "contact", "footer"] as const).map((section) => <label className="block" key={section}>
+                {{ hero: "Composição da abertura", about: "Composição de Sobre", services: "Composição de Serviços", contact: "Composição de Contato", footer: "Composição do rodapé" }[section]}
+                <select className="w-full bg-slate-800 p-2" value={draft.visual[section]} onChange={(event) => change({ ...draft, visual: { ...draft.visual, [section]: event.target.value } })}>
+                  {visualVariants[section].map((variant) => <option key={variant} value={variant}>{{ "full-bleed": "Abertura ampla", split: "Duas colunas", minimal: "Essencial", "editorial-split": "Editorial em colunas", "centered-story": "Narrativa centralizada", "editorial-list": "Lista editorial", "horizontal-cards": "Blocos em colunas", "contact-minimal": "Contato essencial", "contact-split": "Contato em colunas", editorial: "Editorial" }[variant]}</option>)}
+                </select>
+              </label>)}
             </section>
             <section className="editor-control-section">
               <h4 className="editor-section-title">Sobre o negócio</h4>
@@ -579,6 +611,15 @@ export const VisualEditorView: React.FC = () => {
               <h3>Veja o site ganhar forma</h3>
               <p>Confira as versões desktop e mobile enquanto edita.</p>
             </div>
+            {project.siteDesign && <details className="rounded-xl p-3 border border-slate-600">
+              <summary>Direção visual e fontes utilizadas</summary>
+              <p>Família: {project.siteDesign.specification.family.id}. Dados: {project.siteDesign.referenceBrief.business.source.source}.</p>
+              <p>Site anterior: {{ absent: 'não informado', audited: 'HTML analisado', blocked: 'URL bloqueada por segurança', failed: 'análise indisponível' }[project.siteDesign.referenceBrief.currentBusiness.status]}.</p>
+              {project.siteDesign.referenceBrief.currentBusiness.technicalProblems.map((p,i) => <p key={i}>{p}</p>)}
+              <p>A análise estática não verifica aparência, velocidade ou responsividade do site anterior.</p>
+              <p>{project.siteDesign.referenceBrief.market.references.length} referências de mercado. Informações encontradas na web não foram incorporadas como fatos.</p>
+              <button type="button" disabled={busy} onClick={refreshAudit}>Atualizar análise do site anterior</button>
+            </details>}
             {busy && <p role="status">Processando…</p>}
             {!reviewed && (
               <p className="rounded-xl p-3 bg-amber-950 text-amber-200">
@@ -586,7 +627,7 @@ export const VisualEditorView: React.FC = () => {
                 experiência e benefícios sugeridos não são fatos confirmados.
               </p>
             )}
-            <SitePreview blueprint={draft} context={project.siteContext} />
+            <SitePreview blueprint={draft} context={project.siteContext} design={project.siteDesign} />
           </section>
         </div>
       )}

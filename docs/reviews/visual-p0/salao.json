@@ -1,0 +1,65 @@
+{
+  "version": 2,
+  "templateId": "appointment-focused",
+  "seo": {
+    "title": "Forma — demonstração",
+    "description": "Exemplo fictício para revisão visual P0."
+  },
+  "brand": {
+    "primaryColor": "#594651",
+    "accentColor": "#efdad1",
+    "tone": "profissional"
+  },
+  "hero": {
+    "headline": "Forma — demonstração",
+    "subtitle": "Salão / Estética. Uma composição de demonstração para revisar estrutura, tipografia e leitura em diferentes telas.",
+    "ctaText": "Contato de demonstração",
+    "ctaType": "contact"
+  },
+  "about": {
+    "title": "Um espaço para conhecer",
+    "description": "Este é um negócio fictício usado para avaliar a apresentação visual. Nome, categoria e cidade são dados de exemplo. O conteúdo comercial precisa ser informado e confirmado pelo responsável antes de qualquer publicação."
+  },
+  "services": [
+    {
+      "title": "Primeiro conteúdo",
+      "description": "Conteúdo demonstrativo de layout. Não representa um serviço real oferecido.",
+      "source": "known"
+    },
+    {
+      "title": "Segundo conteúdo",
+      "description": "Conteúdo demonstrativo de layout. Não representa um serviço real oferecido.",
+      "source": "known"
+    },
+    {
+      "title": "Terceiro conteúdo",
+      "description": "Conteúdo demonstrativo de layout. Não representa um serviço real oferecido.",
+      "source": "known"
+    }
+  ],
+  "sections": {
+    "hero": true,
+    "about": true,
+    "services": true,
+    "contact": true,
+    "location": false,
+    "testimonials": false
+  },
+  "sectionOrder": [
+    "hero",
+    "about",
+    "services",
+    "contact",
+    "location"
+  ],
+  "warnings": [],
+  "visual": {
+    "location": "location-editorial",
+    "navigation": "inline",
+    "hero": "split",
+    "about": "editorial-split",
+    "services": "horizontal-cards",
+    "contact": "contact-minimal",
+    "footer": "minimal"
+  }
+}

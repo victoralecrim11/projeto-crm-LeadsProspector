@@ -1,0 +1,255 @@
+{
+  "version": 1,
+  "mode": "premium",
+  "referenceBrief": {
+    "version": 1,
+    "business": {
+      "version": 1,
+      "lead": {
+        "business": {
+          "name": "Clínica Exemplo Fictício",
+          "category": "Clínica Odontológica",
+          "city": "Cidade Exemplo",
+          "neighborhood": ""
+        },
+        "contact": {
+          "phone": "",
+          "whatsapp": "",
+          "email": "contato@example.invalid",
+          "address": "Rua Fictícia, 0"
+        },
+        "onlinePresence": {
+          "hasWebsite": false,
+          "websiteUrl": ""
+        },
+        "reputation": {
+          "rating": null,
+          "reviewsCount": null
+        }
+      },
+      "confirmed": {},
+      "source": {
+        "leadId": "fictional-dentistry",
+        "source": "overpass",
+        "context": {
+          "business": {
+            "name": "Clínica Exemplo Fictício",
+            "category": "Clínica Odontológica",
+            "city": "Cidade Exemplo",
+            "neighborhood": ""
+          },
+          "contact": {
+            "phone": "",
+            "whatsapp": "",
+            "email": "contato@example.invalid",
+            "address": "Rua Fictícia, 0"
+          },
+          "onlinePresence": {
+            "hasWebsite": false,
+            "websiteUrl": ""
+          },
+          "reputation": {
+            "rating": null,
+            "reviewsCount": null
+          }
+        },
+        "state": "EX",
+        "niche": "dentistry",
+        "osmElement": "node/0"
+      },
+      "businessType": "local-business",
+      "derivedNiche": "dentistry",
+      "facts": {
+        "name": {
+          "value": "Clínica Exemplo Fictício",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "category": {
+          "value": "Clínica Odontológica",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "city": {
+          "value": "Cidade Exemplo",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "state": {
+          "value": "EX",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "email": {
+          "value": "contato@example.invalid",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "address": {
+          "value": "Rua Fictícia, 0",
+          "provenance": "CONFIRMED_FROM_LEAD",
+          "verified": false,
+          "evidence": "Campo persistido no lead (overpass); não verificado independentemente. Localização pode conter fallback da busca."
+        },
+        "niche": {
+          "value": "dentistry",
+          "provenance": "DERIVED",
+          "verified": false,
+          "evidence": "Classificação por categoria/nicho persistidos; não confirma subnicho ou posicionamento premium."
+        }
+      }
+    },
+    "currentBusiness": {
+      "kind": "current-business",
+      "status": "absent",
+      "auditedAt": "2026-09-08T22:37:27.735Z",
+      "method": "bounded-static-html",
+      "observations": [],
+      "structure": [],
+      "identity": [],
+      "technicalProblems": [],
+      "visualProblems": [],
+      "conversionProblems": [],
+      "contentProblems": [],
+      "accessibilityProblems": [],
+      "opportunities": [],
+      "limitations": [
+        "HTML estático; JavaScript, CSS externo, contraste e viewports não avaliados. Ausência no HTML não comprova ausência no site."
+      ]
+    },
+    "market": {
+      "version": 1,
+      "id": "dentistry-market-v1",
+      "niche": "dentistry",
+      "researchedAt": "2026-09-08T22:30:00.000Z",
+      "references": [
+        {
+          "url": "https://www.hellotend.com/site/home",
+          "reason": "CTA de agendamento repetido, serviços separados, localização acessível."
+        },
+        {
+          "url": "https://www.swiss-smile.com/",
+          "reason": "Busca por unidade e acesso ao atendimento na arquitetura de navegação."
+        },
+        {
+          "url": "https://www.implart.com.br/",
+          "reason": "Referência brasileira: hierarquia de especialidades e identificação profissional; não reutilizar alegações."
+        }
+      ],
+      "patterns": [
+        "Contato direto no Hero e no fechamento.",
+        "Separar especialidades de credenciais verificadas.",
+        "Hierarquia clara e leitura confortável; composição clínica com espaço negativo."
+      ],
+      "avoid": [
+        "Não transferir serviços, resultados, prêmios ou depoimentos das referências.",
+        "Não prometer resultados clínicos.",
+        "Não afirmar posicionamento premium como fato do lead."
+      ]
+    },
+    "marketKey": "[\"dentistry\",\"unspecified\",\"premium-design\",1]",
+    "opportunities": []
+  },
+  "specification": {
+    "version": 1,
+    "family": {
+      "id": "health-trust",
+      "version": 1
+    },
+    "templateId": "appointment-focused",
+    "visual": {
+      "hero": "split",
+      "about": "centered-story",
+      "services": "horizontal-cards",
+      "contact": "contact-minimal",
+      "location": "location-editorial",
+      "navigation": "inline",
+      "footer": "minimal"
+    },
+    "presentation": {
+      "theme": "light",
+      "typography": "modern",
+      "motion": "subtle"
+    },
+    "tokens": {
+      "color": {
+        "background": "#f7faf8",
+        "surface": "#ffffff",
+        "surfaceElevated": "#eaf2ee",
+        "text": "#183332",
+        "textMuted": "#425e58",
+        "border": "#829b91",
+        "primary": "#194f50",
+        "accent": "#dcece6",
+        "primaryForeground": "#ffffff",
+        "accentForeground": "#000000"
+      },
+      "typography": "modern",
+      "spacing": {
+        "section": 88,
+        "sectionCompact": 56
+      },
+      "radius": {
+        "card": 20,
+        "cta": 20
+      },
+      "motion": "subtle"
+    }
+  },
+  "variant": "minimal-clinical",
+  "resolution": {
+    "status": "resolved",
+    "reason": "Seleção técnica após exploração visual manual no Stitch em 2026-09-08. Mantém hierarquia e paleta compatíveis; usa fontes locais e componentes existentes. Afirmações inventadas e controles sem destino rejeitados. Aprovação comercial do usuário pendente.",
+    "resolvedAt": "2026-09-08T22:37:27.784Z"
+  },
+  "composition": [
+    "hero",
+    "services",
+    "about",
+    "location",
+    "contact"
+  ],
+  "conversionStrategy": "Facilitar contato para consultar atendimento; não prometer agendamento confirmado.",
+  "imageryDirection": "Fase C: imagens autorizadas do negócio; nenhuma equipe, instalação ou resultado clínico inventado.",
+  "responsiveBehavior": "Desktop 1440: composição da família. Tablet 768 e mobile 390: colunas empilhadas, CTA acessível, sem rolagem horizontal; movimento reduzido respeitado.",
+  "preservedBrandElements": [
+    "Identidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial."
+  ],
+  "designMarkdown": "# DESIGN.md\n\nFamília health-trust v1; resolução 2026-09-08T22:37:27.784Z.\n\n## Purpose\n\nFacilitar contato para consultar atendimento; não prometer agendamento confirmado.\n\n## Brand Personality\n\nhealth-trust / minimal-clinical; direção de design, não característica confirmada do negócio.\n\n## Visual Principles\n\nContato direto no Hero e no fechamento.\n- Separar especialidades de credenciais verificadas.\n- Hierarquia clara e leitura confortável; composição clínica com espaço negativo.\n\n## Brand Elements to Preserve\n\nIdentidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial.\n\n## Colors\n\nbackground: #f7faf8\nsurface: #ffffff\nsurfaceElevated: #eaf2ee\ntext: #183332\ntextMuted: #425e58\nborder: #829b91\nprimary: #194f50\naccent: #dcece6\nprimaryForeground: #ffffff\naccentForeground: #000000\n\n## Typography\n\nSegoe UI/system-ui; títulos claros e leitura confortável.\n\n## Spacing\n\nSeções 88px; compacto 56px.\n\n## Radius\n\nCards 20px; botões 20px.\n\n## Shadows\n\nSombra discreta nos controles; sem profundidade decorativa excessiva.\n\n## Layout\n\nhero → services → about → location → contact\n\n## Grid\n\nContêiner fluido; máximo 1200px; empilhar abaixo de 800px.\n\n## Hero\n\nsplit\n\n## Cards\n\nhorizontal-cards\n\n## Navigation\n\nLinks apenas para seções presentes; skip link.\n\n## Buttons\n\nContato confirmado no lead; rótulos não simulam conclusão de reserva.\n\n## Forms\n\nSem formulário sem backend. Usar canais de contato disponíveis.\n\n## Imagery\n\nFase C: imagens autorizadas do negócio; nenhuma equipe, instalação ou resultado clínico inventado.\n\n## Motion\n\nsubtle; respeitar prefers-reduced-motion.\n\n## Responsive\n\nDesktop 1440: composição da família. Tablet 768 e mobile 390: colunas empilhadas, CTA acessível, sem rolagem horizontal; movimento reduzido respeitado.\n\n## Accessibility\n\nContraste AA para textos; foco visível; landmarks semânticos; não depender apenas de cor.\n\n## Patterns to Avoid\n\nNão transferir serviços, resultados, prêmios ou depoimentos das referências.\n- Não prometer resultados clínicos.\n- Não afirmar posicionamento premium como fato do lead.\n\n## Provenance\n\nNome, contatos e localização: Lead overpass; dados ausentes omitidos\nNicho: Classificação derivada de categoria/nicho persistidos\nComposição e CTA: dentistry-market-v1 + Guidance\nPaleta e tipografia: health-trust@1\nDireção visual Premium: Stitch: https://stitch.withgoogle.com/projects/16495453154449814409; seleção minimal-clinical. Mapeamento para componentes suportados; copy externa não importada.\n",
+  "trace": [
+    {
+      "decision": "Nome, contatos e localização",
+      "origin": "Lead overpass; dados ausentes omitidos"
+    },
+    {
+      "decision": "Nicho",
+      "origin": "Classificação derivada de categoria/nicho persistidos"
+    },
+    {
+      "decision": "Composição e CTA",
+      "origin": "dentistry-market-v1 + Guidance"
+    },
+    {
+      "decision": "Paleta e tipografia",
+      "origin": "health-trust@1"
+    },
+    {
+      "decision": "Direção visual Premium",
+      "origin": "Stitch: https://stitch.withgoogle.com/projects/16495453154449814409; seleção minimal-clinical. Mapeamento para componentes suportados; copy externa não importada."
+    }
+  ],
+  "stitch": {
+    "projectUrl": "https://stitch.withgoogle.com/projects/16495453154449814409",
+    "alternatives": [
+      "minimal-clinical",
+      "warm-premium"
+    ],
+    "selected": "minimal-clinical",
+    "review": "Seleção técnica após exploração visual manual no Stitch em 2026-09-08. Mantém hierarquia e paleta compatíveis; usa fontes locais e componentes existentes. Afirmações inventadas e controles sem destino rejeitados. Aprovação comercial do usuário pendente."
+  }
+}

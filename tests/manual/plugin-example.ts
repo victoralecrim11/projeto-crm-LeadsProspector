@@ -1,0 +1,31 @@
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
+import { visualSamples } from "../fixtures/visualSamples";
+import { renderSiteDocument } from "../../src/site-builder/renderer/SiteRenderer";
+import { blueprintSchema } from "../../src/site-builder/types";
+import { buildSitePrompt } from "../../server/services/ai/sitePromptBuilder";
+import { reactToolkitProfile } from "../../src/site-builder/guidance/reactToolkit";
+
+const directory = "docs/reviews/react-toolkit-example";
+await mkdir(directory, { recursive: true });
+const sample = visualSamples[0];
+// Same content and branding: this comparison isolates a composition choice.
+const next = blueprintSchema.parse({
+  ...sample.blueprint,
+  visual: { ...sample.blueprint.visual, hero: "split", about: "centered-story", services: "horizontal-cards", contact: "contact-minimal" },
+  presentation: { theme: "dark", typography: "modern", motion: "subtle" },
+});
+await copyFile("docs/reviews/visual-p0/restaurante.html", directory + "/anterior.html");
+await writeFile(directory + "/novo.html", renderSiteDocument(next, sample.context));
+await writeFile(directory + "/blueprint.json", JSON.stringify(next, null, 2));
+await writeFile(directory + "/prompt.txt", buildSitePrompt(sample.context, {
+  siteType: "landing-page", templateId: "premium-service", style: "moderno", goal: "contact",
+}));
+await writeFile(directory + "/provenance.json", JSON.stringify({
+  mode: "assistant-authored-demonstration", providerCalled: false,
+  reason: "Nenhum modelo configurado no servidor; não representa um teste A/B da IA.",
+  reference: reactToolkitProfile,
+}, null, 2));
+await writeFile(directory + "/index.html", `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Comparação — React Toolkit</title><style>
+*{box-sizing:border-box}body{margin:0;background:#090f1e;color:#f4f7fc;font:16px/1.6 system-ui,sans-serif}header{max-width:1500px;margin:auto;padding:32px 24px 20px}h1{font-size:clamp(26px,3vw,38px);margin:8px 0}p{color:#b9c6da;max-width:1000px}small{color:#d2ab74}main{max-width:1500px;margin:auto;padding:0 24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:24px}article{min-width:0}h2{font-size:20px}a{color:#e4c38b;text-underline-offset:4px;display:inline-block;min-height:44px;padding:8px 0;margin-right:16px}a:focus-visible{outline:3px solid white}iframe{width:100%;height:850px;border:1px solid #44536b;border-radius:12px;background:#111c30}.label{font-size:14px;color:#b9c6da}@media(max-width:900px){main{grid-template-columns:1fr}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+</style></head><body><header><small>SITE BUILDER · REFERÊNCIAS REACT DEV TOOLKIT 1.2.8</small><h1>Mesmo negócio. Outra composição.</h1><p>Compare a demonstração anterior com uma composição preparada pelo assistente usando os componentes documentados na integração. Conteúdo e cores foram preservados para facilitar a comparação.</p><p><strong>Demonstração fictícia, sem chamada a um provedor de IA.</strong> Não é um teste do efeito do plugin sobre o modelo: nenhum modelo está configurado no servidor.</p><a href="blueprint.json">Blueprint do exemplo</a><a href="prompt.txt">Prompt integrado disponível para geração</a></header><main><article><h2>01 · Exemplo anterior</h2><div class="label">Abertura ampla · Sobre editorial · Lista de serviços</div><a href="anterior.html" target="_blank" rel="noopener">Abrir em tamanho real ↗</a><iframe title="Exemplo anterior" src="anterior.html"></iframe></article><article><h2>02 · Nova composição demonstrativa</h2><div class="label">Hero em duas colunas · Narrativa central · Serviços em blocos</div><a href="novo.html" target="_blank" rel="noopener">Abrir em tamanho real ↗</a><iframe title="Nova composição" src="novo.html"></iframe></article></main></body></html>`);
+console.log("Comparação criada em " + directory);

@@ -4,6 +4,7 @@ import {
   preferencesSchema,
   selectionSchema,
   blueprintSchema,
+  blueprintV2Schema,
   regenerationSections,
 } from "../../src/site-builder/types.js";
 export { blueprintSchema };
@@ -21,7 +22,7 @@ export const regenerateRequestSchema = generationRequestSchema
     section: z.enum(regenerationSections),
   })
   .strict();
-export const generatedSiteJsonSchema = z.toJSONSchema(blueprintSchema);
+export const generatedSiteJsonSchema = z.toJSONSchema(blueprintV2Schema);
 
 const geminiSchemaKeywords = new Set([
   "$id",

@@ -1,5 +1,6 @@
 import type { Lead, Project } from "../../src/types";
 import type { GeneratedSiteBlueprint } from "../../src/site-builder/types";
+import { blueprintSchema } from "../../src/site-builder/types";
 import { buildLeadSiteContext } from "../../src/site-builder/context";
 export const lead: Lead = {
   id: "node/1055833549",
@@ -22,7 +23,7 @@ export const lead: Lead = {
   score: 0,
 };
 export const context = buildLeadSiteContext(lead);
-export const blueprint: GeneratedSiteBlueprint = {
+export const legacyBlueprint = {
   version: 1,
   templateId: "premium-service",
   seo: { title: "Salão Renova", description: "Salão em Belo Horizonte" },
@@ -50,6 +51,7 @@ export const blueprint: GeneratedSiteBlueprint = {
   sectionOrder: ["hero", "about", "services", "contact", "location"],
   warnings: [],
 };
+export const blueprint: GeneratedSiteBlueprint = blueprintSchema.parse(legacyBlueprint);
 export const project: Project = {
   id: "test-project",
   clientName: lead.name,

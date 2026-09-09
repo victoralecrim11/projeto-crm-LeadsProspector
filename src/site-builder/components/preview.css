@@ -1,0 +1,13 @@
+.visual-preview{display:flex;flex-direction:column;gap:12px;min-width:0;background:#0f172a;color:#f8fafc;padding:12px;border-radius:12px}
+.visual-preview-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;flex:none}
+.visual-preview-toolbar button{min-height:44px;padding:8px 12px;border:1px solid #64748b;background:#1e293b;color:#f8fafc;border-radius:6px;cursor:pointer;font:inherit;font-size:13px}
+.visual-preview-toolbar button[aria-pressed=true]{background:#e2e8f0;color:#0f172a}
+.visual-preview-toolbar button:focus-visible{outline:3px solid #38bdf8;outline-offset:2px}
+.visual-preview-size{font-size:12px;color:#cbd5e1}
+.visual-preview-viewport{height:min(72vh,800px);min-height:320px;overflow:hidden;background:#334155;min-width:0}
+.visual-preview:fullscreen,.visual-preview.is-fullscreen{width:100%;height:100%;border-radius:0}
+.visual-preview.is-fullscreen .visual-preview-viewport{flex:1;min-height:0;height:auto}
+.visual-preview-dialog{position:fixed;inset:0;width:100vw;height:100dvh;max-width:none;max-height:none;margin:0;padding:0;border:0;z-index:2147483647;background:#0f172a;color:#f8fafc}
+.visual-preview-dialog::backdrop{background:#0f172a}
+@media(max-width:480px){.visual-preview{padding:8px}.visual-preview-toolbar{gap:4px}.visual-preview-toolbar button{padding:8px}.visual-preview-size{display:none}}
+
