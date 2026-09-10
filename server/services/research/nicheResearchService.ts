@@ -58,32 +58,34 @@ export async function researchNiche(
   let searchResults: SearchResult[] = [];
   const providerChain: string[] = [];
 
-  // 2. Try Primary Provider (SearXNG)
-  try {
-    providerChain.push(primaryProvider.name);
-    for (const q of queries) {
-      if (searchResults.length >= 8) break;
-      const res = await primaryProvider.search({ query: q, limit: 4, language: 'pt' });
-      for (const item of res) {
-        if (!searchResults.some(s => s.url === item.url)) {
-          searchResults.push(item);
+  // 2. Try Primary Provider (SearXNG) if configured
+  if (primaryProvider.isConfigured()) {
+    try {
+      providerChain.push(primaryProvider.name);
+      for (const q of queries) {
+        if (searchResults.length >= 8) break;
+        const res = await primaryProvider.search({ query: q, limit: 4, language: 'pt' });
+        for (const item of res) {
+          if (!searchResults.some(s => s.url === item.url)) {
+            searchResults.push(item);
+          }
         }
       }
+    } catch {
+      // Primary failed during query execution
     }
-  } catch {
-    // Primary failed or not configured; try fallback
+  }
+
+  // If primary yielded no results, try fallback provider (Brave Search API) if configured
+  if (searchResults.length === 0 && fallbackProvider.isConfigured()) {
     try {
-      if ('isConfigured' in fallbackProvider && typeof fallbackProvider.isConfigured === 'function') {
-        if (fallbackProvider.isConfigured()) {
-          providerChain.push(fallbackProvider.name);
-          for (const q of queries) {
-            if (searchResults.length >= 8) break;
-            const res = await fallbackProvider.search({ query: q, limit: 4, language: 'pt' });
-            for (const item of res) {
-              if (!searchResults.some(s => s.url === item.url)) {
-                searchResults.push(item);
-              }
-            }
+      providerChain.push(fallbackProvider.name);
+      for (const q of queries) {
+        if (searchResults.length >= 8) break;
+        const res = await fallbackProvider.search({ query: q, limit: 4, language: 'pt' });
+        for (const item of res) {
+          if (!searchResults.some(s => s.url === item.url)) {
+            searchResults.push(item);
           }
         }
       }

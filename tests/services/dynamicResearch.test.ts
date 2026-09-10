@@ -9,7 +9,7 @@ import {
 import { SearXNGSearchProvider } from '../../server/services/research/search/searxngProvider.js';
 import { BraveSearchProvider } from '../../server/services/research/search/braveProvider.js';
 import { SearchProviderError } from '../../server/services/research/search/searchProvider.js';
-import { sanitizeCssContent, fetchSafeStylesheet, SafeCssPolicyError } from '../../server/services/research/safeCss.js';
+import { sanitizeCssContent, fetchSafeStylesheet, fetchReferenceStylesheets, SafeCssPolicyError } from '../../server/services/research/safeCss.js';
 import { analyzeReferenceDesign, extractColorsFromText } from '../../server/services/research/designAnalyzer.js';
 import { synthesizeDesignPatterns } from '../../server/services/research/patternSynthesizer.js';
 import { DesignResearchCache } from '../../server/services/research/snapshotCache.js';
@@ -17,6 +17,9 @@ import { resolveDesignWithResearch } from '../../src/site-builder/familyResolver
 import { researchNiche, synthesizeCuratedFallback } from '../../server/services/research/nicheResearchService.js';
 import { normalizeLeadSource } from '../../src/site-builder/leadSource.js';
 import { pilotLead } from '../fixtures/phaseB.js';
+import { LocalStorageSnapshotStore, MemoryStorageFallback } from '../../src/site-builder/snapshotStore.js';
+import express from 'express';
+import { siteGenerationRouter } from '../../server/routes/siteGeneration.js';
 
 const fixedDate = new Date('2026-09-09T20:00:00.000Z');
 
@@ -344,10 +347,14 @@ test('FamilyResolver: cadeia de precedência estrita (User Override > Brand > Dy
     },
   ];
 
-  // 1. User Override vence tudo
+  // 1. User Override vence tudo (incluindo marca confirmada e snapshot fresh)
   const userResolved = resolveDesignWithResearch({
     source,
-    currentBusiness: emptyCurrent,
+    currentBusiness: {
+      ...emptyCurrent,
+      url: 'https://minhaclinica.com.br',
+      identity: [{ element: 'Logo e cores oficiais', decision: 'PRESERVE', reason: 'Marca confirmada' }],
+    },
     overrides: { primary: '#ff0000', accent: '#00ff00' },
     researchSnapshot: dynamicSnapshot,
     now: fixedDate,
@@ -355,7 +362,7 @@ test('FamilyResolver: cadeia de precedência estrita (User Override > Brand > Dy
   assert.equal(userResolved.specification.tokens.color.primary, '#ff0000');
   assert.ok(userResolved.trace.some(t => t.origin.includes('USER_CONFIRMED')));
 
-  // 2. Confirmed Brand vence pesquisa de mercado quando presente
+  // 2. Confirmed Brand vence pesquisa de mercado fresh quando presente
   const brandCurrent: CurrentBusinessReference = {
     ...emptyCurrent,
     url: 'https://minhaclinica.com.br',
@@ -367,20 +374,46 @@ test('FamilyResolver: cadeia de precedência estrita (User Override > Brand > Dy
     researchSnapshot: dynamicSnapshot,
     now: fixedDate,
   });
-  assert.ok(brandResolved.trace.some(t => t.origin.includes('CURRENT_BUSINESS_WEBSITE')));
+  assert.ok(brandResolved.trace.some(t => t.origin.includes('CONFIRMED_BRAND')));
 
-  // 3. Dynamic Market Research vence curated quando não há override nem brand
-  const dynamicResolved = resolveDesignWithResearch({
+  // 3. Fresh Dynamic Market Research vence stale e curated quando não há override nem brand
+  const freshResolved = resolveDesignWithResearch({
     source,
     currentBusiness: emptyCurrent,
-    researchSnapshot: dynamicSnapshot,
+    researchSnapshot: dynamicSnapshot, // fresh
     now: fixedDate,
   });
-  assert.equal(dynamicResolved.specification.family.id, 'dynamic-clinical');
-  assert.equal(dynamicResolved.specification.tokens.color.primary, '#005544');
-  assert.ok(dynamicResolved.trace.some(t => t.origin.includes('DYNAMIC_MARKET_RESEARCH')));
+  assert.equal(freshResolved.specification.family.id, 'dynamic-clinical');
+  assert.equal(freshResolved.specification.tokens.color.primary, '#005544');
+  assert.ok(freshResolved.trace.some(t => t.origin.includes('DYNAMIC_MARKET_RESEARCH') && t.origin.includes('fresh')));
 
-  // 4. Curated Pilot Fallback quando pesquisa está ausente
+  // 4. Stale Dynamic Market Research vence curated quando fresh não está disponível
+  const staleSnapshot: DesignResearchSnapshot = {
+    ...dynamicSnapshot,
+    status: 'stale',
+    candidates: [
+      {
+        id: 'stale-clinical',
+        label: 'Stale Clinical',
+        description: 'Candidato de pesquisa anterior',
+        variant: 'stale-variant',
+        primaryCandidate: '#114433',
+        accentCandidate: '#bbffdd',
+        theme: 'light',
+        typography: 'modern',
+      },
+    ],
+  };
+  const staleResolved = resolveDesignWithResearch({
+    source,
+    currentBusiness: emptyCurrent,
+    researchSnapshot: staleSnapshot, // stale
+    now: fixedDate,
+  });
+  assert.equal(staleResolved.specification.family.id, 'stale-clinical');
+  assert.ok(staleResolved.trace.some(t => t.origin.includes('DYNAMIC_MARKET_RESEARCH') && t.origin.includes('stale')));
+
+  // 5. Curated Pilot Fallback quando pesquisa está ausente
   const curatedResolved = resolveDesignWithResearch({
     source,
     currentBusiness: emptyCurrent,
@@ -432,3 +465,160 @@ test('Piloto Barbershop: resolução determinística de barbearia com família h
   assert.ok(resolved.conversionStrategy.includes('agendamentos'));
   assert.ok(resolved.imageryDirection.includes('cortes reais'));
 });
+
+test('SearXNGSearchProvider: comportamento por ambiente (dev vs production)', () => {
+  const originalEnv = process.env.NODE_ENV;
+  const originalUrl = process.env.SEARXNG_URL;
+  try {
+    // 1. Dev sem env: permite localhost:8080 default
+    process.env.NODE_ENV = 'development';
+    delete process.env.SEARXNG_URL;
+    const devProvider = new SearXNGSearchProvider({});
+    assert.equal(devProvider.isConfigured(), true);
+
+    // 2. Prod sem env: provider não configurado (sem tentar localhost na Vercel)
+    process.env.NODE_ENV = 'production';
+    delete process.env.SEARXNG_URL;
+    const prodUnconfigured = new SearXNGSearchProvider({});
+    assert.equal(prodUnconfigured.isConfigured(), false);
+
+    // 3. Prod com env válida: configurado normalmente
+    process.env.NODE_ENV = 'production';
+    process.env.SEARXNG_URL = 'https://searxng.internal.prod';
+    const prodConfigured = new SearXNGSearchProvider({});
+    assert.equal(prodConfigured.isConfigured(), true);
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+    if (originalUrl !== undefined) {
+      process.env.SEARXNG_URL = originalUrl;
+    } else {
+      delete process.env.SEARXNG_URL;
+    }
+  }
+});
+
+test('LocalStorageSnapshotStore: persistência no cliente, validação Zod e ciclo de vida', () => {
+  const memory = new MemoryStorageFallback();
+  const store = new LocalStorageSnapshotStore(memory);
+  const snapshot = createSampleSnapshot('barbershop', 'fresh');
+
+  // 1. Snapshot persistido e recarregado
+  store.set(snapshot);
+  const loaded = store.get('barbershop', undefined, fixedDate);
+  assert.ok(loaded);
+  assert.equal(loaded.niche, 'barbershop');
+  assert.equal(loaded.status, 'fresh');
+
+  // 2. Snapshot expirado retornado como stale
+  const futureDate = new Date(fixedDate.getTime() + 90 * 86400000);
+  const staleLoaded = store.get('barbershop', undefined, futureDate);
+  assert.ok(staleLoaded);
+  assert.equal(staleLoaded.status, 'stale');
+
+  // 3. Snapshot inválido/malformado rejeitado e descartado com segurança
+  memory.setItem('prospector:snapshot:barbershop', JSON.stringify({ niche: 'barbershop', invalidHtml: '<script>alert(1)</script>' }));
+  const invalidLoaded = store.get('barbershop');
+  assert.equal(invalidLoaded, undefined);
+  assert.equal(memory.getItem('prospector:snapshot:barbershop'), null);
+
+  // 4. Remoção explícita
+  store.set(snapshot);
+  store.remove('barbershop');
+  assert.equal(store.get('barbershop'), undefined);
+});
+
+test('Safe CSS: limite de stylesheets e volume total combinado (max 3 stylesheets, max 256 KiB)', async () => {
+  let fetchCount = 0;
+  const fakeTransport = async () => {
+    fetchCount++;
+    return {
+      status: 200,
+      contentType: 'text/css; charset=utf-8',
+      body: `/* css file ${fetchCount} */ body { color: #${fetchCount}${fetchCount}${fetchCount}; }`,
+    };
+  };
+
+  const urls = [
+    'https://example.com/style1.css',
+    'https://example.com/style2.css',
+    'https://example.com/style3.css',
+    'https://example.com/style4.css', // Should be ignored (bounded to max 3)
+    'https://example.com/style5.css', // Should be ignored (bounded to max 3)
+  ];
+
+  const results = await fetchReferenceStylesheets(urls, {
+    resolve: async () => [{ address: '93.184.216.34', family: 4 }],
+    transport: fakeTransport as never,
+  });
+
+  assert.equal(results.length, 3);
+  assert.equal(fetchCount, 3);
+});
+
+test('siteGenerationRouter: proteção do endpoint POST /api/ai/research/niche (auth, zod strict, cooldown)', async () => {
+  const originalEnv = process.env.NODE_ENV;
+  const originalToken = process.env.SITE_AI_ACCESS_TOKEN;
+
+  const app = express();
+  app.use(express.json());
+  app.use('/api/ai', siteGenerationRouter());
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>(r => server.once('listening', r));
+  const address = server.address() as { port: number };
+  const url = `http://127.0.0.1:${address.port}`;
+
+  try {
+    // 1. Não autorizado em produção sem token
+    process.env.NODE_ENV = 'production';
+    process.env.SITE_AI_ACCESS_TOKEN = 'secret-token';
+    const unauthorized = await fetch(url + '/api/ai/research/niche', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ niche: 'barbershop' }),
+    });
+    assert.equal(unauthorized.status, 403);
+
+    // 2. Em dev (ou com token válido), rejeita payload com campos extras/arbitrários (strict schema)
+    process.env.NODE_ENV = 'development';
+    const arbitraryPayload = await fetch(url + '/api/ai/research/niche', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ niche: 'barbershop', query: 'arbitrary search query' }),
+    });
+    assert.equal(arbitraryPayload.status, 400);
+
+    // 3. Rejeita nicho não suportado
+    const unsupportedNiche = await fetch(url + '/api/ai/research/niche', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ niche: 'crypto' }),
+    });
+    assert.equal(unsupportedNiche.status, 400);
+
+    // 4. ForceRefresh repetido dispara 429 de cooldown
+    const firstReq = await fetch(url + '/api/ai/research/niche', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ niche: 'barbershop', forceRefresh: true }),
+    });
+    assert.ok(firstReq.status === 200 || firstReq.status === 502);
+
+    const cooldownReq = await fetch(url + '/api/ai/research/niche', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ niche: 'barbershop', forceRefresh: true }),
+    });
+    assert.equal(cooldownReq.status, 429);
+  } finally {
+    process.env.NODE_ENV = originalEnv;
+    if (originalToken !== undefined) {
+      process.env.SITE_AI_ACCESS_TOKEN = originalToken;
+    } else {
+      delete process.env.SITE_AI_ACCESS_TOKEN;
+    }
+    await new Promise<void>((resolve, reject) =>
+      server.close(e => (e ? reject(e) : resolve())),
+    );
+  }
+});
+

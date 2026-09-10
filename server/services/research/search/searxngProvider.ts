@@ -13,7 +13,18 @@ export class SearXNGSearchProvider implements SearchProvider {
   private readonly fetchFn: typeof fetch;
 
   constructor(config: SearXNGConfig = {}) {
-    this.baseUrl = config.baseUrl ?? process.env.SEARXNG_URL?.trim();
+    const isProduction = process.env.NODE_ENV === 'production';
+    if (config.baseUrl !== undefined) {
+      this.baseUrl = config.baseUrl.trim() || undefined;
+    } else if (process.env.SEARXNG_URL?.trim()) {
+      this.baseUrl = process.env.SEARXNG_URL.trim();
+    } else if (!isProduction) {
+      // In development or test, allow local default
+      this.baseUrl = 'http://localhost:8080';
+    } else {
+      // In production/serverless, absent env means provider is NOT configured
+      this.baseUrl = undefined;
+    }
     this.timeoutMs = config.timeoutMs ?? 5000;
     this.fetchFn = config.fetchFn ?? globalThis.fetch;
   }

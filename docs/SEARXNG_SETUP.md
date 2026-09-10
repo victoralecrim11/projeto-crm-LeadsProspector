@@ -125,3 +125,13 @@ DESIGN_RESEARCH_TTL_DAYS=60
 | `HTTP 403 / 429` | Public SearXNG instance blocking automated JSON requests | Use a private local Docker container, not public instances. |
 | `SearchProviderError: NOT_CONFIGURED` | `SEARXNG_URL` missing from `.env` | Define `SEARXNG_URL=http://localhost:8080`. The system automatically falls back to curated families if absent. |
 | `TimeoutError (5000ms)` | Container overloaded or upstream engines sluggish | SearXNG automatically times out without hanging site generation. |
+
+---
+
+## 8. Production / Serverless Behavior (Vercel)
+
+- In `NODE_ENV === 'production'`, `SEARXNG_URL` **must** be explicitly provided if a self-hosted instance is available.
+- If `SEARXNG_URL` is absent in production, SearXNG is marked `isConfigured() === false` immediately.
+- The server will **never** attempt `localhost:8080` in production / serverless environments, avoiding timeouts, connection refused errors, and function latency.
+- The provider chain skips directly to Brave Search (if `BRAVE_SEARCH_API_KEY` is configured) or gracefully activates curated pilot families (`pilotFamilies`) without delays.
+

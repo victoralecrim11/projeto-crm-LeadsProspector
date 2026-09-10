@@ -39,15 +39,19 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - A auditoria técnica não inventa métricas; quando ausente, a interface informa que o lead ainda não foi auditado.
 - Entradas manuais são marcadas explicitamente como `manual` e não recebem localização, WhatsApp, avaliação ou auditoria fictícios.
 
-## Pesquisa Independente & Design Dinâmico (Fase B + Fase B.3)
+## Pesquisa Independente & Design Dinâmico (Fase B + Fase B.3 Homologada)
 
 - O serviço de backend possui um módulo de auditoria (`server/services/research`) que visita a URL fornecida de forma estática (HTTP/HTTPS nativo, máximo de 3 redirects, limite de 1 MiB e timeout rigoroso), sem executar headless browsers.
 - O sistema observa criticamente o conteúdo estrutural do website (landmarks, títulos, contatos) para formar um contexto real do lead sem alucinações ("UNTRUSTED DATA").
-- **Fase B.3 (Dynamic Design Research):** introduz pesquisa de design dinâmica por nicho com abstração `SearchProvider` (SearXNG self-hosted como primário, Brave Search como fallback, e catálogo curado de contingência).
-- Inclui análise determinística de HTML/CSS (`ReferenceDesignAnalyzer`), política segura para CSS (`safeCss.ts`, máx 256 KiB, remoção de `@import` e `url()`), síntese de padrões (`PatternSynthesizer`) e cache em memória Vercel-safe com TTL de 60 dias e suporte a `stale fallback`.
-- Resolução de família como domínio puro (`src/site-builder/familyResolver.ts`) com precedência estrita: `USER_CONFIRMED` > `CONFIRMED_BRAND` > `DYNAMIC_MARKET_RESEARCH` > `CURATED_PILOTS` (`health-trust`, `hospitality-editorial`, `heritage-craft`) > `LEGACY_DEFAULT`.
-- Pilotos ativos: Odontologia (`dentistry`), Restaurante (`restaurant`) e Barbearia (`barbershop`).
-- Geração Standard desacoplada de busca ativa na web (consumo instantâneo de cache ou fallback curado; refresh via endpoint `/api/ai/research/niche`).
+- **Fase B.3 (Dynamic Design Research — Homologada):** introduz pesquisa de design dinâmica por nicho com abstração `SearchProvider` (SearXNG self-hosted como primário, Brave Search como fallback, e catálogo curado de contingência).
+- **Precedência estrita auditada (6 níveis):** `USER_CONFIRMED` > `CONFIRMED / CURRENT BUSINESS BRAND` > `FRESH DYNAMIC RESEARCH` > `STALE DYNAMIC RESEARCH` > `CURATED PILOTS` (`health-trust`, `hospitality-editorial`, `heritage-craft`) > `LEGACY_DEFAULT`. Nenhuma pesquisa de mercado pode sobrepor a marca real confirmada do negócio ou overrides explícitos do usuário.
+- **Ambiente de produção:** `SearXNGSearchProvider` em `NODE_ENV === 'production'` exige `SEARXNG_URL` explícita; sem env, o provider é marcado como `NOT_CONFIGURED` com 0 ms de atraso, sem tentar `localhost:8080` na Vercel.
+- **Proteção do endpoint de refresh:** `POST /api/ai/research/niche` é protegido por token em produção, validação Zod strict (rejeita campos arbitrários como `query`), limite de concorrência (`researchActive >= 1` retorna 429) e cooldown de 15 segundos em `forceRefresh`.
+- **Persistência de snapshots:** abstração `DesignResearchSnapshotStore` com `LocalStorageSnapshotStore` para o frontend (com revalidação Zod strict, sem HTML bruto ou dados pessoais) e cache em memória / tmp best-effort no backend.
+- **Safe CSS e integridade de rede:** política `safeCss.ts` com limite de 256 KiB, neutralização de `@import` e `url(...)`, além de `fetchReferenceStylesheets` que limita a no máximo 3 stylesheets e 256 KiB combinados com revalidação de SSRF a cada redirect.
+- **Proveniência de barbearias:** família `heritage-craft` / `classic-heritage` sustentada por referências reais documentadas (Murdock London, Fellow Barber, Barbearia Corleone) com padrões visuais agregados e zero cópia de marca.
+- **Geração desacoplada:** rotas Standard e Standard AI consomem somente cache rápido ou catálogo curado; o refresh dinâmico é estritamente separado e assíncrono.
+
 
 ## IA e Google Gemini
 
@@ -98,8 +102,14 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 ## Organização dos testes
 
 Os testes automatizados (em `tests/`) refletem rigorosamente serviços e componentes. Novas suítes foram implementadas para garantir a estabilidade do fluxo Phase B e do Visual Blueprint:
-- `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, entre outros.
-- O script `npm test` valida migrações de blueprint (v1 -> v2), estabilidade do renderer em cenários de ausência de dados, renderizações variadas em múltiplas seções, timeouts simulados da Vercel Function e regras de design-families.
+- `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, `dynamicResearch.test.ts`, entre outros.
+- O script `npm test` valida 95 testes (100% PASS), incluindo migrações de blueprint (v1 -> v2), estabilidade do renderer em cenários de ausência de dados, renderizações variadas em múltiplas seções, timeouts simulados da Vercel Function, transições estritas de precedência de design, isolamento de ambiente SearXNG em produção, armazenamento seguro de snapshots e testes de limites de stylesheets do Safe CSS.
+
+## Checkpoints de Homologação
+
+- **PHASE_B_3_HOMOLOGATED (2026-09-09):** Homologação final da Fase B.3 com 95/95 testes aprovados, SearXNG isolado em produção, proteção estrita do endpoint de refresh com Zod/cooldown, persistência client-side de snapshots com `LocalStorageSnapshotStore`, mitigação segura para multi-stylesheets no Safe CSS e precedência estrita `USER_CONFIRMED` > `CONFIRMED_BRAND` > `FRESH DYNAMIC RESEARCH` > `STALE DYNAMIC RESEARCH` > `CURATED_PILOTS` > `LEGACY_DEFAULT`.
+- **PHASE_B_3_COMPLETE (2026-09-09):** Implementação inicial da Fase B.3 (Dynamic Design Research).
+- **PHASE_C_READY_FOR_IMPLEMENTATION (2026-09-09):** Especificação formal da Fase C (Media Pipeline) concluída e pronta para execução após a homologação da B.3.
 
 ## Comandos de verificação e produção
 

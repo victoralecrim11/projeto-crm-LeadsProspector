@@ -58,9 +58,9 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
   let radiusCta = 8;
   let colors: readonly string[] = ['#f8fafc', '#ffffff', '#f1f5f9', '#0f172a', '#475569', '#cbd5e1'];
 
-  // 1. User overrides (highest precedence)
+  // 1. User overrides (highest precedence: wins over everything)
   if (overrides) {
-    const pilot = pilotFamilies[niche as PilotNiche];
+    const pilot = pilotFamilies[niche as PilotNiche] ?? pilotFamilies.dentistry;
     familyId = pilot.id;
     variantName = pilot.variant;
     templateId = pilot.template;
@@ -75,8 +75,8 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     accentColor = overrides.accent;
     paletteOrigin = `USER_CONFIRMED: briefing do usuário (${overrides.primary}, ${overrides.accent})`;
   } else if (hasBrandDecision) {
-    // 2. Confirmed Brand
-    const pilot = pilotFamilies[niche as PilotNiche];
+    // 2. Confirmed / Current Business Brand (wins over market research)
+    const pilot = pilotFamilies[niche as PilotNiche] ?? pilotFamilies.dentistry;
     familyId = pilot.id;
     variantName = 'brand-adapted';
     templateId = pilot.template;
@@ -87,11 +87,14 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     compactSpacing = pilot.compact;
     radiusCard = pilot.radius;
     radiusCta = pilot.radius;
-    primaryColor = pilot.primary;
+    // Check if an explicit hex color was extracted in the brand identity elements
+    const brandColorMatch = current.identity.find(i => i.decision === 'PRESERVE' && /#[0-9a-fA-F]{6}/.test(`${i.element} ${i.reason}`));
+    const extractedHex = brandColorMatch ? (`${brandColorMatch.element} ${brandColorMatch.reason}`.match(/#[0-9a-fA-F]{6}/)?.[0]) : null;
+    primaryColor = extractedHex ?? pilot.primary;
     accentColor = pilot.accent;
-    paletteOrigin = `CURRENT_BUSINESS_WEBSITE: identidade visual observada em ${current.url ?? 'site do lead'}`;
-  } else if (snapshot && snapshot.candidates.length > 0 && snapshot.status !== 'failed') {
-    // 3. Dynamic Market Research Snapshot
+    paletteOrigin = `CONFIRMED_BRAND: identidade visual preservada de ${current.url ?? 'site do negócio'}`;
+  } else if (snapshot && snapshot.candidates.length > 0 && snapshot.status === 'fresh') {
+    // 3. Fresh Dynamic Market Research Snapshot
     const candidate = snapshot.candidates[0];
     familyId = candidate.id;
     variantName = candidate.variant;
@@ -107,9 +110,27 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     colors = theme === 'dark'
       ? ['#09090b', '#18181b', '#27272a', '#fafafa', '#a1a1aa', '#3f3f46']
       : ['#fafafa', '#ffffff', '#f4f4f5', '#18181b', '#52525b', '#e4e4e7'];
-    paletteOrigin = `DYNAMIC_MARKET_RESEARCH: candidato ${candidate.id} (${candidate.label}) via snapshot v${snapshot.version}`;
-  } else {
-    // 4. Curated Pilot Family Fallback
+    paletteOrigin = `DYNAMIC_MARKET_RESEARCH: candidato ${candidate.id} (${candidate.label}) via snapshot fresh v${snapshot.version}`;
+  } else if (snapshot && snapshot.candidates.length > 0 && snapshot.status === 'stale') {
+    // 4. Stale Dynamic Market Research Snapshot (Expired historical benchmark)
+    const candidate = snapshot.candidates[0];
+    familyId = candidate.id;
+    variantName = candidate.variant;
+    templateId = niche === 'dentistry' ? 'appointment-focused' : niche === 'restaurant' ? 'premium-service' : 'minimal-professional';
+    typography = candidate.typography;
+    theme = candidate.theme;
+    primaryColor = candidate.primaryCandidate;
+    accentColor = candidate.accentCandidate;
+    radiusCard = theme === 'dark' ? 4 : 16;
+    radiusCta = radiusCard;
+    sectionSpacing = 96;
+    compactSpacing = 56;
+    colors = theme === 'dark'
+      ? ['#09090b', '#18181b', '#27272a', '#fafafa', '#a1a1aa', '#3f3f46']
+      : ['#fafafa', '#ffffff', '#f4f4f5', '#18181b', '#52525b', '#e4e4e7'];
+    paletteOrigin = `DYNAMIC_MARKET_RESEARCH: candidato ${candidate.id} (${candidate.label}) via snapshot stale v${snapshot.version}`;
+  } else if (pilotFamilies[niche as PilotNiche]) {
+    // 5. Curated Pilot Family Fallback
     const pilot = pilotFamilies[niche as PilotNiche];
     familyId = pilot.id;
     variantName = pilot.variant;
@@ -124,6 +145,21 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     primaryColor = pilot.primary;
     accentColor = pilot.accent;
     paletteOrigin = `CURATED_PILOT: ${pilot.id}@1 (família curada de contingência)`;
+  } else {
+    // 6. Universal / Legacy Fallback
+    familyId = 'legacy-default';
+    variantName = 'default-legacy';
+    templateId = 'minimal-professional';
+    typography = 'modern';
+    theme = 'light';
+    colors = ['#f8fafc', '#ffffff', '#f1f5f9', '#0f172a', '#475569', '#cbd5e1'];
+    sectionSpacing = 80;
+    compactSpacing = 56;
+    radiusCard = 16;
+    radiusCta = 12;
+    primaryColor = '#0284c7';
+    accentColor = '#0f766e';
+    paletteOrigin = 'LEGACY_DEFAULT: fallback universal legado';
   }
 
   const [background, surface, surfaceElevated, text, textMuted, border] = colors;

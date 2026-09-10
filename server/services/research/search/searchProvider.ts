@@ -25,6 +25,7 @@ export class SearchProviderError extends Error {
 
 export interface SearchProvider {
   readonly name: string;
+  isConfigured?(): boolean;
   search(request: SearchRequest): Promise<SearchResult[]>;
 }
 

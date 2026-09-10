@@ -93,3 +93,37 @@ export async function fetchSafeStylesheet(
   }
   throw new SafeCssPolicyError('Falha ao obter stylesheet seguro.');
 }
+
+/**
+ * Fetches and sanitizes external stylesheets for a reference page with bounded guarantees:
+ * - Limited to at most 3 external stylesheets per reference
+ * - Limited to at most 256 KiB total combined across all fetched stylesheets
+ * - Enforces individual stylesheet SSRF validation, content-type checks, and sanitizer stripping
+ */
+export async function fetchReferenceStylesheets(
+  urls: string[],
+  dependencies: { resolve?: Resolve; transport?: Transport } = {},
+): Promise<string[]> {
+  const boundedUrls = urls.slice(0, 3);
+  const results: string[] = [];
+  let totalBytes = 0;
+  const maxCombinedBytes = 256 * 1024;
+
+  for (const url of boundedUrls) {
+    try {
+      const sanitized = await fetchSafeStylesheet(url, dependencies);
+      const byteLen = Buffer.byteLength(sanitized, 'utf8');
+      if (totalBytes + byteLen > maxCombinedBytes) {
+        break;
+      }
+      totalBytes += byteLen;
+      results.push(sanitized);
+    } catch {
+      // Individual stylesheet failure does not crash the reference analysis
+      continue;
+    }
+  }
+
+  return results;
+}
+
