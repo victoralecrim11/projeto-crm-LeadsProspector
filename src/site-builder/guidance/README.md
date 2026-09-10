@@ -55,9 +55,10 @@ Esta pasta é a fonte operacional do Site Builder. Não há outra pasta Guidance
 
 `legacy-default` v1 preserva quatro templates, variantes, duas superfícies (light/dark), fontes locais, cores de marca e movimento. `renderer/presentation.ts` é uma fachada de compatibilidade. O CSS foi extraído sem alteração da saída; 40 hashes de HTML/CSS foram capturados antes da extração e verificados depois.
 
-## Famílias piloto
+## Famílias piloto e Pesquisa Dinâmica (Fase B.3)
 
-`health-trust` (dentistry) e `hospitality-editorial` (restaurant) são resolvidas por `pilotSpecification()` em `design-families/pilots.ts`. Utilizam pesquisa curada de `niches/market.ts`, não geração dinâmica.
+`health-trust` (dentistry), `hospitality-editorial` (restaurant) e `heritage-craft` (barbershop) são resolvidas por `familyResolver.ts` e `pilotSpecification()`.
+Na Fase B.3, a pesquisa de mercado dinamicamente extrai evidências de sites reais via `NicheDesignResearchService` (SearXNG / Brave / Curated Fallback), com cache em memória Vercel-safe (TTL 60 dias) e política segura para CSS (`safeCss.ts`). As famílias piloto curadas permanecem ativas como `CURATED_PILOT` fallback determinístico.
 
 ## Stitch
 

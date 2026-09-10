@@ -14,6 +14,9 @@ import { leadSourceContextSchema } from '../../src/site-builder/contracts/resear
 import { generateStandardSite } from '../services/research/designService.js';
 import { generateStandardAiSite } from '../services/research/standardAiService.js';
 import { probeStitch } from '../services/research/stitch.js';
+import { researchNiche } from '../services/research/nicheResearchService.js';
+import { globalDesignResearchCache } from '../services/research/snapshotCache.js';
+
 export function siteGenerationRouter() {
   const router = Router();
   let active = 0;
@@ -45,6 +48,41 @@ export function siteGenerationRouter() {
     next();
   });
   router.get('/design-capabilities', async (_req, res) => res.json({ standard: true, stitch: await probeStitch() }));
+
+  router.get('/research/niche', async (req, res) => {
+    const niche = String(req.query.niche || '').trim();
+    const subNiche = typeof req.query.subNiche === 'string' ? req.query.subNiche.trim() : undefined;
+    if (!niche) return res.status(400).json({ error: 'Parâmetro niche obrigatório.' });
+
+    // 1. Try cache first
+    const cached = globalDesignResearchCache.get(niche, subNiche);
+    if (cached) return res.json(cached);
+
+    // 2. If not cached, perform background research
+    try {
+      const snapshot = await researchNiche(niche, { subNiche, forceRefresh: false });
+      return res.json(snapshot);
+    } catch {
+      return res.status(502).json({ error: 'Pesquisa dinâmica indisponível.' });
+    }
+  });
+
+  router.post('/research/niche', async (req, res) => {
+    const token = process.env.SITE_AI_ACCESS_TOKEN;
+    if (process.env.NODE_ENV === 'production' && (!token || req.get('authorization') !== 'Bearer ' + token)) {
+      return res.status(403).json({ error: 'Acesso à pesquisa não autorizado.' });
+    }
+    const niche = String(req.body?.niche || '').trim();
+    const subNiche = typeof req.body?.subNiche === 'string' ? req.body.subNiche.trim() : undefined;
+    if (!niche) return res.status(400).json({ error: 'Campo niche obrigatório no corpo.' });
+
+    try {
+      const snapshot = await researchNiche(niche, { subNiche, forceRefresh: true });
+      return res.json(snapshot);
+    } catch {
+      return res.status(502).json({ error: 'Falha ao atualizar pesquisa do nicho.' });
+    }
+  });
   router.post('/sites/standard', async (req, res) => {
     const token = process.env.SITE_AI_ACCESS_TOKEN;
     if (process.env.NODE_ENV === 'production' && (!token || req.get('authorization') !== 'Bearer ' + token))

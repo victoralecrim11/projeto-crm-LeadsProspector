@@ -12,7 +12,7 @@ export function normalizeLeadSource(lead: Lead): LeadSourceContext {
 export function businessFromSource(input: LeadSourceContext) {
   const source = leadSourceContextSchema.parse(input);
   const label = `${source.context.business.category} ${source.niche}`.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-  const derivedNiche = /odont|dentist/.test(label) ? 'dentistry' : /restaur|pizzaria/.test(label) ? 'restaurant' : 'other';
+  const derivedNiche = /odont|dentist/.test(label) ? 'dentistry' : /restaur|pizzaria/.test(label) ? 'restaurant' : /barbear|barber/.test(label) ? 'barbershop' : 'other';
   const facts: Record<string, { value: string; provenance: 'CONFIRMED_FROM_LEAD' | 'DERIVED'; verified: boolean; evidence: string }> = {};
   const values = { name: source.context.business.name, category: source.context.business.category, city: source.context.business.city,
     neighborhood: source.context.business.neighborhood, state: source.state, ...source.context.contact, website: source.context.onlinePresence.websiteUrl };

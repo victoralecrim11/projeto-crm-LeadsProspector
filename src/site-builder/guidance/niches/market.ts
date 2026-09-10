@@ -20,6 +20,23 @@ const research = {
     patterns: ['Composição editorial com título amplo e ritmo assimétrico.', 'Menu confirmado antes de narrativa longa; contato para reserva no fechamento.', 'Ambiente e gastronomia dependem de imagens reais autorizadas, pendentes para Fase C.'],
     avoid: ['Não copiar pratos, preços, chef, prêmios ou horários.', 'Não simular reserva confirmada em um link de contato.', 'Não inventar ambiente ou fotografias reais.'],
   },
+  barbershop: {
+    references: [
+      { url: 'https://www.murdocklondon.com/', reason: 'Apresentação direta de serviços de barbearia, tom clássico e agendamento claro.' },
+      { url: 'https://www.fellowbarber.com/', reason: 'Estética contemporânea urbana, tipografia limpa e lista objetiva de serviços.' },
+      { url: 'https://www.barbeariacorleone.com.br/', reason: 'Referência brasileira: identidade vintage-industrial, serviços e unidades sem inventar filiais.' },
+    ],
+    patterns: [
+      'Contraste escuro ou neutro quente com foco em serviços essenciais e agendamento.',
+      'Tipografia de títulos robusta ou geométrica; tipografia de corpo limpa e legível.',
+      'Destaque para cuidados masculinos, atmosfera de acolhimento e facilidade de contato direto.',
+    ],
+    avoid: [
+      'Não inventar barbeiros, fotos de cortes realizados ou preços que o lead não informou.',
+      'Não transferir promoções ou marcas de produtos das referências para o lead.',
+      'Não simular agendamento com backend sem confirmação de integração.',
+    ],
+  },
 } as const;
 export type PilotNiche = keyof typeof research;
 export function marketReferenceKey(niche: PilotNiche, subNiche = 'unspecified', positioning = 'premium-design', version = 1) {

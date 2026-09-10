@@ -1,33 +1,60 @@
 import { blueprintSchema, type GeneratedSiteBlueprint } from './types.js';
 import { contactAvailable } from './context.js';
-import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign } from './contracts/research.js';
+import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign, type DesignResearchSnapshot } from './contracts/research.js';
 import { businessFromSource } from './leadSource.js';
 import { getMarketReference, marketReferenceKey } from './guidance/niches/market.js';
 import { pilotFamilies, pilotSpecification } from './guidance/design-families/pilots.js';
 import { foregroundFor } from './renderer/baseStyles.js';
 import { designSystemContractSchema, type DesignSystemContract } from './contracts/index.js';
+export { resolveDesignWithResearch } from './familyResolver.js';
 
 export function resolveStandardDesign(source: LeadSourceContext, currentBusiness: CurrentBusinessReference,
-  overrides?: { primary: string; accent: string }, now = new Date()): ResolvedDesign {
+  overrides?: { primary: string; accent: string }, now = new Date(), researchSnapshot?: DesignResearchSnapshot): ResolvedDesign {
   const business = businessFromSource(source);
   const niche = business.derivedNiche;
-  if (niche === 'other') throw new Error('Este modo atende odontologia e restaurantes. Use o gerador existente para outros nichos.');
-  const specification = pilotSpecification(niche, overrides);
-  const composition = niche === 'dentistry' ? ['hero', 'services', 'about', 'location', 'contact'] as const : ['hero', 'about', 'services', 'contact', 'location'] as const;
+  if (niche === 'other') throw new Error('Este modo atende odontologia, restaurantes e barbearias. Use o gerador existente para outros nichos.');
+  const candidate = !overrides && researchSnapshot?.candidates?.length ? researchSnapshot.candidates[0] : null;
+  const specification = candidate
+    ? {
+        ...pilotSpecification(niche, { primary: candidate.primaryCandidate, accent: candidate.accentCandidate }),
+        family: { id: candidate.id, version: 1 },
+      }
+    : pilotSpecification(niche, overrides);
+  const composition = niche === 'dentistry'
+    ? ['hero', 'services', 'about', 'location', 'contact'] as const
+    : niche === 'barbershop'
+    ? ['hero', 'services', 'about', 'contact', 'location'] as const
+    : ['hero', 'about', 'services', 'contact', 'location'] as const;
+  const variant = candidate?.variant ?? pilotFamilies[niche].variant;
+  const paletteOrigin = overrides
+    ? `${specification.family.id}@1 + briefing do usuário`
+    : candidate
+    ? `dynamic-research:${candidate.id}@1`
+    : `${specification.family.id}@1`;
+  const conversionStrategy = niche === 'dentistry'
+    ? 'Facilitar contato para consultar atendimento; não prometer agendamento confirmado.'
+    : niche === 'barbershop'
+    ? 'Facilitar contato para agendamentos e horários; destacar corte de cabelo e barba.'
+    : 'Facilitar contato para consultar reservas; não simular disponibilidade.';
+  const imageryDirection = niche === 'dentistry'
+    ? 'Fase C: imagens autorizadas do negócio; nenhuma equipe, instalação ou resultado clínico inventado.'
+    : niche === 'barbershop'
+    ? 'Fase C: fotografias de cortes reais e ambiente da barbearia com iluminação direcional; ferramentas e produtos autorizados.'
+    : 'Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.';
   const direction = {
     version: 1, mode: 'standard',
-    referenceBrief: { version: 1, business, currentBusiness, market: getMarketReference(niche, now), marketKey: marketReferenceKey(niche), opportunities: currentBusiness.opportunities },
-    specification, variant: pilotFamilies[niche].variant,
+    referenceBrief: { version: 1, business, currentBusiness, market: getMarketReference(niche, now), marketKey: marketReferenceKey(niche), opportunities: currentBusiness.opportunities, ...(researchSnapshot ? { researchSnapshot } : {}) },
+    specification, variant,
     resolution: { status: 'resolved', reason: 'Direção Standard resolvida pelas regras da família pesquisada. Não equivale a aprovação humana ou visualização no Stitch.', resolvedAt: now.toISOString() },
     composition: [...composition],
-    conversionStrategy: niche === 'dentistry' ? 'Facilitar contato para consultar atendimento; não prometer agendamento confirmado.' : 'Facilitar contato para consultar reservas; não simular disponibilidade.',
-    imageryDirection: niche === 'dentistry' ? 'Fase C: imagens autorizadas do negócio; nenhuma equipe, instalação ou resultado clínico inventado.' : 'Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.',
+    conversionStrategy,
+    imageryDirection,
     responsiveBehavior: 'Desktop 1440: composição da família. Tablet 768 e mobile 390: colunas empilhadas, CTA acessível, sem rolagem horizontal; movimento reduzido respeitado.',
     preservedBrandElements: overrides ? ['Paleta explicitamente escolhida no briefing; cores de texto calculadas para contraste.'] : ['Identidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial.'],
     trace: [ { decision: 'Nome, contatos e localização', origin: `Lead ${source.source}; dados ausentes omitidos` },
       { decision: 'Nicho', origin: 'Classificação derivada de categoria/nicho persistidos' },
       { decision: 'Composição e CTA', origin: `${niche}-market-v1 + Guidance` },
-      { decision: 'Paleta e tipografia', origin: `${specification.family.id}@1${overrides ? ' + briefing do usuário' : ''}` } ],
+      { decision: 'Paleta e tipografia', origin: paletteOrigin } ],
     designMarkdown: '',
   };
   const parsed = resolvedDesignSchema.parse(direction);
