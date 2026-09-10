@@ -39,11 +39,15 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - A auditoria técnica não inventa métricas; quando ausente, a interface informa que o lead ainda não foi auditado.
 - Entradas manuais são marcadas explicitamente como `manual` e não recebem localização, WhatsApp, avaliação ou auditoria fictícios.
 
-## Pesquisa Independente (Fase B)
+## Pesquisa Independente & Design Dinâmico (Fase B + Fase B.3)
 
 - O serviço de backend possui um módulo de auditoria (`server/services/research`) que visita a URL fornecida de forma estática (HTTP/HTTPS nativo, máximo de 3 redirects, limite de 1 MiB e timeout rigoroso), sem executar headless browsers.
 - O sistema observa criticamente o conteúdo estrutural do website (landmarks, títulos, contatos) para formar um contexto real do lead sem alucinações ("UNTRUSTED DATA").
-- Famílias de design (como `health-trust` e `hospitality-editorial`) orientam um pipeline robusto, combinando contexto e referências curadas antes de qualquer geração via IA, resultando em artefatos de Especificação de Design isolados do Blueprint final.
+- **Fase B.3 (Dynamic Design Research):** introduz pesquisa de design dinâmica por nicho com abstração `SearchProvider` (SearXNG self-hosted como primário, Brave Search como fallback, e catálogo curado de contingência).
+- Inclui análise determinística de HTML/CSS (`ReferenceDesignAnalyzer`), política segura para CSS (`safeCss.ts`, máx 256 KiB, remoção de `@import` e `url()`), síntese de padrões (`PatternSynthesizer`) e cache em memória Vercel-safe com TTL de 60 dias e suporte a `stale fallback`.
+- Resolução de família como domínio puro (`src/site-builder/familyResolver.ts`) com precedência estrita: `USER_CONFIRMED` > `CONFIRMED_BRAND` > `DYNAMIC_MARKET_RESEARCH` > `CURATED_PILOTS` (`health-trust`, `hospitality-editorial`, `heritage-craft`) > `LEGACY_DEFAULT`.
+- Pilotos ativos: Odontologia (`dentistry`), Restaurante (`restaurant`) e Barbearia (`barbershop`).
+- Geração Standard desacoplada de busca ativa na web (consumo instantâneo de cache ou fallback curado; refresh via endpoint `/api/ai/research/niche`).
 
 ## IA e Google Gemini
 
