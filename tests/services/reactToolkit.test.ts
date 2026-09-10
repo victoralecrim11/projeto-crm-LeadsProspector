@@ -17,7 +17,7 @@ test("catálogo incorporado descreve exatamente os componentes disponíveis", ()
   }
 });
 test("geração e regeneração usam referências Antigravity e registram proveniência", async () => {
-  const model: AiModelDefinition = { id: "gemini:test", provider: "gemini", model: "test", label: "Test", description: "Test", tier: "quality", enabled: true, capabilities: { coding: true, structuredOutput: true, vision: false } };
+  const model: AiModelDefinition = { id: "gemini:test", provider: "gemini", model: "test", label: "Test", description: "Test", tier: "quality", enabled: true, supportsSiteBuilder: true, capabilities: { coding: true, structuredOutput: true, vision: false } };
   const preferences: SitePreferences = { siteType: "landing-page", templateId: "auto", style: "moderno", goal: "none" };
   for (const section of [undefined, "about"] as const) {
     let observed = "";

@@ -30,7 +30,10 @@ Esta pasta é a fonte operacional do Site Builder. Não há outra pasta Guidance
 | Standard Design-First | Implementado | `../designPipeline.ts` |
 | DESIGN.md export | Implementado | `../designPipeline.ts`, `../exportSite.ts` |
 | Stitch abstraction | Implementado (provider opcional) | `server/services/research/stitch.ts` |
-| Media pipeline | **NÃO IMPLEMENTADO** (Fase C) | — |
+| Dynamic Design Research (B.3) | Implementado | `server/services/research/` |
+| Media pipeline (C.0 + C.1) | Implementado (Licensed Media MVP) | `../contracts/media.ts`, `server/services/media/`, `../media/` |
+| Business / Client Media | **NÃO IMPLEMENTADO** (Fase C.2) | — |
+| AI Illustration / Higgsfield | **NÃO IMPLEMENTADO** (Fase C.3) | — |
 
 ## Contratos
 

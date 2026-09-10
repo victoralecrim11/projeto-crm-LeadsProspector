@@ -99,17 +99,35 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 - Leads podem ser exportados para `.xlsx`.
 - Stores Zustand usam `safeStorage` (localStorage c/ fallback para sessionStorage).
 
+## Pipeline de Mídia Licenciada (Fase C.0 + C.1 — Homologadas)
+
+- **Fase C.0 (Media Contracts & Architecture):**
+  - O `MediaPlan` permanece estritamente como **Contrato de Intenção** (seção, propósito, proporção de aspecto, decorativa vs informativa e alt esperado). Não recebe URLs de provedores nem binários.
+  - Novos contratos Zod estritos: `MediaCandidate`, `AcquiredMediaAsset`, `StoredMediaAsset` e `MediaManifest`.
+  - Abstração `MediaAssetStore` com implementação nativa `IndexedDbMediaAssetStore` para navegadores (`prospector_media_db`) e `InMemoryMediaAssetStore` para testes.
+  - Binários pesados residem exclusivamente no IndexedDB; o localStorage armazena apenas JSON leve (`MediaManifest` e referências).
+  - Ciclo de revisão humana obrigatório: `candidate` → `selected` → `reviewed` → `exportable` / `rejected`.
+
+- **Fase C.1 (Licensed Media MVP):**
+  - Provedor primário `PexelsLicensedMediaProvider` consultando `https://api.pexels.com/v1/search` com chave protegida no servidor (`PEXELS_API_KEY`), respeitando rate limits e gerando atribuição ao fotógrafo com link de volta.
+  - Provedor de fallback `PixabayLicensedMediaProvider` consultando `https://pixabay.com/api/` com chave no servidor (`PIXABAY_API_KEY`).
+  - `LicensedMediaQueryBuilder` que gera termos de busca objetivos utilizando `ResolvedDesign.imageryDirection` e nicho, com filtro rigoroso que remove emails, telefones, CNPJ e endereços do CRM.
+  - Camada de aquisição segura (`mediaAcquisitionService`) com proteção SSRF, resolução DNS e verificação de IP público, bloqueio estrito de redes privadas/loopback, limite de 5 MiB por asset, limite de 2 redirects, validação de magic bytes (JPEG/PNG/WebP) e bloqueio de SVG e HTML disfarçado.
+  - Componente de UI `MediaPanel` permitindo busca contextual, seleção, aprovação para exportação e aviso de "Imagem licenciada ilustrativa".
+  - `SiteRenderer` integra imagens por URLs de objeto efêmeras revogadas no unmount, renderiza componente `MediaCredits` com créditos obrigatórios e degrada graciosamente para fallbacks visuais CSS caso o asset esteja ausente.
+  - `exportSite.ts` gera ZIPs estáticos independentes (air-gapped) gravando binários reais em `assets/media-...`, referenciando caminhos relativos no `index.html`, exportando `media/media-manifest.json` e preservando créditos de imagem, sem vazar URLs `blob:` ou `localhost`.
+
 ## Organização dos testes
 
-Os testes automatizados (em `tests/`) refletem rigorosamente serviços e componentes. Novas suítes foram implementadas para garantir a estabilidade do fluxo Phase B e do Visual Blueprint:
-- `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, `dynamicResearch.test.ts`, entre outros.
-- O script `npm test` valida 95 testes (100% PASS), incluindo migrações de blueprint (v1 -> v2), estabilidade do renderer em cenários de ausência de dados, renderizações variadas em múltiplas seções, timeouts simulados da Vercel Function, transições estritas de precedência de design, isolamento de ambiente SearXNG em produção, armazenamento seguro de snapshots e testes de limites de stylesheets do Safe CSS.
+Os testes automatizados (em `tests/`) refletem rigorosamente serviços e componentes. Novas suítes foram implementadas para garantir a estabilidade do fluxo Phase B e Phase C:
+- `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, `dynamicResearch.test.ts`, `mediaContracts.test.ts`, `mediaStore.test.ts`, `mediaProviders.test.ts`, `mediaAcquisition.test.ts`, `mediaExport.test.ts`, `mediaRoutes.test.ts`, entre outros.
+- O script `npm test` valida **121 testes (100% PASS)**, cobrindo todos os cenários legados de Phase A (40 hashes exatos de baseline), migrações v1->v2, busca dinâmica B.3, pipeline completo de mídia C.0/C.1 e os rigorosos testes de Observabilidade do Backend.
 
 ## Checkpoints de Homologação
 
-- **PHASE_B_3_HOMOLOGATED (2026-09-09):** Homologação final da Fase B.3 com 95/95 testes aprovados, SearXNG isolado em produção, proteção estrita do endpoint de refresh com Zod/cooldown, persistência client-side de snapshots com `LocalStorageSnapshotStore`, mitigação segura para multi-stylesheets no Safe CSS e precedência estrita `USER_CONFIRMED` > `CONFIRMED_BRAND` > `FRESH DYNAMIC RESEARCH` > `STALE DYNAMIC RESEARCH` > `CURATED_PILOTS` > `LEGACY_DEFAULT`.
-- **PHASE_B_3_COMPLETE (2026-09-09):** Implementação inicial da Fase B.3 (Dynamic Design Research).
-- **PHASE_C_READY_FOR_IMPLEMENTATION (2026-09-09):** Especificação formal da Fase C (Media Pipeline) concluída e pronta para execução após a homologação da B.3.
+- **VISUAL_EDITOR_PATCH (2026-09-10):** Correção do bloqueio de CORS (`allow-same-origin`) do Editor Visual, mitigação do `net::ERR_FILE_NOT_FOUND` por *premature revocation* de object URLs, e resolução de dependências circulares nos contratos de mídia. 121/121 testes PASS.
+- **PHASE_C_0_C_1_COMPLETE (2026-09-09):** Conclusão e homologação das Fases C.0 (Media Contracts + Media Architecture) e C.1 (Licensed Media MVP). Adicionado o Patch Obrigatório de Observabilidade do Backend. 112/112 testes PASS, lint 0 erros, build OK, audit OK, providers Pexels e Pixabay integrados com segurança SSRF e exportação estática standalone. Parada estrita sem início de C.2.
+- **PHASE_B_3_HOMOLOGATED (2026-09-09):** Homologação final da Fase B.3 com 95/95 testes aprovados.
 
 ## Comandos de verificação e produção
 

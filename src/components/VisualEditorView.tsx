@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useCrm } from "../hooks/useCrm";
 import {
@@ -15,10 +15,15 @@ import { constrainBlueprint } from "../site-builder/context";
 import { SitePreview } from "../site-builder/components/SitePreview";
 import { resolvePresentation } from "../site-builder/renderer/presentation";
 import { ModelControls } from "../site-builder/components/ModelControls";
+import { MediaPanel } from "../site-builder/components/MediaPanel";
+import { useMediaManager } from "../site-builder/media/useMediaManager";
+import { autoResolveEligibleMedia } from "../site-builder/media/autoResolveService";
+import { isLicensedAutoResolveEligible, deriveDefaultMediaPlan } from "../site-builder/media/mediaPlanBuilder";
 import { generateSiteBlueprint, generateStandardBlueprint } from "../services/siteGenerationService";
 import { downloadSiteZip } from "../site-builder/exportSite";
 import { designForBlueprint } from '../site-builder/designPipeline';
 import { toast } from "../store/toastStore";
+import type { MediaManifest } from "../site-builder/contracts/media";
 import {
   PanelsTopLeft,
   FolderOpen,
@@ -27,6 +32,7 @@ import {
   SlidersHorizontal,
   Save,
   Download,
+  ImageIcon,
 } from "lucide-react";
 
 export const VisualEditorView: React.FC = () => {
@@ -42,12 +48,97 @@ export const VisualEditorView: React.FC = () => {
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
   const [selection, setSelection] = useState<ModelSelection>({ mode: "auto" });
+  const [autoResolveStatus, setAutoResolveStatus] = useState<'idle' | 'resolving' | 'done' | 'not-configured'>('idle');
+  const [autoResolveMessage, setAutoResolveMessage] = useState<string>('');
+
+  const mediaPlan = React.useMemo(() => {
+    if (project?.siteMediaPlan) return project.siteMediaPlan;
+    if (project && project.siteBlueprint && project.siteContext) {
+      return deriveDefaultMediaPlan(project);
+    }
+    return undefined;
+  }, [project]);
+
+  useEffect(() => {
+    if (project && !project.siteMediaPlan && mediaPlan) {
+      crm.updateProject({ ...project, siteMediaPlan: mediaPlan });
+    }
+  }, [project, mediaPlan, crm]);
+
+  const handleManifestChange = useCallback((updatedManifest: MediaManifest) => {
+    if (!project) return;
+    crm.updateProject({ ...project, siteMediaManifest: updatedManifest });
+  }, [project, crm]);
+
+  const mediaManager = useMediaManager({
+    projectId: project?.id || '',
+    niche: project?.category?.toLowerCase() || 'business',
+    subNiche: undefined,
+    imageryDirection: project?.siteDesign?.imageryDirection,
+    mediaPlan: mediaPlan,
+    initialManifest: project?.siteMediaManifest,
+    onManifestChange: handleManifestChange,
+  });
+
   useEffect(() => {
     const parsed = blueprintSchema.safeParse(project?.siteBlueprint);
     setDraft(parsed.success ? parsed.data : null);
     setReviewed(project?.contentReviewed || false);
     setDirty(false);
+    setAutoResolveStatus('idle');
+    setAutoResolveMessage('');
   }, [project?.id]);
+
+  const triggerAutoResolve = useCallback(async () => {
+    if (!mediaPlan || mediaPlan.items.length === 0) return;
+    setAutoResolveStatus('resolving');
+    setAutoResolveMessage('Buscando imagens licenciadas ilustrativas...');
+    try {
+      const result = await autoResolveEligibleMedia(
+        mediaPlan,
+        mediaManager,
+      );
+      if (result.resolved > 0) {
+        setAutoResolveMessage(
+          `${result.resolved} imagem(ns) selecionada(s) automaticamente para revisão.`,
+        );
+        setAutoResolveStatus('done');
+      } else if (result.skipped === 0 && result.failed === 0) {
+        setAutoResolveMessage('');
+        setAutoResolveStatus('idle');
+      } else {
+        setAutoResolveMessage(
+          'Provedores de mídia não configurados. O site continuará com o layout visual sem imagens.',
+        );
+        setAutoResolveStatus('not-configured');
+      }
+    } catch {
+      setAutoResolveMessage(
+        'Provedores de mídia não configurados. O site continuará com o layout visual sem imagens.',
+      );
+      setAutoResolveStatus('not-configured');
+    }
+  }, [mediaPlan, mediaManager]);
+
+  useEffect(() => {
+    if (!mediaPlan || mediaPlan.items.length === 0) return;
+    
+    const hasUnresolvedEligible = mediaPlan.items.some(
+      (item) => item.sourcePreference === 'licensed' &&
+                isLicensedAutoResolveEligible(item) &&
+                !mediaManager.manifest.entries.some((e) => e.requestId === item.id)
+    );
+
+    if (hasUnresolvedEligible && autoResolveStatus === 'idle') {
+      // Trigger automatically in background when project is persisted and manager mounted
+      void triggerAutoResolve();
+    }
+  }, [
+    mediaPlan,
+    mediaManager.manifest.entries,
+    autoResolveStatus,
+    triggerAutoResolve,
+  ]);
   useEffect(() => {
     const before = (e: BeforeUnloadEvent) => {
       if (dirty) {
@@ -71,6 +162,8 @@ export const VisualEditorView: React.FC = () => {
       ...project,
       siteBlueprint: blueprint,
       siteDesign: project.siteDesign ? designForBlueprint(project.siteDesign, blueprint) : undefined,
+      siteMediaPlan: mediaPlan,
+      siteMediaManifest: mediaManager.manifest,
       contentReviewed: reviewed,
       generationStatus:
         reviewed && blueprint.services.every((s) => s.source === "known")
@@ -141,6 +234,19 @@ export const VisualEditorView: React.FC = () => {
     setBusy(true);
     try {
       const next = save();
+      // Warn about auto-selected (not reviewed) media in export
+      const selectedOnly = next.siteMediaManifest?.entries.filter(
+        (e) => e.reviewStatus === 'selected',
+      );
+      if (selectedOnly && selectedOnly.length > 0) {
+        const reviewNow = window.confirm(
+          `Há ${selectedOnly.length} imagem(ns) selecionada(s) automaticamente que ainda não foi(ram) aprovada(s).\n\nElas NÃO entrarão no arquivo ZIP exportado, e o site exibirá o layout visual padrão sem fotos nessas seções.\n\nClique em OK para revisar as imagens agora, ou Cancelar para exportar sem elas.`
+        );
+        if (reviewNow) {
+          setBusy(false);
+          return;
+        }
+      }
       await downloadSiteZip(next);
       crm.updateProject({ ...next, generationStatus: "exported" });
       toast("Site exportado em ZIP.");
@@ -384,6 +490,37 @@ export const VisualEditorView: React.FC = () => {
                 </select>
               </label>)}
             </section>
+            {mediaPlan && (
+              <section className="editor-control-section" data-testid="media-panel-section">
+                <h4 className="editor-section-title">
+                  <ImageIcon size={15} aria-hidden="true" /> Mídia do Site
+                </h4>
+                <MediaPanel
+                  mediaPlan={mediaPlan}
+                  manifest={mediaManager.manifest}
+                  objectUrls={mediaManager.objectUrls}
+                  candidatesByItem={mediaManager.candidatesByItem}
+                  loadingByItem={mediaManager.loadingByItem}
+                  errorByItem={mediaManager.errorByItem}
+                  searchMedia={mediaManager.searchMedia}
+                  selectCandidate={mediaManager.selectCandidate}
+                  approveMedia={mediaManager.approveMedia}
+                  rejectMedia={mediaManager.rejectMedia}
+                  autoResolveStatus={autoResolveStatus}
+                  autoResolveMessage={autoResolveMessage}
+                />
+                {autoResolveStatus === 'idle' && mediaPlan.items.some(i => i.sourcePreference === 'licensed') && (
+                  <button
+                    type="button"
+                    onClick={() => void triggerAutoResolve()}
+                    disabled={busy || autoResolveStatus === 'resolving'}
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-900/80 hover:bg-indigo-900 text-white font-medium text-xs flex items-center justify-center gap-2 transition-all mt-2"
+                  >
+                    <Sparkles size={14} aria-hidden="true" /> Buscar imagens automaticamente
+                  </button>
+                )}
+              </section>
+            )}
             <section className="editor-control-section">
               <h4 className="editor-section-title">Sobre o negócio</h4>
               {field("Título Sobre", draft.about.title, (v) =>
@@ -627,7 +764,7 @@ export const VisualEditorView: React.FC = () => {
                 experiência e benefícios sugeridos não são fatos confirmados.
               </p>
             )}
-            <SitePreview blueprint={draft} context={project.siteContext} design={project.siteDesign} />
+            <SitePreview blueprint={draft} context={project.siteContext} design={project.siteDesign} mediaManifest={mediaManager.manifest} assetUrls={mediaManager.objectUrls} />
           </section>
         </div>
       )}

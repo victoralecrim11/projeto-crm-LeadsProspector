@@ -33,6 +33,7 @@ const model: AiModelDefinition = {
   description: "test",
   tier: "quality",
   enabled: true,
+  supportsSiteBuilder: true,
   capabilities: { structuredOutput: true, coding: true, vision: false },
 };
 test("ausências não viram canais, endereço, preços, avaliações ou depoimentos", () => {

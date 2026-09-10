@@ -1,6 +1,15 @@
 import React from "react";
-import { Cta, Eyebrow, type SectionProps } from "../shared";
+import { Cta, Eyebrow, findSectionMedia, type SectionProps } from "../shared";
 export function FullBleedHero(props: SectionProps) {
+  const media = findSectionMedia(props, "hero");
+  if (media) {
+    return <div className="hero-full-bleed has-media">
+      <div className="hero-bg-media"><img src={media.url} alt={media.decorative ? "" : media.alt} loading="lazy" decoding="async" /></div>
+      <Eyebrow {...props} />
+      <h1>{props.blueprint.hero.headline}</h1>
+      <div className="hero-full-bleed-bottom"><p>{props.blueprint.hero.subtitle}</p><Cta {...props} /></div>
+    </div>;
+  }
   return <div className="hero-full-bleed">
     <Eyebrow {...props} />
     <h1>{props.blueprint.hero.headline}</h1>
@@ -8,15 +17,17 @@ export function FullBleedHero(props: SectionProps) {
   </div>;
 }
 export function SplitHero(props: SectionProps) {
+  const media = findSectionMedia(props, "hero");
   return <div className="hero-split">
     <div className="hero-split-title"><Eyebrow {...props} /><h1>{props.blueprint.hero.headline}</h1></div>
-    <div className="hero-split-detail"><span className="hero-monogram" aria-hidden="true">{Array.from(props.context.business.name)[0]}</span>
+    <div className="hero-split-detail">{media ? <div className="hero-split-media"><img src={media.url} alt={media.decorative ? "" : media.alt} loading="lazy" decoding="async" width={media.width} height={media.height} /></div> : <span className="hero-monogram" aria-hidden="true">{Array.from(props.context.business.name)[0]}</span>}
       <p>{props.blueprint.hero.subtitle}</p><Cta {...props} /></div>
   </div>;
 }
 export function MinimalHero(props: SectionProps) {
+  const media = findSectionMedia(props, "hero");
   return <div className="hero-minimal"><div className="hero-minimal-label"><Eyebrow {...props} /></div>
-    <div className="hero-minimal-story"><h1>{props.blueprint.hero.headline}</h1><p>{props.blueprint.hero.subtitle}</p><Cta {...props} /></div>
+    <div className="hero-minimal-story">{media && <div className="hero-minimal-media"><img src={media.url} alt={media.decorative ? "" : media.alt} loading="lazy" decoding="async" width={media.width} height={media.height} /></div>}<h1>{props.blueprint.hero.headline}</h1><p>{props.blueprint.hero.subtitle}</p><Cta {...props} /></div>
   </div>;
 }
 export const heroStyles = `

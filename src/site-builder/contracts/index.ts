@@ -76,22 +76,10 @@ export const designSystemContractSchema = z.object({
   implementation: z.object({ templates: z.array(z.enum(templates)).min(1), visualVariants: visualSchema, renderer: z.literal("blueprint-v2") }).strict(),
 }).strict();
 
-export const mediaPlanSchema = z.object({
-  version: z.literal(1),
-  // Requests only: no provider, URL or claim of generated/approved assets.
-  items: z.array(z.object({
-    id, section: z.enum(sectionIds), purpose: description,
-    sourcePreference: z.enum(["business", "client", "licensed", "generated-illustration"]),
-    aspectRatio: z.enum(["1:1", "4:3", "3:4", "16:9"]),
-    decorative: z.boolean(), alt: z.string().trim().max(300),
-  }).strict().refine((item) => item.decorative ? item.alt === "" : item.alt.length > 0,
-    "Mídia decorativa usa alt vazio; mídia informativa exige descrição.")).max(20),
-}).strict().refine((value) => new Set(value.items.map((item) => item.id)).size === value.items.length,
-  "IDs de mídia devem ser únicos.");
+export { mediaPlanSchema, type MediaPlan } from './media.js';
 
 export type BusinessContext = z.infer<typeof businessContextSchema>;
 export type ReferenceBrief = z.infer<typeof referenceBriefSchema>;
 export type DesignTokens = z.infer<typeof designTokensSchema>;
 export type DesignSpecification = z.infer<typeof designSpecificationSchema>;
 export type DesignSystemContract = z.infer<typeof designSystemContractSchema>;
-export type MediaPlan = z.infer<typeof mediaPlanSchema>;

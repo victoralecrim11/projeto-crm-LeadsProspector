@@ -1,3 +1,5 @@
+import dotenv from "dotenv";
+dotenv.config({ path: [".env.local", ".env"], quiet: true });
 import express from "express";
 import http from "http";
 import path from "path";

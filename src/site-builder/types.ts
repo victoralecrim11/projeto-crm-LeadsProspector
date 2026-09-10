@@ -177,6 +177,18 @@ export type GeneratedSiteBlueprint = z.infer<typeof blueprintSchema>;
 export type SitePreferences = z.infer<typeof preferencesSchema>;
 export type DesignBrief = z.infer<typeof designBriefSchema>;
 export type ModelSelection = z.infer<typeof selectionSchema>;
+export type FallbackDetail =
+  | "provider-http-429"
+  | "provider-http-503"
+  | "provider-http-504"
+  | "provider-timeout"
+  | "provider-network-error"
+  | "provider-no-compatible-model"
+  | "provider-authentication"
+  | "provider-invalid-request"
+  | "provider-invalid-response"
+  | "provider-unknown";
+
 export type GenerationMetadata = {
   provider: string;
   model: string;
@@ -187,17 +199,23 @@ export type GenerationMetadata = {
   mode?: "standard-ai" | "standard-fallback" | "legacy" | "standard";
   fallbackUsed?: boolean;
   fallbackReason?: "provider-unavailable" | "rate-limit" | "temporary-provider-error";
+  fallbackDetail?: FallbackDetail;
+  requestId?: string;
+  durationMs?: number;
   designFamily?: string;
 };
+export type ProviderId = "gemini" | "ollama" | "groq" | "huggingface" | "openai" | "anthropic" | "mistral" | "cohere" | "azure" | "aws" | "replicate";
+
 export type AiModelDefinition = {
   id: string;
-  provider: "gemini" | "ollama";
+  provider: ProviderId;
   model: string;
   label: string;
   description: string;
   tier: "fast" | "quality" | "premium" | "local";
   capabilities: { structuredOutput: boolean; coding: boolean; vision: boolean };
   enabled: boolean;
+  supportsSiteBuilder: boolean;
 };
 export const regenerationSections = [
   "headline",

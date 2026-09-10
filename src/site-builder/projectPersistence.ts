@@ -1,7 +1,10 @@
 import type { Project } from "../types";
 import { blueprintSchema, contextSchema } from "./types";
 import { resolvedDesignSchema } from './contracts/research';
+import { mediaPlanSchema } from './contracts/index.js';
+import { mediaManifestSchema } from './contracts/media.js';
 import { designForBlueprint } from './designPipeline';
+import { deriveDefaultMediaPlan } from './media/mediaPlanBuilder';
 const key = "leadsite_crm_projects_v2";
 export function loadProjects(storage: Pick<Storage, "getItem">): Project[] {
   try {
@@ -14,6 +17,14 @@ export function loadProjects(storage: Pick<Storage, "getItem">): Project[] {
           const design = resolvedDesignSchema.safeParse(p.siteDesign);
           if (!design.success) return { ...p, siteBlueprint: undefined, generationStatus: 'error' as const, generationError: 'Design salvo inválido. Gere novamente.' };
           p = { ...p, siteDesign: design.data };
+        }
+        if (p.siteMediaPlan) {
+          const mp = mediaPlanSchema.safeParse(p.siteMediaPlan);
+          p = { ...p, siteMediaPlan: mp.success ? mp.data : undefined };
+        }
+        if (p.siteMediaManifest) {
+          const mm = mediaManifestSchema.safeParse(p.siteMediaManifest);
+          p = { ...p, siteMediaManifest: mm.success ? mm.data : undefined };
         }
         const parsed = blueprintSchema.safeParse(p.siteBlueprint);
         if (

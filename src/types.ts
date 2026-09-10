@@ -143,6 +143,8 @@ export interface Appointment {
 
 export interface Project {
   siteDesign?: import('./site-builder/contracts/research').ResolvedDesign;
+  siteMediaPlan?: import('./site-builder/contracts').MediaPlan;
+  siteMediaManifest?: import('./site-builder/contracts/media').MediaManifest;
   generationStatus?: 'draft' | 'generating' | 'generated' | 'editing' | 'ready' | 'exported' | 'published' | 'error';
   siteBlueprint?: import('./site-builder/types').GeneratedSiteBlueprint;
   siteContext?: import('./site-builder/types').LeadSiteContext;

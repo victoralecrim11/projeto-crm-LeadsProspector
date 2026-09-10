@@ -4,10 +4,15 @@ import type { GeneratedSiteBlueprint, LeadSiteContext } from "../types";
 import { renderSiteDocument } from "../renderer/SiteRenderer";
 import "./preview.css";
 import type { ResolvedDesign } from '../contracts/research';
+import type { MediaManifest } from '../contracts/media';
 
 export const previewDevices = { Desktop: 1440, Tablet: 768, Mobile: 390 } as const;
-export function SitePreview({ blueprint, context, design }: {
-  blueprint: GeneratedSiteBlueprint; context: LeadSiteContext; design?: ResolvedDesign;
+export function SitePreview({ blueprint, context, design, mediaManifest, assetUrls }: {
+  blueprint: GeneratedSiteBlueprint;
+  context: LeadSiteContext;
+  design?: ResolvedDesign;
+  mediaManifest?: MediaManifest;
+  assetUrls?: Record<string, string>;
 }) {
   const [device, setDevice] = useState<keyof typeof previewDevices>("Desktop");
   const [nativeFullscreen, setNativeFullscreen] = useState(false);
@@ -21,15 +26,15 @@ export function SitePreview({ blueprint, context, design }: {
   const urls = useRef(new Set<string>());
   const fullscreen = nativeFullscreen || fallback;
   const html = useMemo(() => {
-    try { return renderSiteDocument(blueprint, context, design); }
+    try { return renderSiteDocument(blueprint, context, design, mediaManifest, assetUrls); }
     catch { return null; }
-  }, [blueprint, context, design]);
+  }, [blueprint, context, design, mediaManifest, assetUrls]);
   useEffect(() => {
     if (!html) { setPreviewUrl(undefined); return; }
     // srcDoc resolves fragment links against the CRM URL; a Blob owns its anchors.
     const url = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
     setPreviewUrl(url);
-    return () => URL.revokeObjectURL(url);
+    return () => { setTimeout(() => URL.revokeObjectURL(url), 1000); };
   }, [html]);
   useEffect(() => {
     const change = () => setNativeFullscreen(document.fullscreenElement === container.current);
@@ -91,7 +96,7 @@ export function SitePreview({ blueprint, context, design }: {
     </div>
     <div className="visual-preview-viewport" ref={viewport}>
       {html ? <div style={{ width: previewDevices[device] * scale, height: size.height, margin: "0 auto" }}>
-        <iframe title="Prévia do site" sandbox="allow-popups allow-popups-to-escape-sandbox" src={previewUrl}
+        <iframe title="Prévia do site" sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin" src={previewUrl}
           style={{ width: previewDevices[device], height: size.height / scale, transform: `scale(${scale})`, transformOrigin: "top left", border: 0, display: "block", background: "white" }} />
       </div> : <p role="status">Complete os campos obrigatórios para atualizar a prévia.</p>}
     </div>

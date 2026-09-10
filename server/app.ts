@@ -5,8 +5,9 @@ import querystring from "querystring";
 import { createOverpassAgent, overpassFailure } from "./services/overpassTransport.js";
 import { aiProviderRouter } from "./routes/aiProvider.js";
 import { siteGenerationRouter } from "./routes/siteGeneration.js";
+import { mediaRouter } from "./routes/media.js";
 
-dotenv.config({ quiet: true });
+dotenv.config({ path: [".env.local", ".env"], quiet: true });
 
 export function createApiApp() {
   const app = express();
@@ -16,6 +17,7 @@ export function createApiApp() {
   app.use(express.json({ limit: "128kb" }));
   app.use("/api/ai", aiProviderRouter());
   app.use("/api/ai", siteGenerationRouter());
+  app.use("/api/ai/media", mediaRouter());
 
   app.get("/api/health", (_req, res) => {
     res.json({ status: "ok" });

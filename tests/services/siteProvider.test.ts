@@ -12,6 +12,7 @@ const model: AiModelDefinition = {
   description: "Gemini · premium",
   tier: "premium",
   enabled: true,
+  supportsSiteBuilder: true,
   capabilities: { structuredOutput: true, coding: true, vision: true },
 };
 

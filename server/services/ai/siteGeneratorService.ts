@@ -54,8 +54,10 @@ export async function generateSite(
     ((milliseconds: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
   for (const model of candidates) {
+    console.log(`[SiteGenerator] Tentando modelo: ${model.id}`);
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
+        console.log(`[SiteGenerator] Attempt ${attempt} for ${model.id}`);
         const prompt = buildSitePrompt(
           input.context,
           input.preferences,
@@ -110,8 +112,16 @@ export async function generateSite(
           generation,
         };
       } catch (e) {
+        console.error(`[SiteGenerator] Error in attempt ${attempt} for ${model.id}:`, e instanceof Error ? e.message : e);
         lastError = e;
-        if (e instanceof SiteAiError && !e.retryable) throw e;
+        if (e instanceof SiteAiError && e.status === 429) {
+          console.warn(`[SiteGenerator] Rate limit (429) hit for ${model.id}. Moving to next fallback model immediately.`);
+          break;
+        }
+        if (e instanceof SiteAiError && !e.retryable) {
+          console.error(`[SiteGenerator] Error is NOT retryable. Aborting fallback loop for ${model.id}!`);
+          throw e;
+        }
         if (attempt === 0) await delay(250);
       }
     }

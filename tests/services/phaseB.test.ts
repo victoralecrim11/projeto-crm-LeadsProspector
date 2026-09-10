@@ -102,7 +102,7 @@ test('Standard AI preserva ResolvedDesign, guidance e regras de conteúdo', asyn
   const source = normalizeLeadSource(pilotLead('restaurant'));
   const result = await generateStandardAiSite(source, { mode: 'explicit', modelId: 'gemini:test' }, undefined, {}, {
     audit: async () => await auditCurrentSite(),
-    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
+    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, supportsSiteBuilder: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
     requestBlueprint: async () => ({ ...blueprint, templateId: 'minimal-professional', visual: { ...blueprint.visual, hero: 'minimal' }, brand: { ...blueprint.brand, primaryColor: '#ffffff' } }),
   });
   assert.equal(result.generation.mode, 'standard-ai');
@@ -120,7 +120,7 @@ test('Standard AI preserva ResolvedDesign, guidance e regras de conteúdo', asyn
 test('Standard AI rejeita Blueprint inválido e não mascara violação de contrato como fallback', async () => {
   await assert.rejects(() => generateStandardAiSite(normalizeLeadSource(pilotLead('dentistry')), { mode: 'auto' }, undefined, {}, {
     audit: async () => await auditCurrentSite(),
-    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
+    discoverModels: async () => ({ models: [{ id: 'gemini:test', model: 'test', provider: 'gemini', label: 'test', description: 'test', tier: 'quality', enabled: true, supportsSiteBuilder: true, capabilities: { structuredOutput: true, coding: true, vision: false } }], warnings: [] }),
     requestBlueprint: async () => ({ invalid: true }),
   }));
 });

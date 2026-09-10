@@ -13,6 +13,7 @@ import { normalizeDesignBrief } from "../site-builder/designBrief";
 import { generateSiteBlueprint, generateStandardAiBlueprint } from "../services/siteGenerationService";
 import { normalizeLeadSource } from '../site-builder/leadSource';
 import { resolvedDesignSchema } from '../site-builder/contracts/research';
+import { deriveDefaultMediaPlan } from '../site-builder/media/mediaPlanBuilder';
 import { ModelControls } from "../site-builder/components/ModelControls";
 import { DesignBriefControls } from "../site-builder/components/DesignBriefControls";
 import { toast } from "../store/toastStore";
@@ -105,10 +106,18 @@ export const SiteGeneratorModal: React.FC = () => {
         preferences: prefs,
         modelSelection: selection,
       });
+      const resolvedDesign = 'design' in result ? resolvedDesignSchema.parse(result.design) : undefined;
+      const mediaPlan = deriveDefaultMediaPlan({
+        ...project,
+        siteBlueprint: result.blueprint,
+        siteDesign: resolvedDesign,
+        siteContext: context,
+      });
       crm.updateProject({
         ...project,
         siteBlueprint: result.blueprint,
-        siteDesign: 'design' in result ? resolvedDesignSchema.parse(result.design) : undefined,
+        siteDesign: resolvedDesign,
+        siteMediaPlan: mediaPlan,
         aiGeneration: result.generation,
         generationStatus: "generated",
       });
