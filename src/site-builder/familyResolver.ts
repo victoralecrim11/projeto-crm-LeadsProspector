@@ -42,7 +42,7 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
   const snapshot = input.researchSnapshot;
   const current = input.currentBusiness;
 
-  const hasBrandDecision = current.identity.some(i => i.decision === 'PRESERVE');
+  const hasBrandDecision = current.identity?.some(i => i.decision === 'PRESERVE') ?? false;
 
   let familyId: string;
   let variantName: string;

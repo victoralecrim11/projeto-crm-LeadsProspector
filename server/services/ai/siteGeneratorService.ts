@@ -14,6 +14,7 @@ import {
   SiteAiError,
   type Credentials,
 } from "./modelRegistry.js";
+import { isCooling, setCooldown } from "./providerCooldown.js";
 import { buildSitePrompt } from "./sitePromptBuilder.js";
 import { requestBlueprint } from "./providers/siteProviders.js";
 import { normalizeDesignBrief } from "../../../src/site-builder/designBrief.js";
@@ -53,7 +54,17 @@ export async function generateSite(
     dependencies.delay ??
     ((milliseconds: number) =>
       new Promise<void>((resolve) => setTimeout(resolve, milliseconds)));
+  const startTime = Date.now();
+  const GLOBAL_TIMEOUT_MS = 120_000;
   for (const model of candidates) {
+    // Global timeout guard
+    if (Date.now() - startTime > GLOBAL_TIMEOUT_MS)
+      throw new SiteAiError("Tempo limite da geração atingido.", 504, true, 'SITE_AI_PROVIDER_TIMEOUT');
+    // If running in automatic selection, skip providers/models currently in cooldown
+    if (input.modelSelection?.mode === "auto" && isCooling(model.provider, model.model)) {
+      console.warn(`[SiteGenerator] Skipping model in cooldown: ${model.id}`);
+      continue;
+    }
     console.log(`[SiteGenerator] Tentando modelo: ${model.id}`);
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
@@ -114,9 +125,17 @@ export async function generateSite(
       } catch (e) {
         console.error(`[SiteGenerator] Error in attempt ${attempt} for ${model.id}:`, e instanceof Error ? e.message : e);
         lastError = e;
-        if (e instanceof SiteAiError && e.status === 429) {
-          console.warn(`[SiteGenerator] Rate limit (429) hit for ${model.id}. Moving to next fallback model immediately.`);
-          break;
+        if (e instanceof SiteAiError && (e.status === 429 || e.status === 503 || e.status === 504 || e.code === 'SITE_AI_PROVIDER_TIMEOUT' || e.code === 'SITE_AI_PROVIDER_NETWORK')) {
+          // Automatic selection: mark cooldown and move to next fallback model.
+          // Note: requestBlueprint already sets cooldown using Retry-After if present.
+          if (input.modelSelection?.mode === "auto") {
+            if (!isCooling(model.provider, model.model)) {
+              setCooldown(model.provider, model.model, e.status === 429 ? 60000 : 30000);
+            }
+            console.warn(`[SiteGenerator] Provider status ${e.status} for ${model.id}. Moving to next fallback model.`);
+            break;
+          }
+          // Explicit/manual: allow retry on retryable errors (do not fallback to other models).
         }
         if (e instanceof SiteAiError && !e.retryable) {
           console.error(`[SiteGenerator] Error is NOT retryable. Aborting fallback loop for ${model.id}!`);

@@ -4,6 +4,7 @@ import {
   geminiGeneratedSiteJsonSchema,
 } from "../../../schemas/generatedSiteSchema.js";
 import { SiteAiError, type Credentials } from "../modelRegistry.js";
+import { setCooldownFromRetryAfter } from "../providerCooldown.js";
 export async function requestBlueprint(
   model: AiModelDefinition,
   prompt: string,
@@ -94,7 +95,9 @@ export async function requestBlueprint(
           status,
           'provider-authentication',
         );
-      if (status === 429)
+      if (status === 429) {
+        // honor Retry-After when present and set cooldown
+        setCooldownFromRetryAfter(response, model.provider, model.model, 60000);
         throw new SiteAiError(
           "O limite de requisições do provedor foi atingido. Tente novamente em instantes.",
           429,
@@ -105,7 +108,9 @@ export async function requestBlueprint(
           status,
           'provider-http-429',
         );
-      if (status === 504)
+      }
+      if (status === 504) {
+        setCooldownFromRetryAfter(response, model.provider, model.model, 30000);
         throw new SiteAiError(
           "O provedor está temporariamente indisponível.",
           504,
@@ -116,7 +121,9 @@ export async function requestBlueprint(
           status,
           'provider-http-504',
         );
-      if (status === 503)
+      }
+      if (status === 503) {
+        setCooldownFromRetryAfter(response, model.provider, model.model, 30000);
         throw new SiteAiError(
           "O provedor está temporariamente indisponível.",
           503,
@@ -127,6 +134,7 @@ export async function requestBlueprint(
           status,
           'provider-http-503',
         );
+      }
       if (status >= 400 && status < 500)
         throw new SiteAiError(
           "O provedor recusou o formato da solicitação.",
@@ -185,7 +193,7 @@ export async function requestBlueprint(
         'provider-invalid-response',
       );
     }
-    const isTimeout = (e as any)?.name === 'TimeoutError' || (e as any)?.name === 'AbortError';
+    const isTimeout = e instanceof Error && (e.name === 'TimeoutError' || e.name === 'AbortError');
     if (isTimeout) {
       throw new SiteAiError(
         "Tempo limite na comunicação com a IA.",

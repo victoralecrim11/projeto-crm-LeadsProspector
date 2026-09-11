@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import type { MediaPlan } from '../contracts';
 import type { MediaManifest, MediaCandidate } from '../contracts/media';
 import { ImageIcon, Search, Check, RefreshCw, Trash2, ExternalLink, ShieldCheck } from 'lucide-react';
+import MediaPicker from './MediaPicker';
 
 export interface MediaPanelProps {
   mediaPlan?: MediaPlan;
@@ -10,12 +11,15 @@ export interface MediaPanelProps {
   candidatesByItem: Record<string, MediaCandidate[]>;
   loadingByItem: Record<string, boolean>;
   errorByItem: Record<string, string | null>;
-  searchMedia: (item: MediaPlan['items'][number]) => void;
+  searchMedia: (item: MediaPlan['items'][number], query?: string, provider?: string) => void;
   selectCandidate: (item: MediaPlan['items'][number], candidate: MediaCandidate) => void;
   approveMedia: (itemId: string) => void;
   rejectMedia: (itemId: string) => void;
   autoResolveStatus?: 'idle' | 'resolving' | 'done' | 'not-configured';
   autoResolveMessage?: string;
+  getProjectAssets: () => Promise<any[]>;
+  getAssetUrl: (assetId: string) => Promise<string>;
+  selectProjectAsset: (item: MediaPlan['items'][number], asset: any) => Promise<void>;
 }
 
 /**
@@ -36,8 +40,24 @@ export function MediaPanel({
   rejectMedia,
   autoResolveStatus,
   autoResolveMessage,
+  getProjectAssets,
+  getAssetUrl,
+  selectProjectAsset,
 }: MediaPanelProps) {
   const items = mediaPlan?.items ?? [];
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [pickerItem, setPickerItem] = useState<MediaPlan['items'][number] | null>(null);
+
+  const openPicker = (item: MediaPlan['items'][number]) => {
+    setPickerItem(item);
+    setPickerOpen(true);
+    searchMedia(item);
+  };
+
+  const closePicker = () => {
+    setPickerOpen(false);
+    setPickerItem(null);
+  };
 
   if (items.length === 0) {
     return (
@@ -166,7 +186,7 @@ export function MediaPanel({
                       )}
                       <button
                         type="button"
-                        onClick={() => searchMedia(item)}
+                        onClick={() => openPicker(item)}
                         disabled={isLoading}
                         className="flex items-center gap-1 rounded bg-slate-700 px-2.5 py-1 font-medium text-slate-200 transition-colors hover:bg-slate-600"
                       >
@@ -188,7 +208,7 @@ export function MediaPanel({
                 <div>
                   <button
                     type="button"
-                    onClick={() => searchMedia(item)}
+                    onClick={() => openPicker(item)}
                     disabled={isLoading}
                     className="w-full py-2 px-3 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
                   >
@@ -212,41 +232,37 @@ export function MediaPanel({
 
               {error && <p className="text-xs text-amber-400 bg-amber-500/10 p-2 rounded border border-amber-500/20">{error}</p>}
 
-              {/* Candidates grid */}
-              {!entry && candidates.length > 0 && (
-                <div className="flex flex-col gap-2 mt-2">
-                  <span className="text-xs font-medium text-slate-400">Escolha uma opção:</span>
-                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                    {candidates.map((cand) => (
-                      <div
-                        key={cand.candidateId}
-                        className="group relative flex min-w-0 flex-col overflow-hidden rounded border border-slate-700 bg-slate-900"
-                      >
-                        <img
-                          src={cand.previewUrl}
-                          alt={cand.creator || 'Foto'}
-                          className="w-full h-24 object-cover group-hover:opacity-90 transition-opacity"
-                        />
-                        <div className="p-1.5 flex flex-col gap-1 bg-slate-800/90">
-                          <span className="text-[10px] text-slate-300 truncate">{cand.creator || 'Fotógrafo'}</span>
-                          <button
-                            type="button"
-                            onClick={() => selectCandidate(item, cand)}
-                            disabled={isLoading}
-                            className="w-full py-1 text-[11px] font-medium bg-indigo-600 hover:bg-indigo-500 text-white rounded transition-colors"
-                          >
-                            Selecionar
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
+              {/* MediaPicker handled separately to preserve current entry until replacement confirmed */}
             </div>
           );
         })}
       </div>
+
+      {pickerItem && (
+        <MediaPicker
+          open={pickerOpen}
+          onClose={closePicker}
+          item={pickerItem}
+          currentEntry={manifest.entries.find((e) => e.id === pickerItem.id) ?? null}
+          candidates={candidatesByItem[pickerItem.id] || []}
+          loading={!!loadingByItem[pickerItem.id]}
+          error={errorByItem[pickerItem.id] ?? null}
+          onSearch={(itm, q, provider) => {
+            searchMedia(itm, q, provider);
+          }}
+          onSelect={async (itm, cand) => {
+            await selectCandidate(itm, cand);
+            closePicker();
+          }}
+          getProjectAssets={getProjectAssets}
+          getAssetUrl={getAssetUrl}
+          onSelectProjectAsset={async (itm, asset) => {
+            await selectProjectAsset(itm, asset);
+            closePicker();
+          }}
+          searchMedia={searchMedia}
+        />
+      )}
 
       <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800 text-[11px] text-slate-500 flex items-center gap-2">
         <span className="text-slate-400">Nota ética:</span> Fotografias licenciadas servem como ilustração conceitual e

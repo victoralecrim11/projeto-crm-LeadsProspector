@@ -9,6 +9,11 @@ import { SiteAiError } from '../../server/services/ai/modelRegistry.js';
 import { siteGenerationRouter } from '../../server/routes/siteGeneration.js';
 import { mediaRouter } from '../../server/routes/media.js';
 import { formatFallbackMessage } from '../../src/services/siteGenerationService.js';
+import * as providerCooldown from '../../server/services/ai/providerCooldown.js';
+
+test.beforeEach(() => {
+  providerCooldown._resetCooldowns();
+});
 
 const source = normalizeLeadSource(pilotLead('dentistry'));
 const dummyModel = {
@@ -25,7 +30,7 @@ const dummyModel = {
 
 test('observability: provider 429 maps to fallbackReason=rate-limit and fallbackDetail=provider-http-429', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
     requestBlueprint: async () => {
       throw new SiteAiError('Quota exceeded', 429, true, 'SITE_AI_PROVIDER_RATE_LIMIT', 'gemini', dummyModel.model, 429, 'provider-http-429');
@@ -42,7 +47,7 @@ test('observability: provider 429 maps to fallbackReason=rate-limit and fallback
 
 test('observability: provider 503 maps to fallbackDetail=provider-http-503', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
     requestBlueprint: async () => {
       throw new SiteAiError('Service Unavailable', 503, true, 'SITE_AI_PROVIDER_UNAVAILABLE', 'gemini', dummyModel.model, 503, 'provider-http-503');
@@ -57,7 +62,7 @@ test('observability: provider 503 maps to fallbackDetail=provider-http-503', asy
 
 test('observability: provider 504 maps to fallbackDetail=provider-http-504', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
     requestBlueprint: async () => {
       throw new SiteAiError('Gateway Timeout', 504, true, 'SITE_AI_PROVIDER_TIMEOUT', 'gemini', dummyModel.model, 504, 'provider-http-504');
@@ -71,7 +76,7 @@ test('observability: provider 504 maps to fallbackDetail=provider-http-504', asy
 
 test('observability: timeout maps to fallbackDetail=provider-timeout', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
     requestBlueprint: async () => {
       throw new SiteAiError('Timeout', 504, true, 'SITE_AI_PROVIDER_TIMEOUT', 'gemini', dummyModel.model, undefined, 'provider-timeout');
@@ -86,7 +91,7 @@ test('observability: timeout maps to fallbackDetail=provider-timeout', async () 
 
 test('observability: network error maps to fallbackDetail=provider-network-error', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
     requestBlueprint: async () => {
       throw new SiteAiError('Network failed', 503, true, 'SITE_AI_PROVIDER_NETWORK', 'gemini', dummyModel.model, undefined, 'provider-network-error');
@@ -101,7 +106,7 @@ test('observability: network error maps to fallbackDetail=provider-network-error
 
 test('observability: no compatible model maps to fallbackDetail=provider-no-compatible-model', async () => {
   const result = await generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-    audit: async () => await auditCurrentSite(),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
     discoverModels: async () => ({ models: [], warnings: [] }),
   });
 
@@ -115,18 +120,18 @@ test('observability: provider 401/403 is a hard failure and is not masked as fal
   await assert.rejects(
     () =>
       generateStandardAiSite(source, { mode: 'auto' }, undefined, {}, {
-        audit: async () => await auditCurrentSite(),
+        audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
         discoverModels: async () => ({ models: [dummyModel], warnings: [] }),
         requestBlueprint: async () => {
           throw new SiteAiError('Invalid API Key', 401, false, 'SITE_AI_PROVIDER_AUTH', 'gemini', dummyModel.model, 401, 'provider-authentication');
         },
       }),
-    (err: unknown) => {
-      assert.ok(err instanceof SiteAiError);
-      assert.equal(err.code, 'SITE_AI_PROVIDER_AUTH');
-      assert.equal(err.status, 401);
-      return true;
-    },
+      (err: any) => {
+        assert.ok(err instanceof Error && err.name === 'SiteAiError', `Expected SiteAiError, got ${err?.name}`);
+        assert.equal((err as any).code, 'SITE_AI_PROVIDER_AUTH');
+        assert.equal((err as any).status, 401);
+        return true;
+      },
   );
 });
 

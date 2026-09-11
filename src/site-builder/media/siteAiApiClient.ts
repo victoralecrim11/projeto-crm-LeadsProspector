@@ -1,25 +1,9 @@
-/**
- * Centralized API client for Site AI endpoints.
- * Reuses the access token managed by siteGenerationService.
- * Never logs the token. Never exposes it to VITE_* env vars.
- */
-
-let accessToken = '';
-
-export function setMediaAccessToken(value: string) {
-  accessToken = value;
-}
-
-export function getMediaAccessToken(): string {
-  return accessToken;
-}
+import { getSiteAiAuthHeaders } from '../../services/siteAiAuth';
 
 function authHeaders(): Record<string, string> {
   const h: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (accessToken) {
-    h['Authorization'] = `Bearer ${accessToken}`;
-  }
-  return h;
+  const auth = getSiteAiAuthHeaders();
+  return { ...h, ...auth };
 }
 
 export async function authorizedJsonFetch<T = unknown>(

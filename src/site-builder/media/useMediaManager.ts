@@ -21,11 +21,14 @@ export interface MediaManagerState {
   candidatesByItem: Record<string, MediaCandidate[]>;
   loadingByItem: Record<string, boolean>;
   errorByItem: Record<string, string | null>;
-  searchMedia: (item: MediaPlan['items'][number]) => Promise<void>;
+  searchMedia: (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => Promise<void>;
   selectCandidate: (item: MediaPlan['items'][number], candidate: MediaCandidate) => Promise<void>;
   approveMedia: (itemId: string) => void;
   rejectMedia: (itemId: string) => Promise<void>;
   reloadAssets: () => Promise<void>;
+  getProjectAssets: () => Promise<import('../contracts/media').StoredMediaAsset[]>;
+  getAssetUrl: (assetId: string) => Promise<string | null>;
+  selectProjectAsset: (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => Promise<void>;
 }
 
 export function useMediaManager({
@@ -80,7 +83,7 @@ export function useMediaManager({
           // Revoke URLs from previous state that are no longer needed
           Object.values(prev).forEach(url => {
             if (!Object.values(newUrls).includes(url)) {
-              setTimeout(() => URL.revokeObjectURL(url), 1000); // Delay revocation
+              setTimeout(() => URL.revokeObjectURL(String(url)), 1000); // Delay revocation
             }
           });
           return newUrls;
@@ -105,7 +108,7 @@ export function useMediaManager({
   }, [initialManifest]);
 
   const searchMedia = useCallback(
-    async (item: MediaPlan['items'][number]) => {
+    async (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => {
       setLoadingByItem((prev) => ({ ...prev, [item.id]: true }));
       setErrorByItem((prev) => ({ ...prev, [item.id]: null }));
 
@@ -119,8 +122,9 @@ export function useMediaManager({
           niche,
           subNiche,
           section: item.section,
-          purpose: item.purpose,
+          purpose: overrideQuery || item.purpose,
           aspectRatio: item.aspectRatio,
+          provider: providerFilter !== 'all' ? providerFilter : undefined,
           imageryDirection,
         });
 
@@ -242,7 +246,11 @@ export function useMediaManager({
     async (itemId: string) => {
       const entry = manifest.entries.find((e) => e.id === itemId);
       if (entry) {
-        await store.remove(entry.assetId).catch(() => {});
+        // Check if other entries are using this asset
+        const isUsedElsewhere = manifest.entries.some((e) => e.id !== itemId && e.assetId === entry.assetId);
+        if (!isUsedElsewhere) {
+          await store.remove(entry.assetId).catch(() => {});
+        }
       }
       const updatedEntries = manifest.entries.filter((e) => e.id !== itemId);
       const updatedManifest: MediaManifest = {
@@ -261,6 +269,66 @@ export function useMediaManager({
     setObjectUrls(newUrls);
   }, [manifest, loadUrls]);
 
+  const getProjectAssets = useCallback(async () => {
+    return await store.list();
+  }, [store]);
+
+  const getAssetUrl = useCallback(async (assetId: string) => {
+    const blob = await store.get(assetId);
+    if (!blob) return null;
+    return URL.createObjectURL(blob);
+  }, [store]);
+
+  const selectProjectAsset = useCallback(
+    async (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => {
+      // Find existing entry in manifest to inherit attribution if possible
+      const existingEntry = manifest.entries.find(e => e.assetId === asset.assetId);
+
+      const ext = asset.mimeType === 'image/jpeg' ? 'jpg' : asset.mimeType === 'image/png' ? 'png' : 'webp';
+      const assetPath = `media-${item.section}-${asset.contentHash.slice(0, 8)}.${ext}`;
+
+      const newEntry: import('../contracts/media').MediaManifestEntry = {
+        id: item.id,
+        requestId: asset.requestId,
+        section: item.section,
+        sourceType: 'licensed',
+        provider: asset.provider as any, // pexels | pixabay
+        providerAssetId: existingEntry?.providerAssetId || asset.assetId,
+        sourcePageUrl: existingEntry?.sourcePageUrl,
+        licenseLabel: existingEntry?.licenseLabel || 'Standard License',
+        licenseUrl: existingEntry?.licenseUrl,
+        attributionText: existingEntry?.attributionText || `Provided by ${asset.provider}`,
+        creator: existingEntry?.creator || '',
+        creatorUrl: existingEntry?.creatorUrl,
+        retrievedAt: asset.createdAt,
+        contentHash: asset.contentHash,
+        assetId: asset.assetId,
+        assetPath,
+        mimeType: asset.mimeType,
+        width: asset.width,
+        height: asset.height,
+        byteLength: asset.byteLength,
+        alt: item.decorative ? '' : item.alt || item.purpose,
+        decorative: item.decorative,
+        realBusinessMedia: false,
+        licensed: true,
+        aiGenerated: false,
+        reviewStatus: 'selected',
+      };
+
+      const updatedEntries = manifest.entries.filter((e) => e.id !== item.id).concat(newEntry);
+      const updatedManifest: MediaManifest = {
+        ...manifest,
+        generatedAt: new Date().toISOString(),
+        entries: updatedEntries,
+      };
+
+      setManifest(updatedManifest);
+      onManifestChange?.(updatedManifest);
+    },
+    [manifest, onManifestChange]
+  );
+
   return {
     manifest,
     objectUrls,
@@ -272,5 +340,8 @@ export function useMediaManager({
     approveMedia,
     rejectMedia,
     reloadAssets,
+    getProjectAssets,
+    getAssetUrl,
+    selectProjectAsset,
   };
 }

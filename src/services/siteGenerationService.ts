@@ -1,6 +1,9 @@
 import type { CrmSettingsConfig } from "../types";
-import { resolvedDesignSchema, type LeadSourceContext } from '../site-builder/contracts/research';
-import { designSystemContractSchema } from '../site-builder/contracts';
+import {
+  resolvedDesignSchema,
+  type LeadSourceContext,
+} from "../site-builder/contracts/research";
+import { designSystemContractSchema } from "../site-builder/contracts";
 import {
   blueprintSchema,
   type AiModelDefinition,
@@ -11,43 +14,81 @@ import {
   type GenerationMetadata,
   type RegenerationSection,
 } from "../site-builder/types";
-let accessToken = "";
-export async function generateStandardBlueprint(settings: CrmSettingsConfig, source: LeadSourceContext, overrides?: { primary: string; accent: string }) {
-  const result = await api('sites/standard', settings, { source, overrides }) as { blueprint: unknown; design: unknown; generation: GenerationMetadata; warnings: string[] };
-  return { ...result, blueprint: blueprintSchema.parse(result.blueprint), design: resolvedDesignSchema.parse(result.design) };
+import { getSiteAiAuthHeaders, setSiteAiAccessToken } from "./siteAiAuth";
+export async function generateStandardBlueprint(
+  settings: CrmSettingsConfig,
+  source: LeadSourceContext,
+  overrides?: { primary: string; accent: string },
+) {
+  const result = (await api("sites/standard", settings, {
+    source,
+    overrides,
+  })) as {
+    blueprint: unknown;
+    design: unknown;
+    generation: GenerationMetadata;
+    warnings: string[];
+  };
+  return {
+    ...result,
+    blueprint: blueprintSchema.parse(result.blueprint),
+    design: resolvedDesignSchema.parse(result.design),
+  };
 }
-export async function generateStandardAiBlueprint(settings: CrmSettingsConfig, source: LeadSourceContext, selection: ModelSelection = { mode: 'auto' }, overrides?: { primary: string; accent: string }) {
-  const result = await api('sites/standard-ai', settings, { source, selection, overrides }) as { blueprint: unknown; design: unknown; contract: unknown; generation: GenerationMetadata; warnings: string[] };
-  return { ...result, blueprint: blueprintSchema.parse(result.blueprint), design: resolvedDesignSchema.parse(result.design), contract: designSystemContractSchema.parse(result.contract) };
+export async function generateStandardAiBlueprint(
+  settings: CrmSettingsConfig,
+  source: LeadSourceContext,
+  selection: ModelSelection = { mode: "auto" },
+  overrides?: { primary: string; accent: string },
+) {
+  const result = (await api("sites/standard-ai", settings, {
+    source,
+    selection,
+    overrides,
+  })) as {
+    blueprint: unknown;
+    design: unknown;
+    contract: unknown;
+    generation: GenerationMetadata;
+    warnings: string[];
+  };
+  return {
+    ...result,
+    blueprint: blueprintSchema.parse(result.blueprint),
+    design: resolvedDesignSchema.parse(result.design),
+    contract: designSystemContractSchema.parse(result.contract),
+  };
 }
 export function formatFallbackMessage(generation: GenerationMetadata): string {
   switch (generation.fallbackDetail) {
-    case 'provider-http-429':
-      return 'Limite temporário da API de IA atingido. O site foi criado com fallback determinístico.';
-    case 'provider-http-503':
-    case 'provider-http-504':
-      return 'O provedor de IA está temporariamente indisponível. O site foi criado com fallback determinístico.';
-    case 'provider-timeout':
-      return 'A geração por IA excedeu o tempo limite. O site foi criado com fallback determinístico.';
-    case 'provider-network-error':
-      return 'Não foi possível concluir a comunicação com o provedor de IA. O site foi criado com fallback determinístico.';
-    case 'provider-no-compatible-model':
-      return 'Nenhum modelo compatível estava disponível para esta estratégia. O site foi criado com fallback determinístico.';
+    case "provider-http-429":
+      return "Limite temporário da API de IA atingido. O site foi criado com fallback determinístico.";
+    case "provider-http-503":
+    case "provider-http-504":
+      return "O provedor de IA está temporariamente indisponível. O site foi criado com fallback determinístico.";
+    case "provider-timeout":
+      return "A geração por IA excedeu o tempo limite. O site foi criado com fallback determinístico.";
+    case "provider-network-error":
+      return "Não foi possível concluir a comunicação com o provedor de IA. O site foi criado com fallback determinístico.";
+    case "provider-no-compatible-model":
+      return "Nenhum modelo compatível estava disponível para esta estratégia. O site foi criado com fallback determinístico.";
     default:
-      if (generation.fallbackReason === 'rate-limit') {
-        return 'Limite temporário da API de IA atingido. O site foi criado com fallback determinístico.';
+      if (generation.fallbackReason === "rate-limit") {
+        return "Limite temporário da API de IA atingido. O site foi criado com fallback determinístico.";
       }
-      return 'O provedor de IA está temporariamente indisponível. O site foi criado com fallback determinístico.';
+      return "O provedor de IA está temporariamente indisponível. O site foi criado com fallback determinístico.";
   }
 }
 
 export function setSiteAccessToken(value: string) {
-  accessToken = value;
+  // backward-compatible wrapper: siteGenerationService previously held the token.
+  // The canonical source of truth is now `siteAiAuth`.
+  setSiteAiAccessToken(value);
 }
 function headers(settings: CrmSettingsConfig, body?: any) {
   const reqHeaders: Record<string, string> = {
     "Content-Type": "application/json",
-    ...(accessToken ? { Authorization: "Bearer " + accessToken } : {}),
+    ...getSiteAiAuthHeaders(),
   };
 
   const getProviderKey = (providerId: string) => {
@@ -65,7 +106,10 @@ function headers(settings: CrmSettingsConfig, body?: any) {
     allowedProviders = ["gemini", "groq", "huggingface"];
   }
 
-  const legacyGeminiKey = settings.aiProvider === "gemini" ? settings.aiApiKey || settings.geminiApiKey : "";
+  const legacyGeminiKey =
+    settings.aiProvider === "gemini"
+      ? settings.aiApiKey || settings.geminiApiKey
+      : "";
 
   for (const provider of allowedProviders) {
     const key = getProviderKey(provider);

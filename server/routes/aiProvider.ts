@@ -1,5 +1,6 @@
 import { Router, type Request } from "express";
 import { z } from "zod";
+import { setCooldownFromRetryAfter } from "../services/ai/providerCooldown.js";
 
 const REQUEST_TIMEOUT_MS = 30_000;
 const MAX_RETRIES_PER_PROVIDER = 2;
@@ -154,6 +155,9 @@ async function generateOpenAiCompatible(request: ProviderRequest & { provider: O
 
     const detail = await readError(response);
     lastError = new AiProviderError(response.status, apiErrorMessage(response.status, detail));
+    if ([429, 503, 504].includes(response.status)) {
+      try { setCooldownFromRetryAfter(response, request.provider, model); } catch {};
+    }
     if ([400, 401, 403, 429].includes(response.status)) break;
   }
   throw lastError ?? new AiProviderError(502, "O provedor não respondeu.");
@@ -182,6 +186,9 @@ async function generateGemini(request: ProviderRequest) {
     }
     const detail = await readError(response);
     lastError = new AiProviderError(response.status, apiErrorMessage(response.status, detail));
+    if ([429, 503, 504].includes(response.status)) {
+      try { setCooldownFromRetryAfter(response, request.provider, model); } catch {}
+    }
     if ([400, 401, 403, 429].includes(response.status)) break;
   }
   throw lastError ?? new AiProviderError(502, "O Gemini não respondeu.");
@@ -203,7 +210,10 @@ async function generateClaude(request: ProviderRequest) {
       messages: [{ role: "user", content: request.userPrompt }],
     }),
   });
-  if (!response.ok) throw new AiProviderError(response.status, apiErrorMessage(response.status, await readError(response)));
+  if (!response.ok) {
+    try { setCooldownFromRetryAfter(response, request.provider, model); } catch {}
+    throw new AiProviderError(response.status, apiErrorMessage(response.status, await readError(response)));
+  }
   const data = await response.json() as { content?: Array<{ type?: string; text?: string }> };
   const content = data.content?.filter((part) => part.type === "text").map((part) => part.text || "").join("").trim();
   if (!content) throw new AiProviderError(502, "O Claude respondeu sem texto utilizável.");
@@ -224,7 +234,10 @@ async function generateCohere(request: ProviderRequest) {
       ],
     }),
   });
-  if (!response.ok) throw new AiProviderError(response.status, apiErrorMessage(response.status, await readError(response)));
+  if (!response.ok) {
+    try { setCooldownFromRetryAfter(response, request.provider, model); } catch {}
+    throw new AiProviderError(response.status, apiErrorMessage(response.status, await readError(response)));
+  }
   const data = await response.json() as { message?: { content?: Array<{ type?: string; text?: string }> } };
   const content = data.message?.content?.filter((part) => part.type === "text").map((part) => part.text || "").join("").trim();
   if (!content) throw new AiProviderError(502, "A Cohere respondeu sem texto utilizável.");

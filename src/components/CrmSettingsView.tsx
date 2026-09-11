@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   User, Settings, MapPin, Mail, DollarSign, Clock, ShieldCheck, 
   Download, Save, CheckCircle2, ExternalLink, Key, Trash2, Sparkles,
-  Server, Zap, Info, Layers, Plus, Eye, EyeOff, AlertTriangle, Bot
+  Server, Zap, Info, Layers, Plus, Eye, EyeOff, AlertTriangle, Bot, Image, Activity, RefreshCw
 } from 'lucide-react';
 import { useCrm } from '../hooks/useCrm';
 import { useLeadStore } from '../store/leadStore';
@@ -10,6 +10,7 @@ import { CrmSettingsConfig, AIProvider } from '../types';
 import { EmailService } from '../services/EmailService';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 import { testAiProviderConnection } from '../services/aiService';
+import { getSiteAiAuthHeaders } from '../services/siteAiAuth';
 
 const AI_PROVIDERS_LIST: { id: AIProvider; name: string; tag?: string; tagColor?: string }[] = [
   { id: 'gemini', name: 'Google Gemini', tag: 'Gratuito', tagColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
@@ -36,12 +37,68 @@ export const CrmSettingsView: React.FC = () => {
   } = useCrm();
 
   const [formData, setFormData] = useState<CrmSettingsConfig>(crmSettings);
-  const [activeTab, setActiveTab] = useState<'closer' | 'pipeline' | 'pricing' | 'maps' | 'email' | 'backup' | 'ai'>('closer');
+  const [activeTab, setActiveTab] = useState<'closer' | 'pipeline' | 'pricing' | 'maps' | 'email' | 'backup' | 'ai' | 'midia'>('closer');
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [emailHistory, setEmailHistory] = useState(() => EmailService.getHistory());
   
   const [isTestingAi, setIsTestingAi] = useState<string | null>(null);
   const [testAiResult, setTestAiResult] = useState<Record<string, {success: boolean, message: string}>>({});
+
+  const [mediaProviders, setMediaProviders] = useState<{id: string, name: string, configured: boolean, enabled: boolean, priority: number}[]>([]);
+  const [mediaProvidersLoading, setMediaProvidersLoading] = useState(true);
+  const [mediaProvidersError, setMediaProvidersError] = useState<string | null>(null);
+  const [testingMedia, setTestingMedia] = useState<string | null>(null);
+  const [mediaTestResult, setMediaTestResult] = useState<Record<string, { healthy: boolean, status: string, error?: string }>>({});
+
+  const fetchMediaProviders = () => {
+    setMediaProvidersLoading(true);
+    setMediaProvidersError(null);
+    fetch('/api/ai/media/providers', {
+      headers: {
+        ...getSiteAiAuthHeaders(),
+      }
+    })
+      .then(async r => {
+        if (!r.ok) {
+          throw new Error('Falha ao buscar provedores: ' + r.status);
+        }
+        return r.json();
+      })
+      .then(data => {
+        setMediaProviders(data.providers || []);
+      })
+      .catch(err => {
+        console.error(err);
+        setMediaProvidersError('Não foi possível carregar os provedores de mídia.');
+      })
+      .finally(() => {
+        setMediaProvidersLoading(false);
+      });
+  };
+
+  useEffect(() => {
+    if (activeTab === 'midia') {
+      fetchMediaProviders();
+    }
+  }, [activeTab]);
+
+  const testMediaConnection = async (providerId: string) => {
+    setTestingMedia(providerId);
+    try {
+      const res = await fetch(`/api/ai/media/providers/${providerId}/test`, { 
+        method: 'POST',
+        headers: {
+          ...getSiteAiAuthHeaders(),
+        }
+      });
+      const data = await res.json();
+      setMediaTestResult(prev => ({ ...prev, [providerId]: data }));
+    } catch (err: any) {
+      setMediaTestResult(prev => ({ ...prev, [providerId]: { healthy: false, status: 'error', error: err.message } }));
+    } finally {
+      setTestingMedia(null);
+    }
+  };
   const [isTestingMaps, setIsTestingMaps] = useState<boolean>(false);
   const [testMapsResult, setTestMapsResult] = useState<{success: boolean, message: string} | null>(null);
   const [showApiKeyMap, setShowApiKeyMap] = useState<Record<string, boolean>>({});
@@ -250,6 +307,7 @@ export const CrmSettingsView: React.FC = () => {
           { id: 'pricing', label: 'Preços & Propostas', icon: <DollarSign className="w-3.5 h-3.5" /> },
           { id: 'maps', label: 'Integrações legacy', icon: <MapPin className="w-3.5 h-3.5" />, badge: 'Opcional' },
           { id: 'ai', label: 'Inteligência Artificial', icon: <Sparkles className="w-3.5 h-3.5" /> },
+          { id: 'midia', label: 'Mídia & Assets', icon: <Image className="w-3.5 h-3.5" /> },
           { id: 'email', label: 'EmailService & Envio', icon: <Mail className="w-3.5 h-3.5" /> },
           { id: 'backup', label: 'Backup & Dados', icon: <Download className="w-3.5 h-3.5" /> },
         ].map(tab => (
@@ -863,6 +921,115 @@ export const CrmSettingsView: React.FC = () => {
                   <span>Salvar Configurações de IA</span>
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {activeTab === 'midia' && (
+          <div className="glass-panel p-6 rounded-2xl border border-white/10 space-y-6 animate-in fade-in duration-150">
+            <div>
+              <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
+                <Image className="w-5 h-5 text-indigo-400" />
+                Mídia & Assets (Provedores)
+              </h3>
+              <p className="text-xs text-slate-400 mt-1">
+                Verifique o status e a saúde das conexões com bancos de imagem integrados via proxy seguro. As chaves de acesso devem ser configuradas exclusivamente no ambiente (`.env.local`).
+              </p>
+            </div>
+
+            <div className="space-y-4">
+              {mediaProvidersLoading ? (
+                <div className="text-sm text-slate-400 p-4 rounded bg-slate-800/40 border border-slate-700 text-center flex flex-col items-center justify-center gap-2">
+                  <div className="animate-spin text-emerald-500">
+                    <RefreshCw className="w-5 h-5" />
+                  </div>
+                  Carregando provedores...
+                </div>
+              ) : mediaProvidersError ? (
+                <div className="text-sm text-rose-400 p-4 rounded bg-rose-500/10 border border-rose-500/20 text-center flex flex-col items-center justify-center gap-3">
+                  <AlertTriangle className="w-6 h-6 text-rose-400" />
+                  <p>{mediaProvidersError}</p>
+                  <button
+                    onClick={fetchMediaProviders}
+                    className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded text-sm transition-colors"
+                  >
+                    <RefreshCw className="w-4 h-4" />
+                    Tentar novamente
+                  </button>
+                </div>
+              ) : mediaProviders.length === 0 ? (
+                <div className="text-sm text-slate-400 p-4 rounded bg-slate-800/40 border border-slate-700 text-center">
+                  Nenhum provedor encontrado.
+                </div>
+              ) : (
+                mediaProviders.map((provider) => {
+                  const testRes = mediaTestResult[provider.id];
+                  const isTesting = testingMedia === provider.id;
+
+                  return (
+                    <div key={provider.id} className="p-4 rounded-xl bg-slate-900/60 border border-white/5 space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-lg ${provider.configured ? 'bg-emerald-500/10 text-emerald-400' : 'bg-slate-800 text-slate-500'}`}>
+                            <Image className="w-5 h-5" />
+                          </div>
+                          <div>
+                            <h4 className="text-sm font-semibold text-white flex items-center gap-2">
+                              {provider.name}
+                              {provider.configured ? (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">Configurado</span>
+                              ) : (
+                                <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700">Não Configurado</span>
+                              )}
+                            </h4>
+                            <p className="text-xs text-slate-400 mt-0.5">
+                              Prioridade de Fallback: {provider.priority}
+                            </p>
+                          </div>
+                        </div>
+
+                        <button
+                          type="button"
+                          disabled={!provider.configured || isTesting}
+                          onClick={() => testMediaConnection(provider.id)}
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border disabled:opacity-50 disabled:cursor-not-allowed text-indigo-300 border-indigo-500/30 bg-indigo-500/10 hover:bg-indigo-500/20"
+                        >
+                          <Activity className={`w-3.5 h-3.5 ${isTesting ? 'animate-spin' : ''}`} />
+                          {isTesting ? 'Testando...' : 'Testar Conexão'}
+                        </button>
+                      </div>
+
+                      {testRes && (
+                        <div className={`p-3 rounded-lg text-xs border ${
+                          testRes.healthy 
+                            ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-300' 
+                            : 'bg-rose-500/10 border-rose-500/20 text-rose-300'
+                        }`}>
+                          <div className="flex items-center gap-2 font-medium mb-1">
+                            {testRes.healthy ? <CheckCircle2 className="w-4 h-4" /> : <AlertTriangle className="w-4 h-4" />}
+                            Status: {testRes.status.toUpperCase()}
+                          </div>
+                          {!testRes.healthy && testRes.error && (
+                            <p className="opacity-90 ml-6">{testRes.error}</p>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="p-4 rounded-xl bg-blue-500/10 border border-blue-500/20">
+              <h4 className="text-sm font-semibold text-blue-300 flex items-center gap-2 mb-2">
+                <Info className="w-4 h-4" /> 
+                Informação de Segurança
+              </h4>
+              <p className="text-xs text-blue-200/70 leading-relaxed">
+                Seguindo as diretrizes de segurança da fase C.1.1, as chaves das APIs de mídia (como Pexels e Pixabay) 
+                não são armazenadas no IndexedDB nem trafegadas para o frontend. Elas devem ser definidas no arquivo 
+                <code className="mx-1 px-1.5 py-0.5 bg-black/30 rounded">.env.local</code>. O servidor proxy atua como intermediário seguro.
+              </p>
             </div>
           </div>
         )}

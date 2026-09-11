@@ -47,6 +47,9 @@ test("media panel usa layout responsivo sem largura fixa em telas menores", () =
       selectCandidate={() => {}}
       approveMedia={() => {}}
       rejectMedia={() => {}}
+      getProjectAssets={async () => []}
+      getAssetUrl={async () => ""}
+      selectProjectAsset={async () => {}}
     />,
   );
 

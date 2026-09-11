@@ -13,6 +13,7 @@ const searchBodySchema = z.object({
   section: z.string().min(1).max(60),
   purpose: z.string().min(1).max(300),
   aspectRatio: z.enum(['1:1', '4:3', '3:4', '16:9']),
+  provider: z.enum(['auto', 'pexels', 'pixabay']).optional(),
   imageryDirection: z.string().max(600).optional(),
   locale: z.string().max(20).optional(),
 }).strict();
@@ -29,7 +30,7 @@ export function mediaRouter() {
     res.setHeader('Cache-Control', 'no-store');
     const requestId = (req.get('x-request-id') as string) || `media_${crypto.randomUUID()}`;
     res.setHeader('X-Request-Id', requestId);
-    (req as any).requestId = requestId;
+    (req as import('express').Request & { requestId?: string }).requestId = requestId;
 
     const origin = req.get('origin');
     if (origin) {
@@ -66,8 +67,32 @@ export function mediaRouter() {
     next();
   });
 
+  router.get('/providers', async (req: Request, res: Response) => {
+    try {
+      const providers = await fallbackChain.getProvidersStatus();
+      return res.json({ providers });
+    } catch (err) {
+      return res.status(500).json({ error: 'Falha ao buscar provedores.' });
+    }
+  });
+
+  router.post('/providers/:provider/test', async (req: Request, res: Response) => {
+    try {
+      const result = await fallbackChain.testProvider(req.params.provider);
+      return res.json({
+        provider: req.params.provider,
+        configured: result.status !== 'not_configured',
+        healthy: result.healthy,
+        status: result.status,
+        requestId: (req as any).requestId,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: 'Falha ao testar conexão.' });
+    }
+  });
+
   router.post('/search', async (req: Request, res: Response) => {
-    const requestId = (req as any).requestId || `media_${crypto.randomUUID()}`;
+    const requestId = (req as import('express').Request & { requestId?: string }).requestId || `media_${crypto.randomUUID()}`;
     const parsed = searchBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({
@@ -103,7 +128,7 @@ export function mediaRouter() {
   });
 
   router.post('/acquire', async (req: Request, res: Response) => {
-    const requestId = (req as any).requestId || `media_${crypto.randomUUID()}`;
+    const requestId = (req as import('express').Request & { requestId?: string }).requestId || `media_${crypto.randomUUID()}`;
     const parsed = acquireBodySchema.safeParse(req.body);
     if (!parsed.success) {
       return res.status(400).json({

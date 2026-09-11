@@ -220,7 +220,7 @@ export async function discoverModels(
     if (nh.key) {
       models.push({
         id: `${nh.provider}:unsupported`,
-        provider: nh.provider as any,
+        provider: nh.provider as import('../../../src/site-builder/types.js').AiModelDefinition['provider'],
         model: "unsupported",
         label: `${nh.label} (Não Homologado)`,
         description: `Provedor registrado, mas não habilitado para Site Builder nesta fase.`,

@@ -14,6 +14,7 @@ import {
   resolveModels,
   SiteAiError,
 } from "../../server/services/ai/modelRegistry";
+import * as providerCooldown from "../../server/services/ai/providerCooldown";
 import {
   generateSite,
   mergeSection,
@@ -161,6 +162,101 @@ test("modelos inválidos, desabilitados e incompatíveis falham; explícito é f
   );
   assert.equal(resolveModels([model], { mode: "auto" })[0].id, model.id);
   assert.throws(() => resolveModels([model], { mode: "local" }));
+});
+
+test("429 triggers cooldown and automatic fallback to next model", async () => {
+  providerCooldown._resetCooldowns();
+  const calls: string[] = [];
+  const second = { ...model, id: "gemini:alternate", model: "alternate" };
+  const deps = {
+    discoverModels: async () => ({ models: [model, second], warnings: [] }),
+    requestBlueprint: async (m: any) => {
+      calls.push(m.id);
+      if (m.id === model.id) throw new SiteAiError("rate", 429, true);
+      return blueprint;
+    },
+  };
+  const result = await generateSite(
+    {
+      context,
+      preferences: { siteType: "landing-page", templateId: blueprint.templateId, style: "moderno", goal: "none" },
+      modelSelection: { mode: "auto" as const },
+    },
+    {},
+    deps,
+  );
+  assert.equal(result.generation.modelId, second.id);
+  assert.ok(providerCooldown.isCooling(model.provider, model.model));
+});
+
+test("503 triggers cooldown and fallback to next model", async () => {
+  providerCooldown._resetCooldowns();
+  const second = { ...model, id: "gemini:alternate2", model: "alternate2" };
+  const deps = {
+    discoverModels: async () => ({ models: [model, second], warnings: [] }),
+    requestBlueprint: async (m: any) => {
+      if (m.id === model.id) throw new SiteAiError("svc", 503, true);
+      return blueprint;
+    },
+  };
+  const result = await generateSite(
+    {
+      context,
+      preferences: { siteType: "landing-page", templateId: blueprint.templateId, style: "moderno", goal: "none" },
+      modelSelection: { mode: "auto" as const },
+    },
+    {},
+    deps,
+  );
+  assert.equal(result.generation.modelId, second.id);
+  assert.ok(providerCooldown.isCooling(model.provider, model.model));
+});
+
+test("504 timeout leads to fallback (retryable) and does not set aggressive retries", async () => {
+  providerCooldown._resetCooldowns();
+  const second = { ...model, id: "gemini:alternate3", model: "alternate3" };
+  let calls = 0;
+  const deps = {
+    discoverModels: async () => ({ models: [model, second], warnings: [] }),
+    requestBlueprint: async (m: any) => {
+      calls++;
+      if (m.id === model.id && calls === 1) throw new SiteAiError("timeout", 504, true);
+      return blueprint;
+    },
+  };
+  const result = await generateSite(
+    {
+      context,
+      preferences: { siteType: "landing-page", templateId: blueprint.templateId, style: "moderno", goal: "none" },
+      modelSelection: { mode: "auto" as const },
+    },
+    {},
+    deps,
+  );
+  assert.equal(result.generation.modelId, second.id);
+});
+
+test("explicit/manual selection does not fallback automatically on 401/403", async () => {
+  providerCooldown._resetCooldowns();
+  const deps = {
+    discoverModels: async () => ({ models: [model], warnings: [] }),
+    requestBlueprint: async () => {
+      throw new SiteAiError("auth", 401, false);
+    },
+  };
+  await assert.rejects(
+    () =>
+      generateSite(
+        {
+          context,
+          preferences: { siteType: "landing-page", templateId: blueprint.templateId, style: "moderno", goal: "none" },
+          modelSelection: { mode: "explicit" as const, modelId: model.id },
+        },
+        {},
+        deps,
+      ),
+    /auth/,
+  );
 });
 test("auto permite fallback; explícito nunca troca de modelo", async () => {
   const calls: string[] = [];

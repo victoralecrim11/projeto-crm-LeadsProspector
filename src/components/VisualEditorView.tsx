@@ -507,7 +507,10 @@ export const VisualEditorView: React.FC = () => {
                   approveMedia={mediaManager.approveMedia}
                   rejectMedia={mediaManager.rejectMedia}
                   autoResolveStatus={autoResolveStatus}
-                  autoResolveMessage={autoResolveMessage}
+                  autoResolveMessage={autoResolveMessage as any}
+                  getProjectAssets={mediaManager.getProjectAssets}
+                  getAssetUrl={mediaManager.getAssetUrl}
+                  selectProjectAsset={mediaManager.selectProjectAsset}
                 />
                 {autoResolveStatus === 'idle' && mediaPlan.items.some(i => i.sourcePreference === 'licensed') && (
                   <button
