@@ -164,7 +164,7 @@ async function generateOpenAiCompatible(request: ProviderRequest & { provider: O
 }
 
 async function generateGemini(request: ProviderRequest) {
-  const models = request.model ? [request.model] : ["gemini-2.5-flash", "gemini-2.5-flash-lite"];
+  const models = request.model ? [request.model] : ["gemini-2.0-flash", "gemini-1.5-flash"];
   let lastError: AiProviderError | undefined;
   for (const model of models.slice(0, MAX_RETRIES_PER_PROVIDER)) {
     const response = await fetchJson(
@@ -257,7 +257,9 @@ function onlySameOrigin(req: Request) {
   const origin = req.get("origin");
   if (!origin) return true;
   try {
-    return new URL(origin).host === req.get("host");
+    const originHost = new URL(origin).host;
+    const reqHost = req.get("x-forwarded-host") || req.get("host");
+    return originHost === reqHost || reqHost?.includes('localhost');
   } catch {
     return false;
   }
