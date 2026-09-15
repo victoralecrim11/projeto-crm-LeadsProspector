@@ -158,6 +158,7 @@ export class ComfyUiProvider implements GeneratedMediaProvider {
         }
         // Still pending, continue loop
       } catch (e) {
+        if (e instanceof MediaProviderError) throw e;
         // network error during polling, just wait for next poll
       }
     }

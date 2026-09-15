@@ -1,6 +1,6 @@
 import { blueprintSchema, type GeneratedSiteBlueprint } from './types.js';
 import { contactAvailable } from './context.js';
-import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign, type DesignResearchSnapshot } from './contracts/research.js';
+import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign, type DesignResearchSnapshot, type DesignCandidate } from './contracts/research.js';
 import { businessFromSource } from './leadSource.js';
 import { getMarketReference, marketReferenceKey } from './guidance/niches/market.js';
 import { pilotFamilies, pilotSpecification } from './guidance/design-families/pilots.js';
@@ -100,12 +100,21 @@ export function designForBlueprint(input: ResolvedDesign, blueprint: GeneratedSi
   return resolvedDesignSchema.parse(d);
 }
 
-export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNullable<ResolvedDesign['stitch']>): ResolvedDesign {
+export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNullable<ResolvedDesign['stitch']>, candidate?: DesignCandidate): ResolvedDesign {
   if (!evidence.alternatives.includes(evidence.selected)) throw new Error('A direção deve pertencer à exploração revisada.');
   const d = resolvedDesignSchema.parse({ ...base, mode: 'premium', stitch: evidence });
   d.variant = evidence.selected;
+  
+  let originStr = `Stitch: ${evidence.projectUrl || 'mcp-fallback'}; seleção ${evidence.selected}. Mapeamento para componentes suportados; copy externa não importada.`;
+  if (candidate) {
+    originStr = `Stitch MCP Candidate: ${candidate.candidateId}; strategy: ${candidate.strategyId}. Diversidade Estrutural aplicada.`;
+    if (candidate.sectionOrder && candidate.sectionOrder.length === 5) {
+      d.composition = candidate.sectionOrder;
+    }
+  }
+
   d.resolution = { status: 'resolved', resolvedAt: new Date().toISOString(), reason: evidence.review };
-  d.trace.push({ decision: 'Direção visual Premium', origin: `Stitch: ${evidence.projectUrl}; seleção ${evidence.selected}. Mapeamento para componentes suportados; copy externa não importada.` });
+  d.trace.push({ decision: 'Direção visual Premium', origin: originStr });
   d.designMarkdown = designMarkdown(d);
   return resolvedDesignSchema.parse(d);
 }

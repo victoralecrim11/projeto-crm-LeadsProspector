@@ -14,7 +14,7 @@ import { z } from 'zod';
 import { leadSourceContextSchema } from '../../src/site-builder/contracts/research.js';
 import { generateStandardSite } from '../services/research/designService.js';
 import { generateStandardAiSite } from '../services/research/standardAiService.js';
-import { probeStitch } from '../services/research/stitch.js';
+import { probeStitch } from '../services/research/stitch/index.js';
 import { researchNiche } from '../services/research/nicheResearchService.js';
 import { globalDesignResearchCache } from '../services/research/snapshotCache.js';
 
@@ -75,7 +75,7 @@ export function siteGenerationRouter() {
     }
     next();
   });
-  router.get('/design-capabilities', async (_req, res) => res.json({ standard: true, stitch: await probeStitch() }));
+  router.get('/design-capabilities', async (_req, res) => res.json({ standard: true, stitch: await probeStitch('default', 'default', 'default') }));
 
   router.get('/research/niche', async (req, res) => {
     const nicheParam = typeof req.query.niche === 'string' ? req.query.niche.trim() : '';

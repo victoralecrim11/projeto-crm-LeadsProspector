@@ -12,7 +12,7 @@ import { getMarketReference } from '../../src/site-builder/guidance/niches/marke
 import { renderSiteDocument } from '../../src/site-builder/renderer/SiteRenderer';
 import { createSiteZip } from '../../src/site-builder/exportSite';
 import { loadProjects, persistProjects } from '../../src/site-builder/projectPersistence';
-import { probeStitch, explorePremium, stitchDesignInput } from '../../server/services/research/stitch';
+import { probeStitch, explorePremium, stitchDesignInput } from '../../server/services/research/stitch/index.js';
 import { fetchLeadsFromOverpass } from '../../src/services/overpassService';
 import type { Project } from '../../src/types';
 import { generateStandardAiSite } from '../../server/services/research/standardAiService';
@@ -149,12 +149,12 @@ test('sidecar persists and export matches preview with DESIGN.md', async () => {
   assert.ok((await zip.file('.design/design-system.md')!.async('string')).includes('Design System Contract'));
 });
 test('Stitch operational states and privacy; no pretend variants', async () => {
-  assert.equal(await probeStitch(), 'STITCH_NOT_CONFIGURED');
+  assert.equal(await probeStitch('proj', 'req', 'strat'), 'STITCH_WAITING_ARTIFACT');
   const d = resolveStandardDesign(normalizeLeadSource(pilotLead('dentistry')), await auditCurrentSite(), undefined, date);
   const payload = JSON.stringify(stitchDesignInput(d));
   assert.ok(!payload.includes('example.invalid')); assert.ok(!payload.includes('fictional')); assert.ok(!payload.includes('Rua'));
   assert.equal((await explorePremium(d)).variants.length, 0);
-  const provider = { probe: async () => ({ readable: true, writable: false }), explore: async () => [] };
-  assert.equal(await probeStitch(provider), 'STITCH_READ_ONLY');
-  assert.equal(await probeStitch({ ...provider, probe: async () => { throw new Error(); } }), 'STITCH_FAILED');
+  const provider = { probe: async () => ({ status: 'STITCH_READ_ONLY' as const }), explore: async () => null };
+  assert.equal(await probeStitch('proj', 'req', 'strat', provider), 'STITCH_READ_ONLY');
+  assert.equal(await probeStitch('proj', 'req', 'strat', { ...provider, probe: async () => { throw new Error(); } }), 'STITCH_FAILED');
 });

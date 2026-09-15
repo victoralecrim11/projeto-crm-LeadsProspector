@@ -118,6 +118,77 @@ export const designResearchSnapshotSchema = z.object({
 }).strict();
 export type DesignResearchSnapshot = z.infer<typeof designResearchSnapshotSchema>;
 
+export const designStrategySchema = z.object({
+  strategyId: z.string().max(160),
+  version: z.literal(1),
+  niche: text,
+  subNiche: text.optional(),
+  sitePurpose: text,
+  visualMood: z.enum(['clean', 'bold', 'refined', 'warm', 'corporate', 'editorial']),
+  compositionDirection: z.enum(['image-led', 'text-led', 'balanced', 'minimal', 'grid-heavy']),
+  typographyDirection: z.enum(['modern', 'editorial', 'classic', 'expressive']),
+  imageryDirection: text,
+  informationDensity: z.enum(['low', 'medium', 'high']),
+  motionLevel: z.enum(['none', 'subtle', 'moderate', 'expressive']),
+  interactionLevel: z.enum(['static', 'micro-interactions', 'rich']),
+  heroPatterns: z.array(text),
+  aboutPatterns: z.array(text),
+  servicePatterns: z.array(text),
+  sectionPriorities: z.array(z.enum(sectionIds)),
+  skillProfile: z.array(text),
+  stitchRecommended: z.boolean(),
+  stitchVariantCount: z.number().int().min(2).max(3),
+  performanceBudget: z.enum(['low', 'medium', 'high']),
+  accessibilityConstraints: z.array(text),
+  provenance: z.array(z.object({ decision: text, origin: text }).strict()),
+}).strict();
+export type DesignStrategy = z.infer<typeof designStrategySchema>;
+
+export const designCandidateSchema = z.object({
+  candidateId: z.string().max(160),
+  source: z.enum(['stitch', 'curated', 'strategy-fallback']),
+  projectId: z.string().optional(),
+  screenId: z.string().optional(),
+  projectUrl: z.string().url().optional(),
+  strategyId: z.string().max(160),
+  layoutPatterns: z.array(text),
+  heroPattern: text,
+  aboutPattern: text,
+  servicePattern: text,
+  sectionOrder: z.array(z.enum(sectionIds)),
+  typographySignals: z.array(text),
+  colorSignals: z.array(text),
+  spacingSignals: z.array(text),
+  imageryDirection: text,
+  motionSignals: z.array(text),
+  responsiveSignals: z.array(text),
+  screenshotReference: z.string().url().optional(),
+  htmlReference: z.string().optional(),
+  scores: z.object({
+    nicheFit: z.number(),
+    purposeFit: z.number(),
+    researchFit: z.number(),
+    structuralDiversity: z.number(),
+    accessibility: z.number(),
+    performance: z.number(),
+    responsiveQuality: z.number(),
+    total: z.number(),
+  }).strict(),
+  provenance: z.array(z.object({ decision: text, origin: text }).strict()),
+}).strict();
+export type DesignCandidate = z.infer<typeof designCandidateSchema>;
+
+export const stitchCandidateArtifactSchema = z.object({
+  schemaVersion: z.number(),
+  requestId: z.string(),
+  projectId: z.string(),
+  strategyId: z.string(),
+  generatedAt: z.string(), // ISO string
+  source: z.enum(['stitch', 'curated', 'strategy-fallback']),
+  candidates: z.array(designCandidateSchema),
+}).passthrough(); // Allow unknown fields from MCP, we just validate what we care about
+export type StitchCandidateArtifact = z.infer<typeof stitchCandidateArtifactSchema>;
+
 export const combinedReferenceBriefSchema = z.object({
   version: z.literal(1), business: sourcedBusinessContextSchema,
   currentBusiness: currentBusinessReferenceSchema,
@@ -136,7 +207,20 @@ export const resolvedDesignSchema = z.object({
   responsiveBehavior: text, preservedBrandElements: z.array(text),
   designMarkdown: z.string().max(24000),
   trace: z.array(z.object({ decision: text, origin: text }).strict()).max(30),
-  stitch: z.object({ projectUrl: z.string().url().refine(v => new URL(v).origin === 'https://stitch.withgoogle.com'),
-    alternatives: z.array(text).min(2).max(3), selected: text, review: text }).strict().optional(),
+  stitch: z.object({ 
+    projectUrl: z.string().url().refine(v => new URL(v).origin === 'https://stitch.withgoogle.com').optional(),
+    alternatives: z.array(text).min(2).max(3), 
+    selected: text, 
+    review: text,
+    provider: text.optional(),
+    projectId: text.optional(),
+    screenId: text.optional(),
+    candidateId: text.optional(),
+    strategyId: text.optional(),
+    skillsUsed: z.array(text).optional(),
+    rankingVersion: z.number().optional(),
+    stitchStatus: text.optional(),
+    generatedAt: z.iso.datetime().optional(),
+  }).strict().optional(),
 }).strict();
 export type ResolvedDesign = z.infer<typeof resolvedDesignSchema>;
