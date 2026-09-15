@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import type { MediaPlan } from '../contracts';
 import type { MediaCandidate, MediaManifestEntry, StoredMediaAsset } from '../contracts/media';
-import { X, Search, Check, Loader2, Image as ImageIcon, HardDrive, RefreshCw } from 'lucide-react';
+import { X, Search, Check, Loader2, Image as ImageIcon, HardDrive, RefreshCw, ShieldCheck } from 'lucide-react';
 
 export interface MediaPickerProps {
   open: boolean;
@@ -17,6 +17,7 @@ export interface MediaPickerProps {
   getAssetUrl: (assetId: string) => Promise<string | null>;
   onSelectProjectAsset: (item: MediaPlan['items'][number], asset: StoredMediaAsset) => void;
   searchMedia: (item: MediaPlan['items'][number]) => void;
+  generateMedia?: (item: MediaPlan['items'][number], provider?: string) => Promise<void>;
 }
 
 export function MediaPicker({
@@ -32,10 +33,12 @@ export function MediaPicker({
   getProjectAssets,
   getAssetUrl,
   onSelectProjectAsset,
+  generateMedia,
 }: MediaPickerProps) {
-  const [tab, setTab] = useState<'banco' | 'projeto'>('banco');
+  const [tab, setTab] = useState<'banco' | 'ia' | 'projeto'>('banco');
   const [query, setQuery] = useState('');
   const [provider, setProvider] = useState<'all' | 'pexels' | 'pixabay'>('all');
+  const [aiProvider, setAiProvider] = useState<'all' | 'comfyui'>('all');
   
   const [projectAssets, setProjectAssets] = useState<StoredMediaAsset[]>([]);
   const [projectUrls, setProjectUrls] = useState<Record<string, string>>({});
@@ -94,6 +97,14 @@ export function MediaPicker({
             }`}
           >
             <ImageIcon className="w-4 h-4" /> Banco de Imagens
+          </button>
+          <button
+            onClick={() => setTab('ia')}
+            className={`flex items-center gap-2 border-b-2 px-1 pb-3 text-sm font-medium transition-colors ${
+              tab === 'ia' ? 'border-indigo-500 text-indigo-400' : 'border-transparent text-slate-400 hover:text-slate-300'
+            }`}
+          >
+            <ShieldCheck className="w-4 h-4" /> Gerar com IA
           </button>
           <button
             onClick={() => setTab('projeto')}
@@ -173,6 +184,61 @@ export function MediaPicker({
                         onClick={() => onSelect(item, cand)}
                         disabled={loading}
                         className="w-full flex justify-center items-center gap-1.5 rounded-md bg-indigo-600/90 hover:bg-indigo-500 px-2 py-1.5 text-xs font-semibold text-white transition-colors"
+                      >
+                        <Check className="w-3.5 h-3.5" /> Selecionar
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {tab === 'ia' && (
+            <div className="flex flex-col gap-4 h-full">
+              <div className="flex flex-col gap-3">
+                <p className="text-sm text-slate-300">
+                  Gerar uma imagem exclusiva baseada no contexto desta seção ({item.section}) para o nicho atual.
+                </p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <select
+                    value={aiProvider}
+                    onChange={(e) => setAiProvider(e.target.value as 'all' | 'comfyui')}
+                    className="rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="all">Automático — Somente gratuitos</option>
+                    <option value="comfyui">ComfyUI Local</option>
+                  </select>
+
+                  <button
+                    onClick={() => generateMedia?.(item, aiProvider === 'all' ? undefined : aiProvider)}
+                    disabled={loading}
+                    className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors disabled:opacity-50 flex items-center gap-2"
+                  >
+                    {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} 
+                    Gerar Imagem
+                  </button>
+                </div>
+              </div>
+
+              {error && <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400 mt-2">{error}</div>}
+
+              {/* Grid of Generated Candidates */}
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 mt-4">
+                {candidates.filter(c => c.sourceType === 'generated').map((cand) => (
+                  <div key={cand.candidateId} className="group relative flex flex-col overflow-hidden rounded-lg border border-indigo-500/50 bg-slate-800 transition-all hover:border-indigo-500 hover:shadow-lg hover:shadow-indigo-500/20">
+                    <div className="relative aspect-video w-full bg-slate-900">
+                      <img src={cand.previewUrl} alt="Generated AI Image" className="h-full w-full object-cover" loading="lazy" />
+                      <div className="absolute top-2 right-2 rounded bg-indigo-600/90 px-1.5 py-0.5 text-[10px] font-medium text-white backdrop-blur-md uppercase">
+                        AI GERADA
+                      </div>
+                    </div>
+                    <div className="p-2.5 flex flex-col gap-2">
+                      <div className="text-[11px] text-slate-400 truncate capitalize">{cand.provider}</div>
+                      <button
+                        onClick={() => onSelect(item, cand)}
+                        disabled={loading}
+                        className="w-full flex justify-center items-center gap-1.5 rounded-md bg-indigo-600 hover:bg-indigo-500 px-2 py-1.5 text-xs font-semibold text-white transition-colors"
                       >
                         <Check className="w-3.5 h-3.5" /> Selecionar
                       </button>

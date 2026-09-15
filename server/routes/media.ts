@@ -5,6 +5,9 @@ import { mediaCandidateSchema } from '../../src/site-builder/contracts/media.js'
 import { MediaFallbackChain } from '../services/media/mediaFallbackChain.js';
 import { acquireMediaAsset } from '../services/media/mediaAcquisitionService.js';
 import { MediaProviderError } from '../services/media/mediaProvider.js';
+import { aiImageProviderRegistry } from '../services/media/aiImageProviderRegistry.js';
+import { buildAiImageIntent } from '../services/media/aiImageIntentBuilder.js';
+import type { GeneratedMediaRequest } from '../services/media/aiImageProviderRegistry.types.js';
 
 const searchBodySchema = z.object({
   requestId: z.string().min(1).max(120),
@@ -162,6 +165,60 @@ export function mediaRouter() {
         error: message,
         code: 'MEDIA_ACQUIRE_FAILED',
         retryable: false,
+        requestId,
+      });
+    }
+  });
+
+  const generateBodySchema = z.object({
+    requestId: z.string().min(1).max(120).optional(),
+    niche: z.string().min(1).max(120),
+    subNiche: z.string().max(120).optional(),
+    section: z.string().min(1).max(60),
+    purpose: z.string().min(1).max(300),
+    aspectRatio: z.enum(['1:1', '4:3', '3:4', '16:9']),
+    provider: z.string().optional(),
+    imageryDirection: z.string().max(600).optional(),
+    designFamily: z.string().max(60).optional(),
+  }).strict();
+
+  router.post('/generate', async (req: Request, res: Response) => {
+    const requestId = (req as import('express').Request & { requestId?: string }).requestId || `media_gen_${crypto.randomUUID()}`;
+    const parsed = generateBodySchema.safeParse(req.body);
+    
+    if (!parsed.success) {
+      return res.status(400).json({
+        error: 'Parâmetros de geração inválidos.',
+        code: 'MEDIA_PROVIDER_INVALID_RESPONSE',
+        retryable: false,
+        details: parsed.error.issues.map((i) => i.message),
+        requestId,
+      });
+    }
+
+    try {
+      const generateRequest: GeneratedMediaRequest = {
+        requestId,
+        ...parsed.data
+      };
+
+      const result = await aiImageProviderRegistry.generate(generateRequest);
+      return res.json(result);
+    } catch (err: unknown) {
+      if (err instanceof MediaProviderError) {
+        return res.status(err.statusCode ?? 500).json({
+          error: err.message,
+          code: err.code,
+          retryable: err.retryable,
+          requestId,
+          provider: err.provider,
+        });
+      }
+      const message = err instanceof Error ? err.message : 'Erro ao gerar mídia com IA.';
+      return res.status(500).json({
+        error: message,
+        code: 'MEDIA_PROVIDER_UNAVAILABLE',
+        retryable: true,
         requestId,
       });
     }

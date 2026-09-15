@@ -20,6 +20,7 @@ export interface MediaPanelProps {
   getProjectAssets: () => Promise<StoredMediaAsset[]>;
   getAssetUrl: (assetId: string) => Promise<string | null>;
   selectProjectAsset: (item: MediaPlan['items'][number], asset: StoredMediaAsset) => Promise<void>;
+  generateMedia?: (item: MediaPlan['items'][number], provider?: string) => Promise<void>;
 }
 
 /**
@@ -43,6 +44,7 @@ export function MediaPanel({
   getProjectAssets,
   getAssetUrl,
   selectProjectAsset,
+  generateMedia,
 }: MediaPanelProps) {
   const items = mediaPlan?.items ?? [];
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -261,6 +263,7 @@ export function MediaPanel({
             closePicker();
           }}
           searchMedia={searchMedia}
+          generateMedia={generateMedia}
         />
       )}
 

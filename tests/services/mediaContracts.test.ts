@@ -51,7 +51,7 @@ test('MediaCandidate: valida candidato estrito e rejeita anomalias', () => {
   assert.equal(mediaCandidateSchema.safeParse({ ...validCandidate, confidence: 1.5 }).success, false);
 });
 
-test('AcquiredMediaAsset: valida mime permitido, hash e limite de 5 MiB', () => {
+test('AcquiredMediaAsset: valida mime permitido, hash e limite de 10 MiB', () => {
   const validAcquired = {
     candidateId: 'cand_123',
     requestId: 'req_456',
@@ -79,11 +79,11 @@ test('AcquiredMediaAsset: valida mime permitido, hash e limite de 5 MiB', () => 
     false,
   );
 
-  // Rejeita tamanho superior a 5 MiB
+  // Rejeita tamanho superior a 10 MiB
   assert.equal(
     acquiredMediaAssetSchema.safeParse({
       ...validAcquired,
-      byteLength: 5 * 1024 * 1024 + 1,
+      byteLength: 10 * 1024 * 1024 + 1,
     }).success,
     false,
   );
@@ -185,12 +185,12 @@ test('MediaManifest: valida ciclo de revisão, proveniência e regras de alt', (
   };
   assert.equal(mediaManifestSchema.safeParse(duplicateManifest).success, false);
 
-  // Rejeita aiGenerated: true na Fase C.1
+  // Aceita aiGenerated: true na Fase C.3
   const aiGeneratedManifest = {
     ...validManifest,
-    entries: [{ ...validManifest.entries[0], aiGenerated: true as never }],
+    entries: [{ ...validManifest.entries[0], aiGenerated: true, sourceType: 'generated' as const, provider: 'dall-e' as const }],
   };
-  assert.equal(mediaManifestSchema.safeParse(aiGeneratedManifest).success, false);
+  assert.equal(mediaManifestSchema.safeParse(aiGeneratedManifest).success, true);
 
   // Rejeita mídia informativa com alt vazio
   const emptyInformativeAlt = {
