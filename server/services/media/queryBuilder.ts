@@ -34,8 +34,22 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
 
   const queries: string[] = [];
 
-  // 1. Primary contextual query (niche + purpose/section)
-  if (niche === 'restaurant' || niche.includes('restaurante') || niche.includes('gastronomia') || niche.includes('pizza')) {
+  // Interpret subNiche to override generic categories if needed
+  let effectiveNiche = niche;
+  if (niche === 'barbershop' || niche.includes('barbearia')) {
+    if (subNiche.includes('salão') || subNiche.includes('beleza') || subNiche.includes('cabel') || subNiche.includes('salon')) {
+      effectiveNiche = 'salon';
+    }
+  } else if (niche === 'restaurant' || niche.includes('restaurante')) {
+    if (subNiche.includes('pizza')) {
+      effectiveNiche = 'pizzeria';
+    } else if (subNiche.includes('hamburg')) {
+      effectiveNiche = 'burger';
+    }
+  }
+
+  // 1. Primary contextual query (effectiveNiche + purpose/section)
+  if (effectiveNiche === 'restaurant' || effectiveNiche.includes('restaurante') || effectiveNiche.includes('gastronomia')) {
     if (section === 'hero') {
       queries.push('modern restaurant interior');
       queries.push('gourmet artisan food dining');
@@ -50,7 +64,15 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     } else {
       queries.push('restaurant food table setting');
     }
-  } else if (niche === 'barbershop' || niche.includes('barbearia') || niche.includes('barber')) {
+  } else if (effectiveNiche === 'pizzeria') {
+    queries.push('authentic artisan pizza baking');
+    queries.push('pizzeria rustic oven italian');
+    queries.push('pizza slice melted cheese');
+  } else if (effectiveNiche === 'burger') {
+    queries.push('gourmet craft burger fries');
+    queries.push('burger restaurant fast casual interior');
+    queries.push('juicy burger pub style');
+  } else if (effectiveNiche === 'barbershop' || effectiveNiche.includes('barbearia') || effectiveNiche.includes('barber')) {
     if (section === 'hero') {
       queries.push('modern barbershop interior chair');
       queries.push('classic barbershop haircut grooming');
@@ -65,7 +87,17 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     } else {
       queries.push('barber shop haircut styling');
     }
-  } else if (niche === 'dentistry' || niche.includes('odont') || niche.includes('dental')) {
+  } else if (effectiveNiche === 'salon') {
+    if (section === 'hero') {
+      queries.push('modern hair beauty salon interior');
+      queries.push('hairdresser styling hair salon');
+    } else if (section === 'about') {
+      queries.push('hair salon tools scissors aesthetic');
+      queries.push('beauty treatment salon care');
+    } else {
+      queries.push('professional hair stylist salon');
+    }
+  } else if (effectiveNiche === 'dentistry' || effectiveNiche.includes('odont') || effectiveNiche.includes('dental')) {
     if (section === 'hero') {
       queries.push('modern dental clinic interior');
       queries.push('dentist consulting patient clinic');
@@ -78,7 +110,7 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     }
   } else {
     // Generic fallback for any other niche
-    const subject = subNiche || niche || 'business';
+    const subject = subNiche || effectiveNiche || 'business';
     queries.push(`${subject} modern professional`);
     queries.push(`${subject} interior architecture`);
     if (imagery) {

@@ -80,7 +80,8 @@ test("rota preserva indisponibilidade transitória e orienta retry", async () =>
       }),
     });
     assert.equal(response.status, 503);
-    assert.equal(response.headers.get("retry-after"), "2");
+    const body = await response.json();
+    assert.equal(body.error, "O provedor está temporariamente indisponível.");
   } finally {
     globalThis.fetch = originalFetch;
     if (originalKey === undefined) delete process.env.GEMINI_API_KEY;

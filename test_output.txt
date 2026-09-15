@@ -1,0 +1,1613 @@
+﻿
+> crm-prospector@0.0.0 test
+> tsx --test tests/**/*.test.ts
+
+TAP version 13
+# [SiteGenerator] Tentando modelo: p1:m1
+# [SiteGenerator] Attempt 0 for p1:m1
+# [SiteGenerator] Error in attempt 0 for p1:m1: rate
+# [SiteGenerator] Provider status 429 for p1:m1. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: p2:m2
+# [SiteGenerator] Attempt 0 for p2:m2
+# [SiteGenerator] Skipping model in cooldown: p1:m1
+# [SiteGenerator] Tentando modelo: p2:m2
+# [SiteGenerator] Attempt 0 for p2:m2
+# [SiteGenerator] Tentando modelo: p1a:m1a
+# [SiteGenerator] Attempt 0 for p1a:m1a
+# [SiteGenerator] Error in attempt 0 for p1a:m1a: svc
+# [SiteGenerator] Provider status 503 for p1a:m1a. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: p2a:m2a
+# [SiteGenerator] Attempt 0 for p2a:m2a
+# [SiteGenerator] Tentando modelo: p1a:m1a
+# [SiteGenerator] Error in attempt 0 for p1a:m1a: timeout
+# [SiteGenerator] Provider status 504 for p1a:m1a. Moving to next fallback model.
+# [SiteGenerator] Attempt 0 for p1a:m1a
+# [SiteGenerator] Tentando modelo: p2a:m2a
+# [SiteGenerator] Attempt 0 for p2a:m2a
+# [SiteGenerator] Error in attempt 0 for p1a:m1a: network
+# [SiteGenerator] Tentando modelo: p1a:m1a
+# [SiteGenerator] Attempt 0 for p1a:m1a
+# [SiteGenerator] Tentando modelo: p2a:m2a
+# [SiteGenerator] Attempt 0 for p2a:m2a
+# [SiteGenerator] Provider status 502 for p1a:m1a. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: pX:mX
+# [SiteGenerator] Attempt 0 for pX:mX
+# [SiteGenerator] Error in attempt 0 for pX:mX: auth
+# [SiteGenerator] Error is NOT retryable. Aborting fallback loop for pX:mX!
+# Subtest: 429 causes cooldown and automatic fallback to next model
+ok 1 - 429 causes cooldown and automatic fallback to next model
+  ---
+  duration_ms: 11.9983
+  type: 'test'
+  ...
+# Subtest: 503/504/timeout/network errors cause fallback in auto mode
+ok 2 - 503/504/timeout/network errors cause fallback in auto mode
+  ---
+  duration_ms: 6.0746
+  type: 'test'
+  ...
+# Subtest: 401/403 do not trigger aggressive retry; explicit selection returns error
+ok 3 - 401/403 do not trigger aggressive retry; explicit selection returns error
+  ---
+  duration_ms: 2.0888
+  type: 'test'
+  ...
+# Subtest: NVIDIA NIM usa endpoint e modelo próprios, mesmo com URL antiga salva
+ok 4 - NVIDIA NIM usa endpoint e modelo próprios, mesmo com URL antiga salva
+  ---
+  duration_ms: 315.1729
+  type: 'test'
+  ...
+# Subtest: Cohere usa a API v2 e interpreta sua resposta nativa
+ok 5 - Cohere usa a API v2 e interpreta sua resposta nativa
+  ---
+  duration_ms: 26.169
+  type: 'test'
+  ...
+# Subtest: falhas do provedor retornam uma mensagem segura ao navegador
+ok 6 - falhas do provedor retornam uma mensagem segura ao navegador
+  ---
+  duration_ms: 23.5393
+  type: 'test'
+  ...
+# [Fallback IA] Provedor 'openai' falhou: O provedor atingiu um limite de uso ou a conta não possui créditos disponíveis.
+# Subtest: provedores em nuvem são chamados pelo gateway interno
+ok 7 - provedores em nuvem são chamados pelo gateway interno
+  ---
+  duration_ms: 99.0166
+  type: 'test'
+  ...
+# Subtest: teste de conexão mostra o modelo usado pelo backend
+ok 8 - teste de conexão mostra o modelo usado pelo backend
+  ---
+  duration_ms: 2.2642
+  type: 'test'
+  ...
+# Subtest: o cliente mantém o erro detalhado vindo do gateway
+ok 9 - o cliente mantém o erro detalhado vindo do gateway
+  ---
+  duration_ms: 3.3694
+  type: 'test'
+  ...
+# [SiteAI] Provider error (429) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_test_429","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"rate-limit","detail":"provider-http-429","upstreamStatus":429,"durationMs":61}
+# [SiteAI] Provider error (503) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_0b21b717-6fd9-4e3e-8207-6596222a5982","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-http-503","upstreamStatus":503,"durationMs":7}
+# [SiteAI] Provider error (504) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_79e356ab-5568-4267-8f13-e4769ae910df","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-http-504","upstreamStatus":504,"durationMs":10}
+# [SiteAI] Provider error (504) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_442feeed-98f5-4dff-acd1-c0f310556996","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-timeout","durationMs":5}
+# [SiteAI] Provider error (503) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_4d086b2b-e357-48a4-8983-9b6e4d34f34f","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-network-error","durationMs":7}
+# [SiteAI] {"requestId":"siteai_813b7ed1-c553-43b0-bff3-fbe4810ea277","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-no-compatible-model","durationMs":3}
+# [SiteAI] Provider error (401) for gemini:test. Moving to next model.
+# [SiteAI] {"requestId":"siteai_ffe26e91-63ce-4d23-b46b-45743072fc5d","route":"/sites/standard-ai","result":"error","error":"SITE_AI_PROVIDER_AUTH","upstreamStatus":401,"durationMs":4}
+# Subtest: observability: provider 429 maps to fallbackReason=rate-limit and fallbackDetail=provider-http-429
+ok 10 - observability: provider 429 maps to fallbackReason=rate-limit and fallbackDetail=provider-http-429
+  ---
+  duration_ms: 84.6047
+  type: 'test'
+  ...
+# Subtest: observability: provider 503 maps to fallbackDetail=provider-http-503
+ok 11 - observability: provider 503 maps to fallbackDetail=provider-http-503
+  ---
+  duration_ms: 10.3792
+  type: 'test'
+  ...
+# Subtest: observability: provider 504 maps to fallbackDetail=provider-http-504
+ok 12 - observability: provider 504 maps to fallbackDetail=provider-http-504
+  ---
+  duration_ms: 12.7589
+  type: 'test'
+  ...
+# Subtest: observability: timeout maps to fallbackDetail=provider-timeout
+ok 13 - observability: timeout maps to fallbackDetail=provider-timeout
+  ---
+  duration_ms: 5.8828
+  type: 'test'
+  ...
+# Subtest: observability: network error maps to fallbackDetail=provider-network-error
+ok 14 - observability: network error maps to fallbackDetail=provider-network-error
+  ---
+  duration_ms: 9.8818
+  type: 'test'
+  ...
+# Subtest: observability: no compatible model maps to fallbackDetail=provider-no-compatible-model
+ok 15 - observability: no compatible model maps to fallbackDetail=provider-no-compatible-model
+  ---
+  duration_ms: 4.5071
+  type: 'test'
+  ...
+# Subtest: observability: provider 401/403 is a hard failure and is not masked as fallback
+ok 16 - observability: provider 401/403 is a hard failure and is not masked as fallback
+  ---
+  duration_ms: 5.4065
+  type: 'test'
+  ...
+# Subtest: observability: backend auth distinguishes SITE_AI_AUTH_NOT_CONFIGURED (503) vs SITE_AI_UNAUTHORIZED (403)
+ok 17 - observability: backend auth distinguishes SITE_AI_AUTH_NOT_CONFIGURED (503) vs SITE_AI_UNAUTHORIZED (403)
+  ---
+  duration_ms: 244.5634
+  type: 'test'
+  ...
+# Subtest: observability: media routes return structured error with code, retryable, and requestId
+ok 18 - observability: media routes return structured error with code, retryable, and requestId
+  ---
+  duration_ms: 36.6156
+  type: 'test'
+  ...
+# Subtest: importa tokens de cor de JSON
+ok 19 - importa tokens de cor de JSON
+  ---
+  duration_ms: 3.441
+  type: 'test'
+  ...
+# Subtest: importa tokens de cor de variáveis CSS
+ok 20 - importa tokens de cor de variáveis CSS
+  ---
+  duration_ms: 4.4889
+  type: 'test'
+  ...
+# Subtest: rejeita conteúdo executável, URLs, entrada excessiva e paleta vazia
+ok 21 - rejeita conteúdo executável, URLs, entrada excessiva e paleta vazia
+  ---
+  duration_ms: 1.3873
+  type: 'test'
+  ...
+# Subtest: limita o design system a doze cores
+ok 22 - limita o design system a doze cores
+  ---
+  duration_ms: 0.5761
+  type: 'test'
+  ...
+# Subtest: seleciona lente premium para movimento cinematográfico
+ok 23 - seleciona lente premium para movimento cinematográfico
+  ---
+  duration_ms: 1.4394
+  type: 'test'
+  ...
+# Subtest: prioriza fluxo de agendamento e institucional quando explícitos
+ok 24 - prioriza fluxo de agendamento e institucional quando explícitos
+  ---
+  duration_ms: 0.3073
+  type: 'test'
+  ...
+# Subtest: paleta recomendada usa contexto e mantém fallback conservador
+ok 25 - paleta recomendada usa contexto e mantém fallback conservador
+  ---
+  duration_ms: 0.6677
+  type: 'test'
+  ...
+# Subtest: DesignResearchSnapshot schema: valida snapshot estrito e rejeita violações
+ok 26 - DesignResearchSnapshot schema: valida snapshot estrito e rejeita violações
+  ---
+  duration_ms: 35.0445
+  type: 'test'
+  ...
+# Subtest: SearXNGSearchProvider: lida com sucesso, sanitização e deduplicação de URLs
+ok 27 - SearXNGSearchProvider: lida com sucesso, sanitização e deduplicação de URLs
+  ---
+  duration_ms: 6.5957
+  type: 'test'
+  ...
+# Subtest: SearXNGSearchProvider: lida com falhas upstream (429, timeout, sem URL, JSON inválido)
+ok 28 - SearXNGSearchProvider: lida com falhas upstream (429, timeout, sem URL, JSON inválido)
+  ---
+  duration_ms: 4.4958
+  type: 'test'
+  ...
+# Subtest: BraveSearchProvider: atua como fallback quando configurado
+ok 29 - BraveSearchProvider: atua como fallback quando configurado
+  ---
+  duration_ms: 3.2998
+  type: 'test'
+  ...
+# Subtest: Safe CSS Policy: sanitiza @import, url(), expressions e bloqueia SSRF/excesso de tamanho
+ok 30 - Safe CSS Policy: sanitiza @import, url(), expressions e bloqueia SSRF/excesso de tamanho
+  ---
+  duration_ms: 17.4546
+  type: 'test'
+  ...
+# Subtest: ReferenceDesignAnalyzer: extrai cores (hex, rgb, hsl), tipografia e layout determinísticos
+ok 31 - ReferenceDesignAnalyzer: extrai cores (hex, rgb, hsl), tipografia e layout determinísticos
+  ---
+  duration_ms: 5.6311
+  type: 'test'
+  ...
+# Subtest: PatternSynthesizer: agrupa evidências e sintetiza candidatos para o nicho
+ok 32 - PatternSynthesizer: agrupa evidências e sintetiza candidatos para o nicho
+  ---
+  duration_ms: 5.026
+  type: 'test'
+  ...
+# Subtest: DesignResearchCache: cache Vercel-safe em memória com identificação de snapshot stale
+ok 33 - DesignResearchCache: cache Vercel-safe em memória com identificação de snapshot stale
+  ---
+  duration_ms: 3.8988
+  type: 'test'
+  ...
+# Subtest: FamilyResolver: cadeia de precedência estrita (User Override > Brand > Dynamic > Curated)
+ok 34 - FamilyResolver: cadeia de precedência estrita (User Override > Brand > Dynamic > Curated)
+  ---
+  duration_ms: 71.0689
+  type: 'test'
+  ...
+# Subtest: Piloto Barbershop: resolução determinística de barbearia com família heritage-craft
+ok 35 - Piloto Barbershop: resolução determinística de barbearia com família heritage-craft
+  ---
+  duration_ms: 2.8623
+  type: 'test'
+  ...
+# Subtest: SearXNGSearchProvider: comportamento por ambiente (dev vs production)
+ok 36 - SearXNGSearchProvider: comportamento por ambiente (dev vs production)
+  ---
+  duration_ms: 3.6103
+  type: 'test'
+  ...
+# Subtest: LocalStorageSnapshotStore: persistência no cliente, validação Zod e ciclo de vida
+ok 37 - LocalStorageSnapshotStore: persistência no cliente, validação Zod e ciclo de vida
+  ---
+  duration_ms: 3.6045
+  type: 'test'
+  ...
+# Subtest: Safe CSS: limite de stylesheets e volume total combinado (max 3 stylesheets, max 256 KiB)
+ok 38 - Safe CSS: limite de stylesheets e volume total combinado (max 3 stylesheets, max 256 KiB)
+  ---
+  duration_ms: 3.8954
+  type: 'test'
+  ...
+# Subtest: siteGenerationRouter: proteção do endpoint POST /api/ai/research/niche (auth, zod strict, cooldown)
+ok 39 - siteGenerationRouter: proteção do endpoint POST /api/ai/research/niche (auth, zod strict, cooldown)
+  ---
+  duration_ms: 290.1969
+  type: 'test'
+  ...
+# Subtest: mediaAcquisition: bloqueia host não autorizado e URL não-HTTPS
+ok 40 - mediaAcquisition: bloqueia host não autorizado e URL não-HTTPS
+  ---
+  duration_ms: 16.7486
+  type: 'test'
+  ...
+# Subtest: mediaAcquisition: bloqueia SSRF (IP privado e loopback)
+ok 41 - mediaAcquisition: bloqueia SSRF (IP privado e loopback)
+  ---
+  duration_ms: 3.2478
+  type: 'test'
+  ...
+# Subtest: mediaAcquisition: valida JPEG, PNG, WebP e gera hash determinístico
+ok 42 - mediaAcquisition: valida JPEG, PNG, WebP e gera hash determinístico
+  ---
+  duration_ms: 4.7233
+  type: 'test'
+  ...
+# Subtest: mediaAcquisition: rejeita SVG, HTML masquerading e arquivos com mais de 5 MiB
+ok 43 - mediaAcquisition: rejeita SVG, HTML masquerading e arquivos com mais de 5 MiB
+  ---
+  duration_ms: 2.4176
+  type: 'test'
+  ...
+# Subtest: MediaCandidate: valida candidato estrito e rejeita anomalias
+ok 44 - MediaCandidate: valida candidato estrito e rejeita anomalias
+  ---
+  duration_ms: 25.4081
+  type: 'test'
+  ...
+# Subtest: AcquiredMediaAsset: valida mime permitido, hash e limite de 5 MiB
+ok 45 - AcquiredMediaAsset: valida mime permitido, hash e limite de 5 MiB
+  ---
+  duration_ms: 3.6314
+  type: 'test'
+  ...
+# Subtest: StoredMediaAsset: valida registro estruturado de persistência
+ok 46 - StoredMediaAsset: valida registro estruturado de persistência
+  ---
+  duration_ms: 4.6551
+  type: 'test'
+  ...
+# Subtest: MediaManifest: valida ciclo de revisão, proveniência e regras de alt
+ok 47 - MediaManifest: valida ciclo de revisão, proveniência e regras de alt
+  ---
+  duration_ms: 8.8175
+  type: 'test'
+  ...
+# Subtest: SiteRenderer: renderiza imagem resolvida, alt e créditos de atribuição
+ok 48 - SiteRenderer: renderiza imagem resolvida, alt e créditos de atribuição
+  ---
+  duration_ms: 47.7686
+  type: 'test'
+  ...
+# Subtest: SiteRenderer: sem manifest ou asset ausente renderiza fallback CSS sem erro
+ok 49 - SiteRenderer: sem manifest ou asset ausente renderiza fallback CSS sem erro
+  ---
+  duration_ms: 13.5064
+  type: 'test'
+  ...
+# Subtest: exportSite: ZIP estático inclui assets binários, manifest e caminhos relativos
+ok 50 - exportSite: ZIP estático inclui assets binários, manifest e caminhos relativos
+  ---
+  duration_ms: 32.1252
+  type: 'test'
+  ...
+# Subtest: LicensedMediaQueryBuilder: gera queries contextuais e sanitiza dados do CRM
+not ok 51 - LicensedMediaQueryBuilder: gera queries contextuais e sanitiza dados do CRM
+  ---
+  duration_ms: 94.02
+  type: 'test'
+  location: 'C:\\Desenvolvimento\\Projetos\\React\\projeto-crm-LeadsProspector\\tests\\services\\mediaProviders.test.ts:10:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+    
+      assert.ok(queries.length >= 1 && queries.length <= 3)
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (C:\Desenvolvimento\Projetos\React\projeto-crm-LeadsProspector\tests\services\mediaProviders.test.ts:21:10)
+    Test.runInAsyncScope (node:async_hooks:214:14)
+    Test.run (node:internal/test_runner/test:1047:25)
+    Test.start (node:internal/test_runner/test:944:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:296:17)
+  ...
+# Subtest: PexelsLicensedMediaProvider: trata configuração ausente e erros upstream
+ok 52 - PexelsLicensedMediaProvider: trata configuração ausente e erros upstream
+  ---
+  duration_ms: 117.603
+  type: 'test'
+  ...
+# Subtest: PixabayLicensedMediaProvider: trata configuração e mapeia candidatos
+ok 53 - PixabayLicensedMediaProvider: trata configuração e mapeia candidatos
+  ---
+  duration_ms: 26.0185
+  type: 'test'
+  ...
+# Subtest: MediaFallbackChain: executa Pexels -> Pixabay -> vazio com resiliência
+ok 54 - MediaFallbackChain: executa Pexels -> Pixabay -> vazio com resiliência
+  ---
+  duration_ms: 1.5928
+  type: 'test'
+  ...
+# Subtest: mediaRouter: segurança de origem e validação de schema
+ok 55 - mediaRouter: segurança de origem e validação de schema
+  ---
+  duration_ms: 190.2341
+  type: 'test'
+  ...
+# Subtest: InMemoryMediaAssetStore: put, get, getBuffer, list, remove e clear
+ok 56 - InMemoryMediaAssetStore: put, get, getBuffer, list, remove e clear
+  ---
+  duration_ms: 3.4071
+  type: 'test'
+  ...
+# [OverpassService] Preparando consulta Overpass:
+# [out:json][timeout:25];
+# (
+#   node["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   node["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   node["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   node["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   node["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   node["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   node["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   node["office"="financial"](around:1000,-19.9167,-43.9345);
+#   way["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   way["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   way["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   way["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   way["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   way["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   way["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   way["office"="financial"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   relation["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   relation["office"="financial"](around:1000,-19.9167,-43.9345);
+# );
+# out body center 30;
+# [OverpassService] Resposta HTTP - Status: 502, StatusText: 
+# [OverpassService] Erro bruto da API: {"code":"OVERPASS_TLS_ERROR"}
+# [OverpassService] Falha na execução: Falha de certificado HTTPS ao consultar o Overpass. Verifique os certificados confiáveis do servidor.
+# [OverpassService] Preparando consulta Overpass:
+# [out:json][timeout:25];
+# (
+#   node["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   node["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   node["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   node["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   node["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   node["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   node["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   node["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   node["office"="financial"](around:1000,-19.9167,-43.9345);
+#   way["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   way["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   way["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   way["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   way["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   way["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   way["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   way["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   way["office"="financial"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="hairdresser"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="barber"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="dentist"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="restaurant"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="fast_food"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="beauty"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="beauty_salon"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="cosmetics"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="lawyer"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="veterinary"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="pet"](around:1000,-19.9167,-43.9345);
+#   relation["shop"="car_repair"](around:1000,-19.9167,-43.9345);
+#   relation["amenity"="car_repair"](around:1000,-19.9167,-43.9345);
+#   relation["office"="accountant"](around:1000,-19.9167,-43.9345);
+#   relation["office"="financial"](around:1000,-19.9167,-43.9345);
+# );
+# out body center 30;
+# [OverpassService] Resposta HTTP - Status: 502, StatusText: 
+# [OverpassService] Erro bruto da API: <html>Bad Gateway</html>
+# [OverpassService] Falha na execução: Os servidores Overpass estão indisponíveis ou a conexão falhou. Tente novamente em instantes.
+# Subtest: Overpass mantém validação TLS e distingue certificado, timeout e indisponibilidade
+ok 57 - Overpass mantém validação TLS e distingue certificado, timeout e indisponibilidade
+  ---
+  duration_ms: 60.9386
+  type: 'test'
+  ...
+# Subtest: busca mostra causa correta para erro TLS e aceita erro não JSON
+ok 58 - busca mostra causa correta para erro TLS e aceita erro não JSON
+  ---
+  duration_ms: 52.408
+  type: 'test'
+  ...
+# [OverpassService] Preparando consulta Overpass:
+# [out:json][timeout:25];
+# (
+#   node["shop"="hairdresser"](around:500,0,0);
+#   node["shop"="barber"](around:500,0,0);
+#   node["amenity"="dentist"](around:500,0,0);
+#   node["amenity"="restaurant"](around:500,0,0);
+#   node["amenity"="fast_food"](around:500,0,0);
+#   node["shop"="beauty"](around:500,0,0);
+#   node["amenity"="beauty_salon"](around:500,0,0);
+#   node["shop"="cosmetics"](around:500,0,0);
+#   node["amenity"="lawyer"](around:500,0,0);
+#   node["amenity"="veterinary"](around:500,0,0);
+#   node["shop"="pet"](around:500,0,0);
+#   node["shop"="car_repair"](around:500,0,0);
+#   node["amenity"="car_repair"](around:500,0,0);
+#   node["office"="accountant"](around:500,0,0);
+#   node["office"="financial"](around:500,0,0);
+#   way["shop"="hairdresser"](around:500,0,0);
+#   way["shop"="barber"](around:500,0,0);
+#   way["amenity"="dentist"](around:500,0,0);
+#   way["amenity"="restaurant"](around:500,0,0);
+#   way["amenity"="fast_food"](around:500,0,0);
+#   way["shop"="beauty"](around:500,0,0);
+#   way["amenity"="beauty_salon"](around:500,0,0);
+#   way["shop"="cosmetics"](around:500,0,0);
+#   way["amenity"="lawyer"](around:500,0,0);
+#   way["amenity"="veterinary"](around:500,0,0);
+#   way["shop"="pet"](around:500,0,0);
+#   way["shop"="car_repair"](around:500,0,0);
+#   way["amenity"="car_repair"](around:500,0,0);
+#   way["office"="accountant"](around:500,0,0);
+#   way["office"="financial"](around:500,0,0);
+#   relation["shop"="hairdresser"](around:500,0,0);
+#   relation["shop"="barber"](around:500,0,0);
+#   relation["amenity"="dentist"](around:500,0,0);
+#   relation["amenity"="restaurant"](around:500,0,0);
+#   relation["amenity"="fast_food"](around:500,0,0);
+#   relation["shop"="beauty"](around:500,0,0);
+#   relation["amenity"="beauty_salon"](around:500,0,0);
+#   relation["shop"="cosmetics"](around:500,0,0);
+#   relation["amenity"="lawyer"](around:500,0,0);
+#   relation["amenity"="veterinary"](around:500,0,0);
+#   relation["shop"="pet"](around:500,0,0);
+#   relation["shop"="car_repair"](around:500,0,0);
+#   relation["amenity"="car_repair"](around:500,0,0);
+#   relation["office"="accountant"](around:500,0,0);
+#   relation["office"="financial"](around:500,0,0);
+# );
+# out body center 30;
+# [OverpassService] Resposta HTTP - Status: 200, StatusText: 
+# [OverpassService] Corpo bruto da resposta parseado com sucesso.
+# [OverpassService] Sucesso: 1 elementos brutos recebidos da API.
+# [OverpassService] Conversão finalizada: 1 leads qualificados gerados.
+# [SiteAI] {"requestId":"siteai_ad54661b-2521-4099-957b-d5b4e1fb1e7c","route":"/sites/standard-ai","provider":"gemini","model":"test","result":"success","durationMs":16}
+# [SiteAI] {"requestId":"siteai_06218efa-085d-4ccd-a15e-899b46d70246","route":"/sites/standard-ai","result":"error","error":"UNKNOWN_ERROR","durationMs":13}
+# [SiteAI] {"requestId":"siteai_acff2a51-10da-49ab-a1e5-919482789aba","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"provider-unavailable","detail":"provider-no-compatible-model","durationMs":9}
+# Subtest: Overpass payload → lead → source → business; no raw tags or invented facts
+ok 59 - Overpass payload → lead → source → business; no raw tags or invented facts
+  ---
+  duration_ms: 22.0441
+  type: 'test'
+  ...
+# Subtest: reject private/reserved URLs, protocols and mapped IPv6 before transport
+ok 60 - reject private/reserved URLs, protocols and mapped IPv6 before transport
+  ---
+  duration_ms: 12.6114
+  type: 'test'
+  ...
+# Subtest: pinned DNS callback supports Node autoSelectFamily all-addresses contract
+ok 61 - pinned DNS callback supports Node autoSelectFamily all-addresses contract
+  ---
+  duration_ms: 0.6442
+  type: 'test'
+  ...
+# Subtest: revalidate each redirect; bound content, type and redirect count
+ok 62 - revalidate each redirect; bound content, type and redirect count
+  ---
+  duration_ms: 4.7453
+  type: 'test'
+  ...
+# Subtest: absent/present/invalid website; website statements stay untrusted
+ok 63 - absent/present/invalid website; website statements stay untrusted
+  ---
+  duration_ms: 8.13
+  type: 'test'
+  ...
+# Subtest: market isolation, freshness and mutation isolation
+ok 64 - market isolation, freshness and mutation isolation
+  ---
+  duration_ms: 33.2202
+  type: 'test'
+  ...
+# Subtest: design before blueprint, distinct families, missing facts omitted; Standard without provider
+ok 65 - design before blueprint, distinct families, missing facts omitted; Standard without provider
+  ---
+  duration_ms: 86.1024
+  type: 'test'
+  ...
+# Subtest: Standard AI preserva ResolvedDesign, guidance e regras de conteúdo
+ok 66 - Standard AI preserva ResolvedDesign, guidance e regras de conteúdo
+  ---
+  duration_ms: 17.6375
+  type: 'test'
+  ...
+# Subtest: Standard AI rejeita Blueprint inválido e não mascara violação de contrato como fallback
+ok 67 - Standard AI rejeita Blueprint inválido e não mascara violação de contrato como fallback
+  ---
+  duration_ms: 15.8131
+  type: 'test'
+  ...
+# Subtest: Standard AI sem provider usa fallback determinístico e registra procedência
+ok 68 - Standard AI sem provider usa fallback determinístico e registra procedência
+  ---
+  duration_ms: 14.0833
+  type: 'test'
+  ...
+# Subtest: sidecar persists and export matches preview with DESIGN.md
+ok 69 - sidecar persists and export matches preview with DESIGN.md
+  ---
+  duration_ms: 112.0648
+  type: 'test'
+  ...
+# Subtest: Stitch operational states and privacy; no pretend variants
+ok 70 - Stitch operational states and privacy; no pretend variants
+  ---
+  duration_ms: 17.1592
+  type: 'test'
+  ...
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# Subtest: catálogo incorporado descreve exatamente os componentes disponíveis
+ok 71 - catálogo incorporado descreve exatamente os componentes disponíveis
+  ---
+  duration_ms: 2.9583
+  type: 'test'
+  ...
+# Subtest: geração e regeneração usam referências Antigravity e registram proveniência
+ok 72 - geração e regeneração usam referências Antigravity e registram proveniência
+  ---
+  duration_ms: 15.2016
+  type: 'test'
+  ...
+# Subtest: regra de contato compartilhada não cria canais ausentes
+ok 73 - regra de contato compartilhada não cria canais ausentes
+  ---
+  duration_ms: 0.9295
+  type: 'test'
+  ...
+# Subtest: servidor compilado inicia explicitamente em produção
+ok 74 - servidor compilado inicia explicitamente em produção
+  ---
+  duration_ms: 3.2845
+  type: 'test'
+  ...
+# Subtest: preview usa o servidor completo em vez do Vite isolado
+ok 75 - preview usa o servidor completo em vez do Vite isolado
+  ---
+  duration_ms: 0.936
+  type: 'test'
+  ...
+# Subtest: documento declara um favicon existente
+ok 76 - documento declara um favicon existente
+  ---
+  duration_ms: 1.0281
+  type: 'test'
+  ...
+# Subtest: família legada preserva HTML e CSS das 40 combinações capturadas antes da extração
+ok 77 - família legada preserva HTML e CSS das 40 combinações capturadas antes da extração
+  ---
+  duration_ms: 279.0809
+  type: 'test'
+  ...
+# Subtest: contratos são sidecars sem mutação ou alteração de compatibilidade v1/v2
+ok 78 - contratos são sidecars sem mutação ou alteração de compatibilidade v1/v2
+  ---
+  duration_ms: 5.2389
+  type: 'test'
+  ...
+# Subtest: referências exigem evidência, data e HTTPS sem credenciais
+ok 79 - referências exigem evidência, data e HTTPS sem credenciais
+  ---
+  duration_ms: 8.3275
+  type: 'test'
+  ...
+# Subtest: plano de mídia não simula assets, exige alt coerente e IDs únicos
+ok 80 - plano de mídia não simula assets, exige alt coerente e IDs únicos
+  ---
+  duration_ms: 7.7702
+  type: 'test'
+  ...
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: rate
+# [SiteGenerator] Provider status 429 for gemini:test. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: gemini:alternate
+# [SiteGenerator] Attempt 0 for gemini:alternate
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: svc
+# [SiteGenerator] Provider status 503 for gemini:test. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: gemini:alternate2
+# [SiteGenerator] Attempt 0 for gemini:alternate2
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: timeout
+# [SiteGenerator] Provider status 504 for gemini:test. Moving to next fallback model.
+# [SiteGenerator] Tentando modelo: gemini:alternate3
+# [SiteGenerator] Attempt 0 for gemini:alternate3
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: auth
+# [SiteGenerator] Error is NOT retryable. Aborting fallback loop for gemini:test!
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: upstream
+# Subtest: ausências não viram canais, endereço, preços, avaliações ou depoimentos
+ok 81 - ausências não viram canais, endereço, preços, avaliações ou depoimentos
+  ---
+  duration_ms: 43.892
+  type: 'test'
+  ...
+# Subtest: site existente e reputação permanecem dados, não geram depoimentos
+ok 82 - site existente e reputação permanecem dados, não geram depoimentos
+  ---
+  duration_ms: 3.9297
+  type: 'test'
+  ...
+# Subtest: telefone não é convertido em WhatsApp e contatos inválidos são omitidos
+ok 83 - telefone não é convertido em WhatsApp e contatos inválidos são omitidos
+  ---
+  duration_ms: 8.8731
+  type: 'test'
+  ...
+# Subtest: schema rejeita campos extras, cor injetada, seções duplicadas e depoimentos
+ok 84 - schema rejeita campos extras, cor injetada, seções duplicadas e depoimentos
+  ---
+  duration_ms: 3.4173
+  type: 'test'
+  ...
+# Subtest: renderer escapa HTML e conserva ordem e visibilidade
+ok 85 - renderer escapa HTML e conserva ordem e visibilidade
+  ---
+  duration_ms: 6.569
+  type: 'test'
+  ...
+# Subtest: modelos inválidos, desabilitados e incompatíveis falham; explícito é fixo
+ok 86 - modelos inválidos, desabilitados e incompatíveis falham; explícito é fixo
+  ---
+  duration_ms: 3.3764
+  type: 'test'
+  ...
+# Subtest: 429 triggers cooldown and automatic fallback to next model
+ok 87 - 429 triggers cooldown and automatic fallback to next model
+  ---
+  duration_ms: 33.2346
+  type: 'test'
+  ...
+# Subtest: 503 triggers cooldown and fallback to next model
+ok 88 - 503 triggers cooldown and fallback to next model
+  ---
+  duration_ms: 2.8257
+  type: 'test'
+  ...
+# Subtest: 504 timeout leads to fallback (retryable) and does not set aggressive retries
+ok 89 - 504 timeout leads to fallback (retryable) and does not set aggressive retries
+  ---
+  duration_ms: 7.6066
+  type: 'test'
+  ...
+# Subtest: explicit/manual selection does not fallback automatically on 401/403
+ok 90 - explicit/manual selection does not fallback automatically on 401/403
+  ---
+  duration_ms: 4.3126
+  type: 'test'
+  ...
+# [SiteGenerator] Attempt 1 for gemini:test
+# [SiteGenerator] Error in attempt 1 for gemini:test: upstream
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: upstream
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Attempt 1 for gemini:test
+# [SiteGenerator] Error in attempt 1 for gemini:test: upstream
+# [SiteGenerator] Tentando modelo: gemini:alternate
+# [SiteGenerator] Attempt 0 for gemini:alternate
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: Temporariamente indisponível.
+# [SiteGenerator] Attempt 1 for gemini:test
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: Requisição incompatível.
+# [SiteGenerator] Error is NOT retryable. Aborting fallback loop for gemini:test!
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Error in attempt 0 for gemini:test: [
+#   {
+#     "code": "invalid_union",
+#     "errors": [
+#       [
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             2
+#           ],
+#           "path": [
+#             "version"
+#           ],
+#           "message": "Invalid input: expected 2"
+#         },
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             "modern-local-business",
+#             "premium-service",
+#             "minimal-professional",
+#             "appointment-focused"
+#           ],
+#           "path": [
+#             "templateId"
+#           ],
+#           "message": "Invalid option: expected one of \\"modern-local-business\\"|\\"premium-service\\"|\\"minimal-professional\\"|\\"appointment-focused\\""
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "seo"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "brand"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "hero"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "about"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "services"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "sections"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "sectionOrder"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "warnings"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "visual"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "code": "unrecognized_keys",
+#           "keys": [
+#             "headline"
+#           ],
+#           "path": [],
+#           "message": "Unrecognized key: \\"headline\\""
+#         }
+#       ],
+#       [
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             1
+#           ],
+#           "path": [
+#             "version"
+#           ],
+#           "message": "Invalid input: expected 1"
+#         },
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             "modern-local-business",
+#             "premium-service",
+#             "minimal-professional",
+#             "appointment-focused"
+#           ],
+#           "path": [
+#             "templateId"
+#           ],
+#           "message": "Invalid option: expected one of \\"modern-local-business\\"|\\"premium-service\\"|\\"minimal-professional\\"|\\"appointment-focused\\""
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "seo"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "brand"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "hero"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "about"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "services"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "sections"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "sectionOrder"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "warnings"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "code": "unrecognized_keys",
+#           "keys": [
+#             "headline"
+#           ],
+#           "path": [],
+#           "message": "Unrecognized key: \\"headline\\""
+#         }
+#       ]
+#     ],
+#     "path": [],
+#     "message": "Invalid input"
+#   }
+# ]
+# Subtest: auto permite fallback; explícito nunca troca de modelo
+ok 91 - auto permite fallback; explícito nunca troca de modelo
+  ---
+  duration_ms: 543.7575
+  type: 'test'
+  ...
+# Subtest: falha transitória aguarda e tenta novamente
+ok 92 - falha transitória aguarda e tenta novamente
+  ---
+  duration_ms: 5.7104
+  type: 'test'
+  ...
+# Subtest: falha não retentável não repete a chamada
+ok 93 - falha não retentável não repete a chamada
+  ---
+  duration_ms: 2.3936
+  type: 'test'
+  ...
+# [SiteGenerator] Attempt 1 for gemini:test
+# [SiteGenerator] Error in attempt 1 for gemini:test: [
+#   {
+#     "code": "invalid_union",
+#     "errors": [
+#       [
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             2
+#           ],
+#           "path": [
+#             "version"
+#           ],
+#           "message": "Invalid input: expected 2"
+#         },
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             "modern-local-business",
+#             "premium-service",
+#             "minimal-professional",
+#             "appointment-focused"
+#           ],
+#           "path": [
+#             "templateId"
+#           ],
+#           "message": "Invalid option: expected one of \\"modern-local-business\\"|\\"premium-service\\"|\\"minimal-professional\\"|\\"appointment-focused\\""
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "seo"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "brand"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "hero"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "about"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "services"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "sections"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "sectionOrder"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "warnings"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "visual"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "code": "unrecognized_keys",
+#           "keys": [
+#             "headline"
+#           ],
+#           "path": [],
+#           "message": "Unrecognized key: \\"headline\\""
+#         }
+#       ],
+#       [
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             1
+#           ],
+#           "path": [
+#             "version"
+#           ],
+#           "message": "Invalid input: expected 1"
+#         },
+#         {
+#           "code": "invalid_value",
+#           "values": [
+#             "modern-local-business",
+#             "premium-service",
+#             "minimal-professional",
+#             "appointment-focused"
+#           ],
+#           "path": [
+#             "templateId"
+#           ],
+#           "message": "Invalid option: expected one of \\"modern-local-business\\"|\\"premium-service\\"|\\"minimal-professional\\"|\\"appointment-focused\\""
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "seo"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "brand"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "hero"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "about"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "services"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "object",
+#           "code": "invalid_type",
+#           "path": [
+#             "sections"
+#           ],
+#           "message": "Invalid input: expected object, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "sectionOrder"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "expected": "array",
+#           "code": "invalid_type",
+#           "path": [
+#             "warnings"
+#           ],
+#           "message": "Invalid input: expected array, received undefined"
+#         },
+#         {
+#           "code": "unrecognized_keys",
+#           "keys": [
+#             "headline"
+#           ],
+#           "path": [],
+#           "message": "Unrecognized key: \\"headline\\""
+#         }
+#       ]
+#     ],
+#     "path": [],
+#     "message": "Invalid input"
+#   }
+# ]
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# [SiteGenerator] Tentando modelo: gemini:test
+# [SiteGenerator] Attempt 0 for gemini:test
+# Subtest: JSON inválido esgota tentativas e não retorna sucesso
+ok 94 - JSON inválido esgota tentativas e não retorna sucesso
+  ---
+  duration_ms: 264.2437
+  type: 'test'
+  ...
+# Subtest: template automático preserva escolha válida da IA e manual prevalece
+ok 95 - template automático preserva escolha válida da IA e manual prevalece
+  ---
+  duration_ms: 2.0536
+  type: 'test'
+  ...
+# Subtest: paleta personalizada prevalece sobre as cores retornadas pela IA
+ok 96 - paleta personalizada prevalece sobre as cores retornadas pela IA
+  ---
+  duration_ms: 0.8706
+  type: 'test'
+  ...
+# Subtest: prompt usa briefing normalizado sem incluir tokens brutos
+ok 97 - prompt usa briefing normalizado sem incluir tokens brutos
+  ---
+  duration_ms: 0.9556
+  type: 'test'
+  ...
+# Subtest: regenerar uma seção conserva serviços aprovados e outras edições
+ok 98 - regenerar uma seção conserva serviços aprovados e outras edições
+  ---
+  duration_ms: 0.7431
+  type: 'test'
+  ...
+# Subtest: persistência restaura Blueprint, edição, status e metadata após reload
+ok 99 - persistência restaura Blueprint, edição, status e metadata após reload
+  ---
+  duration_ms: 1.6069
+  type: 'test'
+  ...
+# Subtest: ZIP funciona sem dependências e coincide com renderer; export requer revisão
+ok 100 - ZIP funciona sem dependências e coincide com renderer; export requer revisão
+  ---
+  duration_ms: 29.9512
+  type: 'test'
+  ...
+# Subtest: informa quando o servidor local está indisponível
+ok 101 - informa quando o servidor local está indisponível
+  ---
+  duration_ms: 3.0909
+  type: 'test'
+  ...
+# Subtest: distingue timeout de indisponibilidade imediata
+ok 102 - distingue timeout de indisponibilidade imediata
+  ---
+  duration_ms: 1.0523
+  type: 'test'
+  ...
+# Subtest: informa quando o backend retorna JSON inválido
+ok 103 - informa quando o backend retorna JSON inválido
+  ---
+  duration_ms: 60.3465
+  type: 'test'
+  ...
+# Subtest: explica quando a SPA responde HTML no lugar da API de IA
+ok 104 - explica quando a SPA responde HTML no lugar da API de IA
+  ---
+  duration_ms: 1.2916
+  type: 'test'
+  ...
+# Subtest: preserva mensagem segura devolvida pelo backend
+ok 105 - preserva mensagem segura devolvida pelo backend
+  ---
+  duration_ms: 3.2914
+  type: 'test'
+  ...
+# Subtest: textos principais e secundários mantêm contraste em todas as superfícies
+ok 106 - textos principais e secundários mantêm contraste em todas as superfícies
+  ---
+  duration_ms: 2.7823
+  type: 'test'
+  ...
+# Subtest: v2 anterior continua válido, apresentação opcional controla HTML sem scripts
+ok 107 - v2 anterior continua válido, apresentação opcional controla HTML sem scripts
+  ---
+  duration_ms: 58.578
+  type: 'test'
+  ...
+# Subtest: Gemini recebe somente palavras-chave de JSON Schema suportadas
+ok 108 - Gemini recebe somente palavras-chave de JSON Schema suportadas
+  ---
+  duration_ms: 65.9963
+  type: 'test'
+  ...
+# Subtest: rotas rejeitam entrada inválida e origem externa sem chamar IA
+ok 109 - rotas rejeitam entrada inválida e origem externa sem chamar IA
+  ---
+  duration_ms: 185.025
+  type: 'test'
+  ...
+# [SiteGenerator] Tentando modelo: gemini:gemini-test
+# [SiteGenerator] Attempt 0 for gemini:gemini-test
+# [SiteGenerator] Error in attempt 0 for gemini:gemini-test: O provedor está temporariamente indisponível.
+# [SiteGenerator] Provider status 503 for gemini:gemini-test. Moving to next fallback model.
+# Subtest: rota preserva indisponibilidade transitória e orienta retry
+not ok 110 - rota preserva indisponibilidade transitória e orienta retry
+  ---
+  duration_ms: 70.7905
+  type: 'test'
+  location: 'C:\\Desenvolvimento\\Projetos\\React\\projeto-crm-LeadsProspector\\tests\\services\\siteRoutes.test.ts:35:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    500 !== 503
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 503
+  actual: 500
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (C:\Desenvolvimento\Projetos\React\projeto-crm-LeadsProspector\tests\services\siteRoutes.test.ts:82:12)
+    process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    async Test.run (node:internal/test_runner/test:1054:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:744:7)
+  ...
+# [SiteAI] Provider error (429) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_ee12ee8c-0ea7-42f7-9f57-0afca483dcb0","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":124}
+# [SiteAI] Skipping model in cooldown: gemini:modelA
+# [SiteAI] {"requestId":"siteai_70ff0743-d972-4af0-ae1a-2037d537cadb","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":15}
+# [SiteAI] Provider error (503) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_6488c5e1-7168-4d40-bdc6-9899355cee29","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":10}
+# [SiteAI] Provider error (504) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_db8801a2-f24b-47fc-9f65-c429ac0fb70a","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":17}
+# [SiteAI] Provider error (504) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_9bfab993-5d07-49fc-a942-bacac1a7d5ee","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":40}
+# [SiteAI] Provider error (503) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_d2440d13-8837-48db-893f-f37ff6925e4c","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":12}
+# [SiteAI] Provider error (401) for gemini:modelA. Moving to next model.
+# [SiteAI] {"requestId":"siteai_4440da90-2af5-44ee-8c37-6ac5a2b960c2","route":"/sites/standard-ai","provider":"groq","model":"modelB","result":"success","durationMs":14}
+# [SiteAI] Provider error (429) for gemini:modelA. Moving to next model.
+# [SiteAI] Provider error (429) for groq:modelB. Moving to next model.
+# [SiteAI] {"requestId":"siteai_9fc38723-47bf-40d4-b417-7e9c9e4ee31d","route":"/sites/standard-ai","provider":"standard","model":"researched-family","result":"fallback","reason":"rate-limit","detail":"provider-http-429","upstreamStatus":429,"durationMs":12}
+# Subtest: Auto Router: 429 triggers cooldown and moves to next candidate
+ok 111 - Auto Router: 429 triggers cooldown and moves to next candidate
+  ---
+  duration_ms: 143.8245
+  type: 'test'
+  ...
+# Subtest: Auto Router: 503, 504, timeout, network error trigger fallback
+ok 112 - Auto Router: 503, 504, timeout, network error trigger fallback
+  ---
+  duration_ms: 82.1135
+  type: 'test'
+  ...
+# Subtest: Auto Router: 401/403 triggers fallback but NO aggressive retries/cooldown
+ok 113 - Auto Router: 401/403 triggers fallback but NO aggressive retries/cooldown
+  ---
+  duration_ms: 14.9467
+  type: 'test'
+  ...
+# Subtest: Manual mode: 429 returns structured error, no fallback
+ok 114 - Manual mode: 429 returns structured error, no fallback
+  ---
+  duration_ms: 4.919
+  type: 'test'
+  ...
+# Subtest: Deterministic fallback if all AI models fail
+ok 115 - Deterministic fallback if all AI models fail
+  ---
+  duration_ms: 14.3021
+  type: 'test'
+  ...
+# Subtest: runtime da Vercel usa uma versão LTS compatível com a CLI do projeto
+ok 116 - runtime da Vercel usa uma versão LTS compatível com a CLI do projeto
+  ---
+  duration_ms: 2.4054
+  type: 'test'
+  ...
+# Subtest: imports relativos do backend permanecem resolvíveis após compilar para ESM
+ok 117 - imports relativos do backend permanecem resolvíveis após compilar para ESM
+  ---
+  duration_ms: 94.0052
+  type: 'test'
+  ...
+# Subtest: deploy da Vercel separa o frontend estático da função Express
+ok 118 - deploy da Vercel separa o frontend estático da função Express
+  ---
+  duration_ms: 2.1542
+  type: 'test'
+  ...
+# Subtest: função Express da Vercel preserva as rotas e respostas JSON
+ok 119 - função Express da Vercel preserva as rotas e respostas JSON
+  ---
+  duration_ms: 2059.4267
+  type: 'test'
+  ...
+# Subtest: v1 migra deterministicamente sem alterar copy, cores ou ordem
+ok 120 - v1 migra deterministicamente sem alterar copy, cores ou ordem
+  ---
+  duration_ms: 13.4245
+  type: 'test'
+  ...
+# Subtest: v2 aceita variantes válidas e rejeita variantes, versões e ordem inválidas
+ok 121 - v2 aceita variantes válidas e rejeita variantes, versões e ordem inválidas
+  ---
+  duration_ms: 5.74
+  type: 'test'
+  ...
+# Subtest: persistência devolve v2 para projeto legado e mantém contexto e revisão
+ok 122 - persistência devolve v2 para projeto legado e mantém contexto e revisão
+  ---
+  duration_ms: 4.1056
+  type: 'test'
+  ...
+# Subtest: registry cobre cada variante suportada; não resolve membros herdados
+ok 123 - registry cobre cada variante suportada; não resolve membros herdados
+  ---
+  duration_ms: 2.449
+  type: 'test'
+  ...
+# Subtest: renderer aplica fallback de variante sem permitir injeção de conteúdo ou CSS
+ok 124 - renderer aplica fallback de variante sem permitir injeção de conteúdo ou CSS
+  ---
+  duration_ms: 3.1957
+  type: 'test'
+  ...
+# Subtest: três Heroes e dois About/Services produzem estruturas próprias
+ok 125 - três Heroes e dois About/Services produzem estruturas próprias
+  ---
+  duration_ms: 48.5533
+  type: 'test'
+  ...
+# Subtest: variantes preservam ausência de contatos, fatos e serviços não aprovados
+ok 126 - variantes preservam ausência de contatos, fatos e serviços não aprovados
+  ---
+  duration_ms: 16.6379
+  type: 'test'
+  ...
+# Subtest: cinco nichos exportam o mesmo documento do preview e preservam v2
+ok 127 - cinco nichos exportam o mesmo documento do preview e preservam v2
+  ---
+  duration_ms: 61.1557
+  type: 'test'
+  ...
+# Subtest: superfícies claras e escuras escolhem texto contrastante
+ok 128 - superfícies claras e escuras escolhem texto contrastante
+  ---
+  duration_ms: 0.2564
+  type: 'test'
+  ...
+# Subtest: export também aplica fallback visual e mantém revisão obrigatória
+ok 129 - export também aplica fallback visual e mantém revisão obrigatória
+  ---
+  duration_ms: 19.9766
+  type: 'test'
+  ...
+# Subtest: media client sends Authorization header when token set (authorizedJsonFetch)
+ok 130 - media client sends Authorization header when token set (authorizedJsonFetch)
+  ---
+  duration_ms: 4.4665
+  type: 'test'
+  ...
+# Subtest: media client sends Authorization header when token set (authorizedBinaryFetch)
+ok 131 - media client sends Authorization header when token set (authorizedBinaryFetch)
+  ---
+  duration_ms: 1.141
+  type: 'test'
+  ...
+# Subtest: no Authorization header when token is empty
+ok 132 - no Authorization header when token is empty
+  ---
+  duration_ms: 0.5808
+  type: 'test'
+  ...
+# Subtest: changing token applies to subsequent requests
+ok 133 - changing token applies to subsequent requests
+  ---
+  duration_ms: 2.6165
+  type: 'test'
+  ...
+# Subtest: parse numeric Retry-After header and set cooldown
+ok 134 - parse numeric Retry-After header and set cooldown
+  ---
+  duration_ms: 3.9945
+  type: 'test'
+  ...
+# Subtest: parse HTTP-date Retry-After header
+ok 135 - parse HTTP-date Retry-After header
+  ---
+  duration_ms: 1.2344
+  type: 'test'
+  ...
+# Subtest: setCooldown, isCooling and expiration
+ok 136 - setCooldown, isCooling and expiration
+  ---
+  duration_ms: 0.4402
+  type: 'test'
+  ...
+# Subtest: reset and isolation per provider:model
+ok 137 - reset and isolation per provider:model
+  ---
+  duration_ms: 1.1533
+  type: 'test'
+  ...
+# Subtest: no cooldown when header absent uses default
+ok 138 - no cooldown when header absent uses default
+  ---
+  duration_ms: 0.7636
+  type: 'test'
+  ...
+# Subtest: clearCooldown removes cooldown
+ok 139 - clearCooldown removes cooldown
+  ---
+  duration_ms: 0.3665
+  type: 'test'
+  ...
+# Subtest: Ctrl+K abre a busca e impede o atalho padrão do navegador
+ok 140 - Ctrl+K abre a busca e impede o atalho padrão do navegador
+  ---
+  duration_ms: 2.917
+  type: 'test'
+  ...
+# Subtest: busca comercial combina nome genérico, categoria e cidade
+ok 141 - busca comercial combina nome genérico, categoria e cidade
+  ---
+  duration_ms: 2.6602
+  type: 'test'
+  ...
+# Subtest: link de coordenada do Google Maps preserva o ponto exato do OSM
+ok 142 - link de coordenada do Google Maps preserva o ponto exato do OSM
+  ---
+  duration_ms: 0.6605
+  type: 'test'
+  ...
+# Subtest: link do OpenStreetMap preserva latitude, longitude e zoom
+ok 143 - link do OpenStreetMap preserva latitude, longitude e zoom
+  ---
+  duration_ms: 0.3761
+  type: 'test'
+  ...
+1..143
+# tests 143
+# suites 0
+# pass 141
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6227.2428

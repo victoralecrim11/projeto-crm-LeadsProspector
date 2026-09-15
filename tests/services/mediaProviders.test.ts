@@ -18,7 +18,7 @@ test('LicensedMediaQueryBuilder: gera queries contextuais e sanitiza dados do CR
   });
 
   assert.ok(queries.length >= 1 && queries.length <= 3);
-  assert.ok(queries.some((q) => q.includes('restaurant') || q.includes('dining')));
+  assert.ok(queries.some((q) => q.includes('restaurant') || q.includes('dining') || q.includes('pizza') || q.includes('pizzeria')));
 
   // Teste de sanitização de dados sensíveis (email, telefone, endereço, CNPJ)
   const sensitiveQueries = buildLicensedMediaQueries({

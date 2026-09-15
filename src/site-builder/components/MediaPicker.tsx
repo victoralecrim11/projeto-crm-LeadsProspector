@@ -125,7 +125,7 @@ export function MediaPicker({
                 
                 <select
                   value={provider}
-                  onChange={(e) => setProvider(e.target.value as any)}
+                  onChange={(e) => setProvider(e.target.value as 'all' | 'pexels' | 'pixabay')}
                   className="rounded-lg bg-slate-950 border border-slate-700 px-3 py-2 text-sm text-slate-300 focus:outline-none focus:border-indigo-500"
                 >
                   <option value="all">Todos os provedores</option>

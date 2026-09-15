@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import type { MediaPlan } from '../contracts';
-import type { MediaManifest, MediaCandidate } from '../contracts/media';
+import type { MediaManifest, MediaCandidate, StoredMediaAsset } from '../contracts/media';
 import { ImageIcon, Search, Check, RefreshCw, Trash2, ExternalLink, ShieldCheck } from 'lucide-react';
 import MediaPicker from './MediaPicker';
 
@@ -17,9 +17,9 @@ export interface MediaPanelProps {
   rejectMedia: (itemId: string) => void;
   autoResolveStatus?: 'idle' | 'resolving' | 'done' | 'not-configured';
   autoResolveMessage?: string;
-  getProjectAssets: () => Promise<any[]>;
-  getAssetUrl: (assetId: string) => Promise<string>;
-  selectProjectAsset: (item: MediaPlan['items'][number], asset: any) => Promise<void>;
+  getProjectAssets: () => Promise<StoredMediaAsset[]>;
+  getAssetUrl: (assetId: string) => Promise<string | null>;
+  selectProjectAsset: (item: MediaPlan['items'][number], asset: StoredMediaAsset) => Promise<void>;
 }
 
 /**

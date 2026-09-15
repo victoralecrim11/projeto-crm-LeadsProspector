@@ -19,13 +19,26 @@ export interface NicheResearchDependencies {
   now?: Date;
 }
 
-export function buildNicheQueries(niche: string): string[] {
+export function buildNicheQueries(niche: string, subNiche?: string): string[] {
   const nicheLabels: Record<string, string> = {
     dentistry: 'odontologia clinica odontologica',
     restaurant: 'restaurante gastronomia',
     barbershop: 'barbearia barber shop',
   };
-  const label = nicheLabels[niche] ?? niche;
+  
+  let label = nicheLabels[niche] ?? niche;
+  if (subNiche) {
+    const s = subNiche.toLowerCase();
+    if (niche === 'barbershop' && (s.includes('salão') || s.includes('beleza') || s.includes('cabeleireir'))) {
+      label = 'salão de beleza cabeleireiro';
+    } else if (niche === 'restaurant' && s.includes('pizza')) {
+      label = 'pizzaria pizzaiolo';
+    } else if (niche === 'restaurant' && s.includes('hamburg')) {
+      label = 'hamburgueria artesanal';
+    } else {
+      label = subNiche; // Usa o subnicho explícito se fornecido
+    }
+  }
 
   return [
     `${label} site design brasil`,
@@ -51,7 +64,7 @@ export async function researchNiche(
     }
   }
 
-  const queries = buildNicheQueries(niche);
+  const queries = buildNicheQueries(niche, subNiche);
   const primaryProvider = dependencies.searchProvider ?? new SearXNGSearchProvider();
   const fallbackProvider = dependencies.fallbackProvider ?? new BraveSearchProvider();
 

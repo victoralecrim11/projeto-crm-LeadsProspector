@@ -43,13 +43,22 @@ export async function generateSite(
       400,
     );
   }
-  const catalog = await dependencies.discoverModels(credentials);
-  const candidates = resolveModels(
-    catalog.models,
-    input.modelSelection,
-    Boolean(input.section),
-  );
+  let catalog;
+  let candidates;
   let lastError: unknown;
+  try {
+    catalog = await dependencies.discoverModels(credentials);
+    candidates = resolveModels(
+      catalog.models,
+      input.modelSelection,
+      Boolean(input.section),
+    );
+  } catch (e) {
+    lastError = e;
+    candidates = [];
+    catalog = { models: [], warnings: [] };
+  }
+
   const delay =
     dependencies.delay ??
     ((milliseconds: number) =>
@@ -145,7 +154,50 @@ export async function generateSite(
       }
     }
   }
-  if (lastError instanceof SiteAiError) throw lastError;
+  if (lastError instanceof SiteAiError) {
+    if (input.blueprint && (lastError.status === 429 || lastError.status === 503 || lastError.status === 504 || lastError.code === 'SITE_AI_PROVIDER_TIMEOUT' || lastError.code === 'SITE_AI_PROVIDER_NETWORK' || lastError.code === 'SITE_AI_NO_COMPATIBLE_MODEL')) {
+      // Create a deterministic fallback variant
+      let blueprint = structuredClone(input.blueprint);
+      
+      // Force visual changes to ensure "something happened"
+      if (input.section === "headline") {
+        blueprint.visual.hero = blueprint.visual.hero === "full-bleed" ? "split" : "full-bleed";
+        blueprint.hero.headline = "Atualizando " + input.context.business.name;
+        blueprint.hero.subtitle = "Confira nossos serviços para mais detalhes.";
+      } else if (input.section === "about") {
+        blueprint.visual.about = blueprint.visual.about === "editorial-split" ? "centered-story" : "editorial-split";
+        blueprint.about.title = "Nossa História";
+        blueprint.about.description = `A ${input.context.business.name} trabalha com dedicação para trazer os melhores resultados.`;
+      } else if (input.section === "services") {
+        blueprint.visual.services = blueprint.visual.services === "editorial-list" ? "horizontal-cards" : "editorial-list";
+      } else if (input.section === "tone") {
+        blueprint.presentation = {
+          theme: blueprint.presentation?.theme === "dark" ? "light" : "dark",
+          typography: blueprint.presentation?.typography === "modern" ? "editorial" : "modern",
+          motion: "subtle"
+        };
+      }
+
+      const generation: GenerationMetadata = {
+        provider: "fallback",
+        model: "deterministic",
+        modelId: "fallback:deterministic",
+        generatedAt: new Date().toISOString(),
+        blueprintVersion: 2,
+        mode: "standard-fallback",
+        fallbackUsed: true,
+        fallbackDetail: `provider-http-${lastError.status}` as any,
+        guidance: { id: reactToolkitProfile.id, version: reactToolkitProfile.version, sourceVersion: reactToolkitProfile.sourceVersion, sourceCommit: reactToolkitProfile.sourceCommit },
+      };
+      return {
+        success: true as const,
+        blueprint: constrainBlueprint(blueprint, input.context),
+        warnings: ["O site foi regenerado com fallback determinístico devido a indisponibilidade temporária da IA."],
+        generation,
+      };
+    }
+    throw lastError;
+  }
   throw new SiteAiError(
     "A IA retornou um Blueprint incompatível após as tentativas permitidas.",
     502,
@@ -162,17 +214,30 @@ export function mergeSection(
   if (section === "headline") {
     next.hero.headline = generated.hero.headline;
     next.hero.subtitle = generated.hero.subtitle;
+    next.visual.hero = generated.visual.hero;
   }
   if (section === "cta") {
     next.hero.ctaText = generated.hero.ctaText;
     next.hero.ctaType = generated.hero.ctaType;
   }
-  if (section === "about") next.about = generated.about;
-  if (section === "services") next.services = generated.services;
+  if (section === "about") {
+    next.about = generated.about;
+    next.visual.about = generated.visual.about;
+  }
+  if (section === "services") {
+    next.services = generated.services;
+    next.visual.services = generated.visual.services;
+  }
   if (section === "tone") {
     next.brand.tone = generated.brand.tone;
     next.hero = generated.hero;
     next.about = generated.about;
+    if (generated.presentation) {
+      next.presentation = generated.presentation;
+    }
+    if (generated.visual) {
+      next.visual = generated.visual;
+    }
   }
   next.warnings = generated.warnings;
   return constrainBlueprint(next, context);

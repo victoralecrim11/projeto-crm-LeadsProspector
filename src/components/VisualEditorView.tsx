@@ -223,7 +223,12 @@ export const VisualEditorView: React.FC = () => {
       setDraft(result.blueprint);
       setReviewed(false);
       setDirty(false);
-      toast("Seção regenerada. Revise o novo conteúdo.");
+      
+      if (result.generation.fallbackUsed) {
+        toast("A IA está indisponível. A seção foi alterada com nosso modelo local offline.", "success");
+      } else {
+        toast("Seção regenerada. Revise o novo conteúdo.");
+      }
     } catch (e) {
       toast((e as Error).message, "error");
     } finally {
@@ -516,7 +521,7 @@ export const VisualEditorView: React.FC = () => {
                   <button
                     type="button"
                     onClick={() => void triggerAutoResolve()}
-                    disabled={busy || autoResolveStatus === 'resolving'}
+                    disabled={busy}
                     className="w-full py-2 px-3 rounded-lg bg-indigo-900/80 hover:bg-indigo-900 text-white font-medium text-xs flex items-center justify-center gap-2 transition-all mt-2"
                   >
                     <Sparkles size={14} aria-hidden="true" /> Buscar imagens automaticamente
