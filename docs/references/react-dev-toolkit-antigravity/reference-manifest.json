@@ -1,0 +1,12 @@
+{
+  "name": "react-dev-toolkit-antigravity",
+  "type": "guidance-reference",
+  "runtimePlugin": false,
+  "sourceVersion": "1.3.3",
+  "sourceCommit": "3dabf36a9826a80d4b6f2404ed58295cb9557f6a",
+  "sourceRepository": "https://github.com/victoralecrim11/react-dev-toolkit-antigravity",
+  "references": [
+    "skills/react-dev",
+    "skills/ui-ux"
+  ]
+}
