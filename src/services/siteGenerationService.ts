@@ -40,11 +40,15 @@ export async function generateStandardAiBlueprint(
   source: LeadSourceContext,
   selection: ModelSelection = { mode: "auto" },
   overrides?: { primary: string; accent: string },
+  generationRequestId?: string,
+  designProductionId?: string
 ) {
   const result = (await api("sites/standard-ai", settings, {
     source,
     selection,
     overrides,
+    generationRequestId,
+    designProductionId,
   })) as {
     blueprint: unknown;
     design: unknown;

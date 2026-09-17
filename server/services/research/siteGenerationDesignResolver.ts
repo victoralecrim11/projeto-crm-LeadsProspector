@@ -52,11 +52,16 @@ export async function resolveSiteGenerationDesign(
   current: CurrentBusinessReference,
   overrides?: { primary: string; accent: string },
   artifactReference?: DesignArtifactReference,
+  isFreshIntelligent: boolean = false
 ): Promise<SiteGenerationDesignResult> {
+  if (isFreshIntelligent && !artifactReference) {
+    throw new Error('DESIGN_PRODUCTION_REQUIRED: Fresh intelligent generation cannot fallback to latest without a valid Design Production Reference.');
+  }
+
   const { projectId, requestId } = resolveDesignArtifactIdentity(source, artifactReference);
   
-  if (!artifactReference) {
-    console.warn(`[SiteGenerationResolver] ARTIFACT_REFERENCE_MISSING: Falling back to 'latest' artifact for lead ${projectId}. This is allowed for compatibility but explicit DesignArtifactReference is preferred.`);
+  if (!artifactReference && !isFreshIntelligent) {
+    console.warn(`[SiteGenerationResolver] ARTIFACT_REFERENCE_MISSING: Falling back to 'latest' artifact for lead ${projectId}. This is allowed for LEGACY compatibility only.`);
   }
   
   // 1. Resolve base strategy to get strategyId for lookup

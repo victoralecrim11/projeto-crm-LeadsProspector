@@ -11,7 +11,7 @@ import {
 } from "../site-builder/types";
 import { normalizeDesignBrief } from "../site-builder/designBrief";
 import { generateSiteBlueprint, generateStandardAiBlueprint } from "../services/siteGenerationService";
-import { normalizeLeadSource } from '../site-builder/leadSource';
+import { normalizeLeadSource, getLeadCategory } from '../site-builder/leadSource';
 import { resolvedDesignSchema } from '../site-builder/contracts/research';
 import { deriveDefaultMediaPlan } from '../site-builder/media/mediaPlanBuilder';
 import { ModelControls } from "../site-builder/components/ModelControls";
@@ -38,6 +38,7 @@ export const SiteGeneratorModal: React.FC = () => {
   const crm = useCrm();
   const navigate = useNavigate();
   const [leadId, setLeadId] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [busy, setBusy] = useState(false);
   const [generationMode, setGenerationMode] = useState<'existing' | 'standard'>('standard');
   const [error, setError] = useState("");
@@ -76,13 +77,94 @@ export const SiteGeneratorModal: React.FC = () => {
       crm.setSiteGeneratorLead(null);
     }
   };
+  const [productionStatus, setProductionStatus] = useState<string>('');
+  const [productionRequestId, setProductionRequestId] = useState<string>('');
+  
+  // Clean up polling if modal closes
+  useEffect(() => {
+    if (!crm.isCreateSiteModalOpen) {
+      setProductionStatus('');
+      setProductionRequestId('');
+    }
+  }, [crm.isCreateSiteModalOpen]);
+
   const generate = async () => {
     if (!lead || busy) return;
     setBusy(true);
     setError("");
+    setProductionStatus("");
+    
     let project: ReturnType<typeof crm.addProject> | undefined;
+    let pollInterval: NodeJS.Timeout | undefined;
+    
     try {
       const context = buildLeadSiteContext(lead);
+      const sourceContext = normalizeLeadSource(lead);
+      
+      let finalGenerationRequestId: string | undefined;
+      let finalDesignProductionId: string | undefined;
+      
+      if (generationMode === 'standard') {
+         // Stitch On-Demand Flow
+         const reqId = productionRequestId || crypto.randomUUID();
+         if (!productionRequestId) setProductionRequestId(reqId);
+         
+         const produceRes = await fetch('/api/ai/research/stitch/produce', {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({
+             generationRequestId: reqId,
+             leadId: lead.id,
+             source: sourceContext
+           })
+         });
+         
+         if (!produceRes.ok) {
+           const errData = await produceRes.json();
+           throw new Error(errData.error || 'Falha ao iniciar produção de design.');
+         }
+         
+         const produceData = await produceRes.json();
+         finalGenerationRequestId = produceData.generationRequestId;
+         finalDesignProductionId = produceData.designProductionId;
+         setProductionStatus(produceData.status);
+         
+         // Polling
+         const terminalStates = ['PAIRED', 'PARTIAL', 'FAILED'];
+         let currentStatus = produceData.status;
+         
+         if (!terminalStates.includes(currentStatus)) {
+           await new Promise<void>((resolve, reject) => {
+             pollInterval = setInterval(async () => {
+               try {
+                 if (!crm.isCreateSiteModalOpen) {
+                   clearInterval(pollInterval);
+                   return; // Abandon polling if closed, but backend job continues
+                 }
+                 const pollRes = await fetch(`/api/ai/research/stitch/produce/${finalGenerationRequestId}`);
+                 if (!pollRes.ok) throw new Error('Falha ao ler status da produção');
+                 const pollData = await pollRes.json();
+                 currentStatus = pollData.status;
+                 setProductionStatus(currentStatus);
+                 
+                 if (currentStatus === 'FAILED') {
+                   clearInterval(pollInterval);
+                   reject(new Error(`Falha na produção do design: ${pollData.errorCode || 'UNHANDLED'}`));
+                 } else if (terminalStates.includes(currentStatus)) {
+                   clearInterval(pollInterval);
+                   resolve();
+                 }
+               } catch (e) {
+                 clearInterval(pollInterval);
+                 reject(e);
+               }
+             }, 2000);
+           });
+         }
+         
+         setProductionStatus('GENERATING_CONTENT');
+      }
+
       project = crm.addProject({
         leadId: lead.id,
         clientName: lead.name,
@@ -99,13 +181,23 @@ export const SiteGeneratorModal: React.FC = () => {
         generationStatus: "generating",
         contentReviewed: false,
       });
-      const result = generationMode === 'standard' ? await generateStandardAiBlueprint(crm.crmSettings, normalizeLeadSource(lead), selection,
-        designBrief.paletteMode === 'custom' ? { primary: designBrief.primaryColor, accent: designBrief.accentColor } : undefined) : await generateSiteBlueprint(crm.crmSettings, {
-        leadId: lead.id,
-        context,
-        preferences: prefs,
-        modelSelection: selection,
-      });
+
+      const result = generationMode === 'standard' 
+        ? await generateStandardAiBlueprint(
+            crm.crmSettings, 
+            sourceContext, 
+            selection,
+            designBrief.paletteMode === 'custom' ? { primary: designBrief.primaryColor, accent: designBrief.accentColor } : undefined,
+            finalGenerationRequestId,
+            finalDesignProductionId
+          ) 
+        : await generateSiteBlueprint(crm.crmSettings, {
+            leadId: lead.id,
+            context,
+            preferences: prefs,
+            modelSelection: selection,
+          });
+
       const resolvedDesign = 'design' in result ? resolvedDesignSchema.parse(result.design) : undefined;
       const mediaPlan = deriveDefaultMediaPlan({
         ...project,
@@ -137,6 +229,7 @@ export const SiteGeneratorModal: React.FC = () => {
       crm.setSiteGeneratorLead(null);
       navigate("/editor?project=" + encodeURIComponent(project.id));
     } catch (e) {
+      if (pollInterval) clearInterval(pollInterval);
       const message = e instanceof Error ? e.message : "Falha ao gerar site.";
       if (project)
         crm.updateProject({
@@ -147,6 +240,7 @@ export const SiteGeneratorModal: React.FC = () => {
       setError(message);
       toast(message, "error");
     } finally {
+      if (pollInterval) clearInterval(pollInterval);
       setBusy(false);
     }
   };
@@ -211,21 +305,41 @@ export const SiteGeneratorModal: React.FC = () => {
               </label>
             </div>
           </div>
-          <label className="generator-field-wide">
-            Lead
-            <select
-              className="block w-full p-2 bg-slate-800 rounded-lg"
-              value={leadId}
-              onChange={(e) => setLeadId(e.target.value)}
-            >
-              <option value="">Selecione um lead</option>
-              {crm.leads.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name} · {l.city}
-                </option>
-              ))}
-            </select>
-          </label>
+          <div className="flex gap-4">
+            <label className="flex-1 block">
+              Categoria
+              <select
+                className="block w-full p-2 bg-slate-800 rounded-lg"
+                value={selectedCategory}
+                onChange={(e) => {
+                   setSelectedCategory(e.target.value);
+                   setLeadId(''); // reset lead when category changes
+                }}
+              >
+                <option value="all">Todas as Categorias</option>
+                {Array.from(new Set(crm.leads.map(l => getLeadCategory(l)).filter(Boolean))).map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
+            </label>
+            <label className="flex-[2] block">
+              Lead
+              <select
+                className="block w-full p-2 bg-slate-800 rounded-lg"
+                value={leadId}
+                onChange={(e) => setLeadId(e.target.value)}
+              >
+                <option value="">Selecione um lead</option>
+                {crm.leads
+                  .filter(l => selectedCategory === 'all' || getLeadCategory(l) === selectedCategory)
+                  .map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.name} · {l.city}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
           <label className="block">
             Tipo
             <select
@@ -335,7 +449,13 @@ export const SiteGeneratorModal: React.FC = () => {
           onClick={generate}
           className="w-full p-3 rounded-xl bg-indigo-600 disabled:opacity-50 font-bold"
         >
-          {busy ? generationMode === 'standard' ? 'Analisando referências e criando site…' : 'Gerando site… aguarde a resposta da IA' : '✨ Gerar Site'}
+          {busy ? generationMode === 'standard' ? 
+            (productionStatus === 'PENDING' ? 'Iniciando Stitch Production...' :
+             productionStatus === 'MOBILE_GENERATING' ? 'Gerando design mobile no Stitch...' :
+             productionStatus === 'DESKTOP_GENERATING' ? 'Gerando design desktop no Stitch...' :
+             productionStatus === 'GENERATING_CONTENT' ? 'Analisando referências e estruturando site...' :
+             'Gerando design...') 
+            : 'Gerando site… aguarde a resposta da IA' : '✨ Gerar Site'}
         </button>
         {!lead && <p>Adicione um lead no radar ou no CRM para continuar.</p>}
       </section>

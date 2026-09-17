@@ -179,13 +179,89 @@ export function siteGenerationRouter() {
     catch { return res.status(422).json({ error: 'Não foi possível resolver o design. Verifique nicho e referências.', code: 'SITE_AI_PROVIDER_UNAVAILABLE', requestId }); }
     finally { active--; }
   });
+  router.post('/research/stitch/produce', async (req, res) => {
+    const requestId = (req.get('x-request-id') as string) || `siteai_${crypto.randomUUID()}`;
+    res.setHeader('X-Request-Id', requestId);
+    if (!checkProductionAuth(req, res, 'stitch-production', requestId)) return;
+
+    const parsed = z.object({
+      generationRequestId: z.string().uuid(),
+      leadId: z.string(),
+      source: leadSourceContextSchema
+    }).safeParse(req.body);
+
+    if (!parsed.success) {
+      return res.status(400).json({ error: 'Payload inválido', requestId });
+    }
+
+    try {
+      const { stitchDesignProductionService } = await import('../services/research/stitchProductionService.js');
+      const prod = await stitchDesignProductionService.getOrCreateProduction(
+        parsed.data.generationRequestId,
+        parsed.data.leadId,
+        parsed.data.source
+      );
+      return res.status(202).json({
+        designProductionId: prod.designProductionId,
+        generationRequestId: prod.generationRequestId,
+        status: prod.status
+      });
+    } catch (e) {
+      if (e instanceof Error && e.message === 'CROSS_LEAD_PROTECTION_ERROR') {
+         return res.status(409).json({ error: 'Conflito de lead', requestId });
+      }
+      return res.status(500).json({ error: 'Erro ao iniciar produção', requestId });
+    }
+  });
+
+  router.get('/research/stitch/produce/:id', async (req, res) => {
+    const id = req.params.id;
+    if (!id) return res.status(400).json({ error: 'Missing ID' });
+    
+    const { stitchDesignProductionService } = await import('../services/research/stitchProductionService.js');
+    const prod = stitchDesignProductionService.getProduction(id);
+    
+    if (!prod) {
+       return res.status(404).json({ error: 'DESIGN_PRODUCTION_NOT_FOUND' });
+    }
+    
+    return res.json({
+      designProductionId: prod.designProductionId,
+      generationRequestId: prod.generationRequestId,
+      status: prod.status,
+      errorCode: prod.errorCode
+    });
+  });
+
+  const activeGenerations = new Set<string>();
+
   router.post('/sites/standard-ai', async (req, res) => {
     const requestId = (req.get('x-request-id') as string) || `siteai_${crypto.randomUUID()}`;
     res.setHeader('X-Request-Id', requestId);
     if (!checkProductionAuth(req, res, 'geração', requestId)) return;
-    const parsed = z.object({ source: leadSourceContextSchema, selection: z.object({ mode: z.enum(['auto', 'fast', 'quality', 'premium', 'local', 'explicit']), modelId: z.string().max(180).nullable().optional() }).strict(), overrides: z.object({ primary: z.string().regex(/^#[0-9a-fA-F]{6}$/), accent: z.string().regex(/^#[0-9a-fA-F]{6}$/) }).strict().optional() }).strict().safeParse(req.body);
+    const parsed = z.object({ 
+      source: leadSourceContextSchema, 
+      selection: z.object({ mode: z.enum(['auto', 'fast', 'quality', 'premium', 'local', 'explicit']), modelId: z.string().max(180).nullable().optional() }).strict(), 
+      overrides: z.object({ primary: z.string().regex(/^#[0-9a-fA-F]{6}$/), accent: z.string().regex(/^#[0-9a-fA-F]{6}$/) }).strict().optional(),
+      generationRequestId: z.string().optional(),
+      designProductionId: z.string().optional()
+    }).strict().safeParse(req.body);
+    
     if (!parsed.success) return res.status(400).json({ error: 'Contexto ou seleção de modelo inválidos.', code: 'SITE_AI_PROVIDER_INVALID_REQUEST', requestId });
-    if (active >= 2) return res.status(429).json({ error: 'Aguarde a geração em andamento.', code: 'SITE_AI_PROVIDER_RATE_LIMIT', requestId });
+    
+    const idempotencyKey = parsed.data.generationRequestId 
+      ? `gen_${parsed.data.generationRequestId}_${parsed.data.designProductionId}` 
+      : undefined;
+
+    if (idempotencyKey) {
+      if (activeGenerations.has(idempotencyKey)) {
+        return res.status(409).json({ error: 'Geração já em andamento para este request.', code: 'SITE_AI_PROVIDER_RATE_LIMIT', requestId });
+      }
+      activeGenerations.add(idempotencyKey);
+    } else if (active >= 2) {
+      return res.status(429).json({ error: 'Aguarde a geração em andamento.', code: 'SITE_AI_PROVIDER_RATE_LIMIT', requestId });
+    }
+
     active++;
     try {
       return res.json(await generateStandardAiSite(
@@ -193,7 +269,10 @@ export function siteGenerationRouter() {
         parsed.data.selection,
         parsed.data.overrides,
         credentials(req),
-        {},
+        {
+           generationRequestId: parsed.data.generationRequestId,
+           designProductionId: parsed.data.designProductionId
+        },
         requestId,
       ));
     }
@@ -207,7 +286,12 @@ export function siteGenerationRouter() {
         requestId,
       });
     }
-    finally { active--; }
+    finally { 
+      active--; 
+      if (idempotencyKey) {
+        activeGenerations.delete(idempotencyKey);
+      }
+    }
   });
   router.get("/models", async (req, res) => {
     try {

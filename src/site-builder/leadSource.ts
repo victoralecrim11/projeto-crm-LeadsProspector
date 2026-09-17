@@ -23,3 +23,13 @@ export function businessFromSource(input: LeadSourceContext) {
   facts.niche = { value: derivedNiche, provenance: 'DERIVED', verified: false, evidence: 'Classificação por categoria/nicho persistidos; não confirma subnicho ou posicionamento premium.' };
   return sourcedBusinessContextSchema.parse({ version: 1, lead: source.context, confirmed: {}, source, businessType: 'local-business', derivedNiche, facts });
 }
+
+export function getLeadCategory(lead: Lead): string {
+  const candidates = [
+    lead.category?.trim(),
+    lead.niche?.trim(),
+    // Fallback if needed, though category and niche are usually defined
+    'Sem categoria'
+  ];
+  return candidates.find(c => Boolean(c)) || 'Sem categoria';
+}

@@ -19,6 +19,8 @@ type Dependencies = {
   requestBlueprint?: typeof requestBlueprint;
   cache?: DesignResearchCache;
   snapshot?: DesignResearchSnapshot;
+  generationRequestId?: string;
+  designProductionId?: string;
 };
 
 export function getFallbackUserMessage(
@@ -76,13 +78,66 @@ export async function generateStandardAiSite(
   const business = businessFromSource(source);
 
   // 1. Resolve site generation design using Stitch/Fallback
+  
+  // Validation for Intelligent Stitch Generation (v1.3/1.4)
+  const isFreshIntelligent = Boolean(dependencies.generationRequestId || dependencies.designProductionId);
+  let artifactReference: import('../../../src/site-builder/contracts/research.js').DesignArtifactReference | undefined;
+  
+  if (isFreshIntelligent) {
+    if (!dependencies.generationRequestId || !dependencies.designProductionId) {
+      throw new SiteAiError('Mismatched request identities.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+    }
+    const { stitchDesignProductionService } = await import('./stitchProductionService.js');
+    const production = stitchDesignProductionService.getProduction(dependencies.generationRequestId);
+    
+    if (!production) {
+      throw new SiteAiError('A sessão de criação do design expirou. Gere o design novamente.', 404, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+    }
+    
+    if (
+      production.designProductionId !== dependencies.designProductionId ||
+      production.leadId !== source.leadId
+    ) {
+      throw new SiteAiError('Cross-lead protection failed.', 403, false, 'SITE_AI_PROVIDER_AUTH');
+    }
+    
+    if (production.status !== 'PAIRED' && production.status !== 'PARTIAL') {
+      throw new SiteAiError(`Design status is ${production.status}, expected PAIRED or PARTIAL.`, 409, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+    }
+    
+    if (production.status === 'PARTIAL' && !production.mobileReference) {
+      throw new SiteAiError('PARTIAL requires a valid mobile reference.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+    }
+    
+    artifactReference = production.mobileReference;
+    // Desktop reference will be handled later by responsive resolver if available on final design
+  }
+  
   const { 
     resolvedDesign: design, 
     designSource, 
     selectedCandidateId, 
     artifactIdentity, 
     fallbackReason 
-  } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides));
+  } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides, artifactReference, isFreshIntelligent));
+  
+  if (isFreshIntelligent && dependencies.generationRequestId) {
+    const { stitchDesignProductionService } = await import('./stitchProductionService.js');
+    const production = stitchDesignProductionService.getProduction(dependencies.generationRequestId);
+    if (production && production.desktopReference) {
+      // Inject desktop reference to be caught by the Responsive Resolver
+      if (!design.stitch) {
+        design.stitch = {
+          alternatives: [],
+          selected: '',
+          review: '',
+          generatedAt: new Date().toISOString(),
+        };
+      }
+      if (!design.stitch.viewportAnchors) design.stitch.viewportAnchors = { mobile: production.mobileReference! };
+      design.stitch.viewportAnchors.desktop = production.desktopReference;
+    }
+  }
 
   let finalDesign = design;
   if (finalDesign.stitch?.viewportAnchors?.mobile) {
