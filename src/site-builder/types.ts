@@ -119,44 +119,87 @@ export const visualVariants = {
   navigation: ["inline"],
   footer: ["minimal", "editorial"],
 } as const;
-export const visualSchema = z.object({
-  hero: z.enum(visualVariants.hero),
-  about: z.enum(visualVariants.about),
-  services: z.enum(visualVariants.services),
-  contact: z.enum(visualVariants.contact),
-  location: z.enum(visualVariants.location),
-  navigation: z.enum(visualVariants.navigation),
-  footer: z.enum(visualVariants.footer),
-}).strict();
+export const visualSchema = z
+  .object({
+    hero: z.enum(visualVariants.hero),
+    about: z.enum(visualVariants.about),
+    services: z.enum(visualVariants.services),
+    contact: z.enum(visualVariants.contact),
+    location: z.enum(visualVariants.location),
+    navigation: z.enum(visualVariants.navigation),
+    footer: z.enum(visualVariants.footer),
+  })
+  .strict();
 export type VisualVariants = z.infer<typeof visualSchema>;
-export function defaultVisualVariants(template: (typeof templates)[number]): VisualVariants {
-  const shared = { location: "location-editorial", navigation: "inline" } as const;
-  const layouts: Record<(typeof templates)[number], Omit<VisualVariants, keyof typeof shared>> = {
-    "modern-local-business": { hero: "split", about: "editorial-split", services: "horizontal-cards", contact: "contact-split", footer: "editorial" },
-    "premium-service": { hero: "full-bleed", about: "editorial-split", services: "editorial-list", contact: "contact-split", footer: "editorial" },
-    "minimal-professional": { hero: "minimal", about: "centered-story", services: "editorial-list", contact: "contact-minimal", footer: "minimal" },
-    "appointment-focused": { hero: "split", about: "centered-story", services: "horizontal-cards", contact: "contact-minimal", footer: "minimal" },
+export function defaultVisualVariants(
+  template: (typeof templates)[number],
+): VisualVariants {
+  const shared = {
+    location: "location-editorial",
+    navigation: "inline",
+  } as const;
+  const layouts: Record<
+    (typeof templates)[number],
+    Omit<VisualVariants, keyof typeof shared>
+  > = {
+    "modern-local-business": {
+      hero: "split",
+      about: "editorial-split",
+      services: "horizontal-cards",
+      contact: "contact-split",
+      footer: "editorial",
+    },
+    "premium-service": {
+      hero: "full-bleed",
+      about: "editorial-split",
+      services: "editorial-list",
+      contact: "contact-split",
+      footer: "editorial",
+    },
+    "minimal-professional": {
+      hero: "minimal",
+      about: "centered-story",
+      services: "editorial-list",
+      contact: "contact-minimal",
+      footer: "minimal",
+    },
+    "appointment-focused": {
+      hero: "split",
+      about: "centered-story",
+      services: "horizontal-cards",
+      contact: "contact-minimal",
+      footer: "minimal",
+    },
   };
   return { ...shared, ...layouts[template] };
 }
 export const blueprintV2Schema = legacyBlueprintSchema.extend({
   version: z.literal(2),
   visual: visualSchema,
-  presentation: z.object({
-    theme: z.enum(["light", "dark"]),
-    typography: z.enum(["modern", "editorial"]),
-    motion: z.enum(["none", "subtle"]),
-  }).strict().optional(),
+  presentation: z
+    .object({
+      theme: z.enum(["light", "dark"]),
+      typography: z.enum(["modern", "editorial"]),
+      motion: z.enum(["none", "subtle"]),
+    })
+    .strict()
+    .optional(),
 });
 // Only v1 is migrated. Invalid v2 generation remains a schema error.
-export const blueprintSchema = z.union([blueprintV2Schema, legacyBlueprintSchema]).transform((value) =>
-  value.version === 2 ? value : { ...value, version: 2 as const, visual: defaultVisualVariants(value.templateId) },
-);
+export const blueprintSchema = z
+  .union([blueprintV2Schema, legacyBlueprintSchema])
+  .transform((value) =>
+    value.version === 2
+      ? value
+      : {
+          ...value,
+          version: 2 as const,
+          visual: defaultVisualVariants(value.templateId),
+        },
+  );
 export const preferencesSchema = z
   .object({
-    siteType: z
-      .enum(["landing-page", "institutional"])
-      .default("landing-page"),
+    siteType: z.enum(["landing-page", "institutional"]).default("landing-page"),
     templateId: z.enum(templatePreferences),
     style: z.enum(tones),
     goal: z.enum(["contact", "phone", "whatsapp", "none"]),
@@ -195,16 +238,44 @@ export type GenerationMetadata = {
   modelId: string;
   generatedAt: string;
   blueprintVersion: number;
-  guidance?: { id: string; version: number; sourceVersion: string; sourceCommit?: string };
+  guidance?: {
+    id: string;
+    version: number;
+    sourceVersion: string;
+    sourceCommit?: string;
+  };
   mode?: "standard-ai" | "standard-fallback" | "legacy" | "standard";
   fallbackUsed?: boolean;
-  fallbackReason?: "provider-unavailable" | "rate-limit" | "temporary-provider-error";
+  fallbackReason?:
+    | "provider-unavailable"
+    | "rate-limit"
+    | "temporary-provider-error";
   fallbackDetail?: FallbackDetail;
   requestId?: string;
   durationMs?: number;
   designFamily?: string;
+  designSource?:
+    | "STITCH"
+    | "STALE_STITCH"
+    | "INVALID_STITCH"
+    | "MISMATCH_STITCH"
+    | "B3_RESEARCH"
+    | "CURATED"
+    | "LEGACY";
+  designFallbackReason?: string;
 };
-export type ProviderId = "gemini" | "ollama" | "groq" | "huggingface" | "openai" | "anthropic" | "mistral" | "cohere" | "azure" | "aws" | "replicate";
+export type ProviderId =
+  | "gemini"
+  | "ollama"
+  | "groq"
+  | "huggingface"
+  | "openai"
+  | "anthropic"
+  | "mistral"
+  | "cohere"
+  | "azure"
+  | "aws"
+  | "replicate";
 
 export type AiModelDefinition = {
   id: string;

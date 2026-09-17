@@ -68,11 +68,15 @@ export async function generateStandardAiSite(
   const current = await (dependencies.audit ?? auditCurrentSite)(source.context.onlinePresence.websiteUrl);
   const business = businessFromSource(source);
 
-  // Fast cache-only lookup (decoupled from live web crawl)
-  const cache = dependencies.cache ?? globalDesignResearchCache;
-  const snapshot = dependencies.snapshot ?? (business.derivedNiche !== 'other' ? (cache.get(business.derivedNiche) ?? undefined) : undefined);
+  // 1. Resolve site generation design using Stitch/Fallback
+  const { 
+    resolvedDesign: design, 
+    designSource, 
+    selectedCandidateId, 
+    artifactIdentity, 
+    fallbackReason 
+  } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides));
 
-  const design = resolveStandardDesign(source, current, overrides, new Date(), snapshot);
   const contract = buildDesignSystemContract(design);
   const fallback = (
     reason: GenerationMetadata['fallbackReason'],
@@ -112,6 +116,8 @@ export async function generateStandardAiSite(
         durationMs,
         designFamily: design.specification.family.id,
         guidance: reactToolkitProfile,
+        designSource,
+        designFallbackReason: fallbackReason,
       } as GenerationMetadata,
     };
   };
@@ -165,6 +171,8 @@ export async function generateStandardAiSite(
             durationMs,
             designFamily: design.specification.family.id,
             guidance: reactToolkitProfile,
+            designSource,
+            designFallbackReason: fallbackReason,
           } as GenerationMetadata,
         };
       } catch (error) {

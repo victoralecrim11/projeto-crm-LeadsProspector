@@ -84,6 +84,14 @@ export async function writeArtifact(
     strategyId,
     writtenAt: new Date().toISOString(),
     atomicRenameCompleted: renameCompleted,
+    artifactReference: {
+      projectId,
+      requestId,
+      strategyId,
+      source: artifact.source,
+      artifactPath: finalPath,
+      createdAt: new Date().toISOString()
+    }
   };
 }
 

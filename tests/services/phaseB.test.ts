@@ -154,7 +154,12 @@ test('Stitch operational states and privacy; no pretend variants', async () => {
   const payload = JSON.stringify(stitchDesignInput(d));
   assert.ok(!payload.includes('example.invalid')); assert.ok(!payload.includes('fictional')); assert.ok(!payload.includes('Rua'));
   assert.equal((await explorePremium(d)).variants.length, 0);
-  const provider = { probe: async () => ({ status: 'STITCH_READ_ONLY' as const }), explore: async () => null };
+  const provider = { 
+    probe: async () => ({ status: 'STITCH_READ_ONLY' as const }), 
+    explore: async () => null,
+    readArtifact: async () => ({} as any),
+    consumeArtifact: async () => ({} as any)
+  };
   assert.equal(await probeStitch('proj', 'req', 'strat', provider), 'STITCH_READ_ONLY');
   assert.equal(await probeStitch('proj', 'req', 'strat', { ...provider, probe: async () => { throw new Error(); } }), 'STITCH_FAILED');
 });

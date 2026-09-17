@@ -6,7 +6,7 @@
  * which remain in src/site-builder/contracts/research.ts.
  */
 
-import type { DesignStrategy, DesignCandidate } from '../../src/site-builder/contracts/research.js';
+import type { DesignStrategy, DesignCandidate, DesignArtifactReference } from '../../src/site-builder/contracts/research.js';
 
 // ── Stitch MCP Client ─────────────────────────────────────────────
 
@@ -87,6 +87,7 @@ export interface ArtifactWriteEvidence {
   strategyId: string;
   writtenAt: string;
   atomicRenameCompleted: boolean;
+  artifactReference: DesignArtifactReference;
 }
 
 // ── Producer Orchestrator Result ──────────────────────────────────

@@ -178,6 +178,16 @@ export const designCandidateSchema = z.object({
 }).strict();
 export type DesignCandidate = z.infer<typeof designCandidateSchema>;
 
+export const designArtifactReferenceSchema = z.object({
+  projectId: z.string().min(1),
+  requestId: z.string().min(1),
+  strategyId: z.string().min(1),
+  source: z.enum(['stitch', 'curated', 'strategy-fallback']),
+  artifactPath: z.string().optional(),
+  createdAt: z.string().optional(),
+}).strict();
+export type DesignArtifactReference = z.infer<typeof designArtifactReferenceSchema>;
+
 export const stitchCandidateArtifactSchema = z.object({
   schemaVersion: z.number(),
   requestId: z.string(),

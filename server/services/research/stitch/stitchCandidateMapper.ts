@@ -1,8 +1,13 @@
 import { type DesignCandidate, type DesignStrategy } from '../../../../src/site-builder/contracts/research.js';
+import crypto from 'node:crypto';
 
 export function mapStitchCandidate(raw: any, strategy: DesignStrategy): DesignCandidate {
+  const rawIdSource = raw.id || raw.screenId || JSON.stringify(raw.layoutPatterns || raw);
+  const hash = crypto.createHash('sha256').update(strategy.strategyId + rawIdSource).digest('hex').substring(0, 12);
+  const candidateId = `candidate_${hash}`;
+
   return {
-    candidateId: raw.id || `candidate_${Math.random().toString(36).substring(7)}`,
+    candidateId,
     source: 'stitch',
     strategyId: strategy.strategyId,
     layoutPatterns: raw.layoutPatterns || ['standard-split'],

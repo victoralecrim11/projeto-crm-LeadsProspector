@@ -1,4 +1,4 @@
-// import { config } from 'dotenv';
+import { config } from 'dotenv';
 import { produceArtifact } from './producerOrchestrator.js';
 import { RealStitchMcpClient } from './clients/realStitchMcpClient.js';
 import { resolveDesignStrategy } from '../../server/services/research/designStrategy/designStrategyResolver.js';
@@ -12,13 +12,13 @@ async function runNiche(niche: string) {
   console.log(`======================================\n`);
   
   const resolvedDesign = getMockResolvedDesign(niche, niche);
-  const strategy = resolveDesignStrategy(resolvedDesign, [], { performanceBudget: 'fast', allowExperimentalFeatures: true });
+  const strategy = resolveDesignStrategy(resolvedDesign);
 
   const client = new RealStitchMcpClient();
   const projectId = `live-e2e-${niche}`;
   const requestId = `req-live-${Date.now()}`;
   
-  console.log(`Producing artifact for strategy ${strategy.id}...`);
+  console.log(`Producing artifact for strategy ${strategy.strategyId}...`);
   const result = await produceArtifact(strategy, projectId, requestId, { client, basePath: process.cwd() });
   
   console.log(`Status: ${result.status}`);
@@ -26,7 +26,7 @@ async function runNiche(niche: string) {
     console.log(`Error Message: ${result.errorMessage}`);
   }
   
-  console.log(`Requested candidates: ${strategy.generationContext.variantCount}`);
+  console.log(`Requested candidates: ${strategy.stitchVariantCount}`);
   console.log(`Returned candidates: ${result.candidates.length}`);
   
   if (result.writeEvidence) {

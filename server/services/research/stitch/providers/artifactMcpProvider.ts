@@ -6,21 +6,69 @@ import type { StitchStatus } from '../index.js';
 export interface StitchProvider {
   probe(projectId: string, requestId: string, strategyId: string): Promise<{ status: StitchStatus }>;
   explore(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null>;
+  readArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null>;
+  consumeArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null>;
 }
 
 export class ArtifactMcpProvider implements StitchProvider {
-  private getArtifactPath(projectId: string, requestId: string) {
-    return path.join(process.cwd(), '.stitch', 'runtime', projectId, requestId, 'candidates.json');
+  private basePath: string;
+
+  constructor(basePath: string = process.cwd()) {
+    this.basePath = basePath;
   }
 
-  private getTempArtifactPath(projectId: string, requestId: string) {
-    return path.join(process.cwd(), '.stitch', 'runtime', projectId, requestId, 'candidates.tmp');
+  private async getArtifactPath(projectId: string, requestId: string) {
+    if (requestId === 'default' || requestId === 'latest') {
+      const projectDir = path.join(this.basePath, '.stitch', 'runtime', projectId);
+      try {
+        const entries = await fs.readdir(projectDir, { withFileTypes: true });
+        const requestDirs = entries
+          .filter(e => e.isDirectory())
+          .map(e => ({ name: e.name, time: 0 }));
+          
+        for (const dir of requestDirs) {
+          try {
+            const stat = await fs.stat(path.join(projectDir, dir.name, 'candidates.json'));
+            dir.time = stat.mtimeMs;
+          } catch {
+             // Ignore missing json
+          }
+        }
+        
+        requestDirs.sort((a, b) => b.time - a.time);
+        
+        if (requestDirs.length > 0 && requestDirs[0].time > 0) {
+          return path.join(projectDir, requestDirs[0].name, 'candidates.json');
+        }
+      } catch {
+        // Fallback below
+      }
+    }
+    return path.join(this.basePath, '.stitch', 'runtime', projectId, requestId, 'candidates.json');
+  }
+
+  private async getTempArtifactPath(projectId: string, requestId: string) {
+    if (requestId === 'default' || requestId === 'latest') {
+      const projectDir = path.join(this.basePath, '.stitch', 'runtime', projectId);
+      try {
+        const entries = await fs.readdir(projectDir, { withFileTypes: true });
+        // Just return the first tmp we find, if any, or a dummy path
+        for (const e of entries) {
+           if (e.isDirectory()) {
+             const p = path.join(projectDir, e.name, 'candidates.tmp');
+             const hasTmp = await fs.stat(p).then(s => s.isFile()).catch(() => false);
+             if (hasTmp) return p;
+           }
+        }
+      } catch {}
+    }
+    return path.join(this.basePath, '.stitch', 'runtime', projectId, requestId, 'candidates.tmp');
   }
 
   async probe(projectId: string, requestId: string, strategyId: string): Promise<{ status: StitchStatus }> {
     try {
-      const artifactPath = this.getArtifactPath(projectId, requestId);
-      const tmpPath = this.getTempArtifactPath(projectId, requestId);
+      const artifactPath = await this.getArtifactPath(projectId, requestId);
+      const tmpPath = await this.getTempArtifactPath(projectId, requestId);
 
       // We do not read .tmp files. If only .tmp exists, it's WAITING
       const hasTmp = await fs.stat(tmpPath).then(s => s.isFile()).catch(() => false);
@@ -49,7 +97,11 @@ export class ArtifactMcpProvider implements StitchProvider {
       }
 
       const data = result.data;
-      if (data.projectId !== projectId || data.requestId !== requestId || data.strategyId !== strategyId) {
+      if (data.projectId !== projectId || data.strategyId !== strategyId) {
+        return { status: 'STITCH_ARTIFACT_MISMATCH' };
+      }
+      
+      if (requestId !== 'default' && requestId !== 'latest' && data.requestId !== requestId) {
         return { status: 'STITCH_ARTIFACT_MISMATCH' };
       }
 
@@ -66,24 +118,33 @@ export class ArtifactMcpProvider implements StitchProvider {
     }
   }
 
-  async explore(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null> {
+  async readArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null> {
     const probeResult = await this.probe(projectId, requestId, strategyId);
     if (probeResult.status !== 'STITCH_ARTIFACT_AVAILABLE') {
       return null;
     }
 
     try {
-      const artifactPath = this.getArtifactPath(projectId, requestId);
+      const artifactPath = await this.getArtifactPath(projectId, requestId);
       const content = await fs.readFile(artifactPath, 'utf-8');
-      const data = stitchCandidateArtifactSchema.parse(JSON.parse(content));
-      
-      // Clear the artifact
-      await fs.unlink(artifactPath).catch(() => {});
-      
-      return data;
+      return stitchCandidateArtifactSchema.parse(JSON.parse(content));
     } catch {
       return null;
     }
+  }
+
+  async consumeArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null> {
+    const artifact = await this.readArtifact(projectId, requestId, strategyId);
+    if (artifact) {
+      const artifactPath = await this.getArtifactPath(projectId, requestId);
+      await fs.unlink(artifactPath).catch(() => {});
+    }
+    return artifact;
+  }
+
+  // Legacy method for backward compatibility
+  async explore(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null> {
+    return this.consumeArtifact(projectId, requestId, strategyId);
   }
 }
 

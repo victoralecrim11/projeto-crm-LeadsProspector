@@ -322,10 +322,10 @@ async function e2eNicheTest(niche: string, subNiche: string, projectId: string, 
   assert.ok(zodResult.success, `Artifact Zod failed for ${niche}: ${JSON.stringify(zodResult.error?.issues)}`);
 
   // 4. Consume with REAL ArtifactMcpProvider (same-artifact)
-  const provider = new ArtifactMcpProvider();
-  // We need to override the path. Since ArtifactMcpProvider uses process.cwd(),
-  // we read the same file it would read and validate through the Zod consumer path
-  const artifact = zodResult.data;
+  const provider = new ArtifactMcpProvider(TEST_BASE);
+  const artifact = await provider.consumeArtifact(projectId, requestId, strategy.strategyId);
+  assert.ok(artifact, 'ArtifactMcpProvider must return the artifact');
+  
   assert.equal(artifact.projectId, projectId);
   assert.equal(artifact.requestId, requestId);
   assert.equal(artifact.strategyId, strategy.strategyId);
