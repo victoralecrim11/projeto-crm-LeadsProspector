@@ -14,7 +14,8 @@
     "preview": "npm run build && npm run start",
     "start": "node -e \"process.env.NODE_ENV='production'; require('./dist/server.cjs')\"",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit && tsc -p tsconfig.react-plugin.json",
+    "lint": "tsc --noEmit && tsc -p tsconfig.react-plugin.json && npm run lint:producer",
+    "lint:producer": "tsc -p tsconfig.producer.json",
     "test": "tsx --test tests/**/*.test.ts"
   },
   "dependencies": {

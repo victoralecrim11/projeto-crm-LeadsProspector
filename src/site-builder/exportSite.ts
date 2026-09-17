@@ -3,7 +3,7 @@ import { renderSiteDocument } from "./renderer/SiteRenderer";
 import { contextSchema } from "./types";
 import { normalizeForRender } from "./sections/registry";
 import type { Project } from "../types";
-import { designForBlueprint, designSystemMarkdown, buildDesignSystemContract } from './designPipeline';
+import { designSystemMarkdown, buildDesignSystemContract } from './designPipeline';
 import type { MediaAssetStore } from './media/assetStore';
 import { IndexedDbMediaAssetStore } from './media/assetStore';
 
@@ -21,7 +21,7 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
       "Aceite ou remova os serviços sugeridos antes de exportar.",
     );
   const zip = new JSZip();
-  const design = project.siteDesign ? designForBlueprint(project.siteDesign, blueprint) : undefined;
+  const design = project.siteDesign;
 
   const assetUrls: Record<string, string> = {};
 

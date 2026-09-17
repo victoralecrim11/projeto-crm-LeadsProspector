@@ -80,25 +80,7 @@ export function blueprintFromDesign(input: ResolvedDesign): GeneratedSiteBluepri
   });
 }
 
-// Editor changes are explicit user decisions; keep the specification and export coherent.
-export function designForBlueprint(input: ResolvedDesign, blueprint: GeneratedSiteBlueprint): ResolvedDesign {
-  const d = resolvedDesignSchema.parse(input);
-  const s = d.specification;
-  const changed = s.templateId !== blueprint.templateId || JSON.stringify(s.visual) !== JSON.stringify(blueprint.visual)
-    || JSON.stringify(s.presentation) !== JSON.stringify(blueprint.presentation ?? s.presentation)
-    || s.tokens.color.primary !== blueprint.brand.primaryColor || s.tokens.color.accent !== blueprint.brand.accentColor
-    || JSON.stringify(d.composition) !== JSON.stringify(blueprint.sectionOrder);
-  if (!changed) return d;
-  s.templateId = blueprint.templateId; s.visual = blueprint.visual; s.presentation = blueprint.presentation ?? s.presentation;
-  s.tokens.typography = s.presentation.typography; s.tokens.motion = s.presentation.motion;
-  s.tokens.color.primary = blueprint.brand.primaryColor; s.tokens.color.accent = blueprint.brand.accentColor;
-  s.tokens.color.primaryForeground = foregroundFor(blueprint.brand.primaryColor); s.tokens.color.accentForeground = foregroundFor(blueprint.brand.accentColor);
-  d.composition = blueprint.sectionOrder;
-  d.variant = 'user-edited';
-  if (!d.trace.some(t => t.origin === 'USER_CONFIRMED: editor')) d.trace.push({ decision: 'Composição, variantes e paleta editadas', origin: 'USER_CONFIRMED: editor' });
-  d.designMarkdown = designMarkdown(d);
-  return resolvedDesignSchema.parse(d);
-}
+
 
 export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNullable<ResolvedDesign['stitch']>, candidate?: DesignCandidate): ResolvedDesign {
   if (!evidence.alternatives.includes(evidence.selected)) throw new Error('A direção deve pertencer à exploração revisada.');
@@ -118,3 +100,32 @@ export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNulla
   d.designMarkdown = designMarkdown(d);
   return resolvedDesignSchema.parse(d);
 }
+
+import type { ResponsiveDesignResolution } from './responsiveResolution.js';
+
+export function resolvePremiumSelectionResponsive(
+  base: ResolvedDesign,
+  evidence: NonNullable<ResolvedDesign['stitch']>,
+  resolution: ResponsiveDesignResolution
+): ResolvedDesign {
+  const d = resolvedDesignSchema.parse({ ...base, mode: 'premium', stitch: evidence });
+  d.variant = evidence.selected;
+  
+  const candidate = resolution.effectiveCandidate;
+  const companion = resolution.desktopCompanion;
+  
+  let originStr = `Responsive Resolution: ${resolution.status}. Mobile Winner: ${candidate.candidateId}`;
+  if (companion) originStr += ` + Desktop Companion: ${companion.candidateId}`;
+
+  if (candidate.sectionOrder && candidate.sectionOrder.length === 5) {
+    d.composition = candidate.sectionOrder;
+  }
+
+  d.resolution = { status: 'resolved', resolvedAt: new Date().toISOString(), reason: evidence.review };
+  d.trace.push({ decision: 'Direção visual Premium Responsiva', origin: originStr });
+  
+  // NOTE: This does NOT mutate base. It returns a new ResolvedDesign matching the schema.
+  d.designMarkdown = designMarkdown(d);
+  return resolvedDesignSchema.parse(d);
+}
+

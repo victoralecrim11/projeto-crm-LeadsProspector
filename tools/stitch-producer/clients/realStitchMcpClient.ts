@@ -63,6 +63,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
               const screenResult = await executeWithTimeout(() => 
                 this.client.callTool<any>('generate_screen_from_text', {
                   projectId: projectId,
+                  deviceType: request.deviceType,
                   prompt: promptString + (variantIndex > 0 ? ` Variant ${variantIndex + 1}.` : '')
                 }), 
               PER_REQUEST_TIMEOUT_MS);

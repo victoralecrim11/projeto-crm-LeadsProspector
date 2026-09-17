@@ -78,8 +78,9 @@ export const legacyBlueprintSchema = z
       subtitle: text,
       ctaText: short,
       ctaType: z.enum(["whatsapp", "phone", "contact", "none"]),
+      assetId: z.string().optional(),
     }),
-    about: z.object({ title: short, description: text }),
+    about: z.object({ title: short, description: text, assetId: z.string().optional() }),
     services: z
       .array(
         z
@@ -88,6 +89,7 @@ export const legacyBlueprintSchema = z
             description: text,
             price: short.optional(),
             source: z.enum(["known", "ai_suggestion"]),
+            assetId: z.string().optional(),
           })
           .strict(),
       )

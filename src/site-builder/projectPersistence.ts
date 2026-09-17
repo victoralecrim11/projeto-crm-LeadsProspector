@@ -3,7 +3,6 @@ import { blueprintSchema, contextSchema } from "./types";
 import { resolvedDesignSchema } from './contracts/research';
 import { mediaPlanSchema } from './contracts/index.js';
 import { mediaManifestSchema } from './contracts/media.js';
-import { designForBlueprint } from './designPipeline';
 import { deriveDefaultMediaPlan } from './media/mediaPlanBuilder';
 const key = "leadsite_crm_projects_v2";
 export function loadProjects(storage: Pick<Storage, "getItem">): Project[] {
@@ -55,6 +54,5 @@ export function persistProjects(
   storage: Pick<Storage, "setItem">,
   projects: Project[],
 ) {
-  storage.setItem(key, JSON.stringify(projects.map(p => p.siteDesign && p.siteBlueprint ?
-    { ...p, siteDesign: designForBlueprint(p.siteDesign, p.siteBlueprint) } : p)));
+  storage.setItem(key, JSON.stringify(projects));
 }

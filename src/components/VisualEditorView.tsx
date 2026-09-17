@@ -21,9 +21,11 @@ import { autoResolveEligibleMedia } from "../site-builder/media/autoResolveServi
 import { isLicensedAutoResolveEligible, deriveDefaultMediaPlan } from "../site-builder/media/mediaPlanBuilder";
 import { generateSiteBlueprint, generateStandardBlueprint } from "../services/siteGenerationService";
 import { downloadSiteZip } from "../site-builder/exportSite";
-import { designForBlueprint } from '../site-builder/designPipeline';
 import { toast } from "../store/toastStore";
 import type { MediaManifest } from "../site-builder/contracts/media";
+import type { SiteUserOverrides } from "../site-builder/contracts/overrides";
+import { applySiteUserOverrides } from "../site-builder/overridesResolver";
+import { useEditorHistory } from "../site-builder/hooks/useEditorHistory";
 import {
   PanelsTopLeft,
   FolderOpen,
@@ -33,6 +35,8 @@ import {
   Save,
   Download,
   ImageIcon,
+  Undo2,
+  Redo2,
 } from "lucide-react";
 
 export const VisualEditorView: React.FC = () => {
@@ -43,7 +47,16 @@ export const VisualEditorView: React.FC = () => {
     : crm.projects.find(
         (p) => p.leadId === crm.currentEditingLead?.id && p.siteBlueprint,
       ) || crm.projects.find((p) => p.siteBlueprint);
-  const [draft, setDraft] = useState<GeneratedSiteBlueprint | null>(null);
+
+  const { snapshot, pushSnapshot, undo, redo, canUndo, canRedo } = useEditorHistory({
+    blueprint: project?.siteBlueprint as GeneratedSiteBlueprint,
+    overrides: project?.siteOverrides || {},
+  });
+
+  const draftBlueprint = snapshot.blueprint;
+  const draftOverrides = snapshot.overrides || {};
+  const effectiveDraft = applySiteUserOverrides(draftBlueprint, draftOverrides);
+
   const [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -81,8 +94,8 @@ export const VisualEditorView: React.FC = () => {
   });
 
   useEffect(() => {
-    const parsed = blueprintSchema.safeParse(project?.siteBlueprint);
-    setDraft(parsed.success ? parsed.data : null);
+    // Only reset state when project ID changes.
+    // useEditorHistory already initializes with the project's state.
     setReviewed(project?.contentReviewed || false);
     setDirty(false);
     setAutoResolveStatus('idle');
@@ -149,19 +162,26 @@ export const VisualEditorView: React.FC = () => {
     window.addEventListener("beforeunload", before);
     return () => window.removeEventListener("beforeunload", before);
   }, [dirty]);
-  const change = (next: GeneratedSiteBlueprint) => {
-    setDraft(next);
+  const changeBlueprint = (next: GeneratedSiteBlueprint) => {
+    pushSnapshot({ blueprint: next, overrides: draftOverrides });
     setReviewed(false);
     setDirty(true);
   };
+  
+  const changeOverrides = (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => {
+    pushSnapshot({ blueprint: draftBlueprint, overrides: updater(draftOverrides) });
+    setDirty(true);
+  };
+
   const save = () => {
-    if (!project?.siteContext || !draft)
+    if (!project?.siteContext || !draftBlueprint)
       throw new Error("Selecione um projeto gerado.");
-    const blueprint = constrainBlueprint(draft, project.siteContext);
+    const blueprint = constrainBlueprint(draftBlueprint, project.siteContext);
     const next = {
       ...project,
       siteBlueprint: blueprint,
-      siteDesign: project.siteDesign ? designForBlueprint(project.siteDesign, blueprint) : undefined,
+      siteOverrides: draftOverrides,
+      siteDesign: project.siteDesign, // Preserves the original D.5 design intact
       siteMediaPlan: mediaPlan,
       siteMediaManifest: mediaManager.manifest,
       contentReviewed: reviewed,
@@ -183,24 +203,24 @@ export const VisualEditorView: React.FC = () => {
     }
   };
   const refreshAudit = async () => {
-    if (!project?.siteDesign || !draft || busy) return;
+    if (!project?.siteDesign || !draftBlueprint || busy) return;
     setBusy(true);
     try {
       const result = await generateStandardBlueprint(crm.crmSettings, project.siteDesign.referenceBrief.business.source);
       const next = { ...project.siteDesign, referenceBrief: result.design.referenceBrief };
-      crm.updateProject({ ...project, siteDesign: designForBlueprint(next, draft) });
+      crm.updateProject({ ...project, siteDesign: next });
       toast('Análise do site anterior atualizada.');
     } catch (e) { toast((e as Error).message, 'error'); }
     finally { setBusy(false); }
   };
   const regenerate = async (section: RegenerationSection) => {
-    if (!project?.siteContext || !draft || busy) return;
+    if (!project?.siteContext || !draftBlueprint || busy) return;
     setBusy(true);
     try {
       const result = await generateSiteBlueprint(crm.crmSettings, {
         leadId: project.leadId || project.id,
         context: project.siteContext,
-        blueprint: draft,
+        blueprint: draftBlueprint,
         section,
         modelSelection: selection,
         preferences: {
@@ -208,9 +228,9 @@ export const VisualEditorView: React.FC = () => {
             project.type === "Site Institucional"
               ? "institutional"
               : "landing-page",
-          templateId: draft.templateId,
-          style: draft.brand.tone,
-          goal: draft.hero.ctaType,
+          templateId: effectiveDraft.templateId,
+          style: effectiveDraft.brand.tone,
+          goal: effectiveDraft.hero.ctaType,
         },
       });
       crm.updateProject({
@@ -220,7 +240,7 @@ export const VisualEditorView: React.FC = () => {
         aiGeneration: result.generation,
         generationStatus: "editing",
       });
-      setDraft(result.blueprint);
+      changeBlueprint(result.blueprint);
       setReviewed(false);
       setDirty(false);
       
@@ -343,7 +363,7 @@ export const VisualEditorView: React.FC = () => {
           </div>
         </label>
       </div>
-      {!draft || !project?.siteContext ? (
+      {!draftBlueprint || !project?.siteContext ? (
         <div className="site-surface site-preview-empty">
           <span className="empty-preview-icon">
             <PanelsTopLeft size={30} aria-hidden="true" />
@@ -375,33 +395,56 @@ export const VisualEditorView: React.FC = () => {
                 >
                   {dirty ? "Não salvo" : "Salvo"}
                 </span>
+                <div className="flex gap-1 ml-4 border-l border-slate-700 pl-4">
+                  <button title="Desfazer (Ctrl+Z)" disabled={!canUndo || busy} onClick={undo} className="p-1 rounded hover:bg-slate-700 disabled:opacity-30"><Undo2 size={16} /></button>
+                  <button title="Refazer (Ctrl+Shift+Z)" disabled={!canRedo || busy} onClick={redo} className="p-1 rounded hover:bg-slate-700 disabled:opacity-30"><Redo2 size={16} /></button>
+                </div>
               </div>
             </div>
             <section className="editor-control-section">
-              <h4 className="editor-section-title">Mensagem principal</h4>
-              {field("Título principal", draft.hero.headline, (v) =>
-                change({ ...draft, hero: { ...draft.hero, headline: v } }),
+              <div className="flex items-center justify-between">
+                <h4 className="editor-section-title mb-0">Mensagem principal</h4>
+                {effectiveDraft.hero.assetId && (
+                  <button 
+                    type="button"
+                    onClick={() => changeOverrides((prev) => {
+                      const newContent = { ...prev.content };
+                      if (newContent.hero) {
+                        newContent.hero = { ...newContent.hero, assetId: "__REMOVE__" };
+                      } else {
+                        newContent.hero = { assetId: "__REMOVE__" };
+                      }
+                      return { ...prev, content: newContent };
+                    })} 
+                    className="text-xs text-rose-400 hover:text-rose-300 underline"
+                  >
+                    Remover mídia
+                  </button>
+                )}
+              </div>
+              {field("Título principal", effectiveDraft.hero.headline, (v) =>
+                changeBlueprint({ ...draftBlueprint, hero: { ...draftBlueprint.hero, headline: v } }),
               )}
               {field(
                 "Subtítulo",
-                draft.hero.subtitle,
+                effectiveDraft.hero.subtitle,
                 (v) =>
-                  change({ ...draft, hero: { ...draft.hero, subtitle: v } }),
+                  changeBlueprint({ ...draftBlueprint, hero: { ...draftBlueprint.hero, subtitle: v } }),
                 true,
               )}
-              {field("Texto do botão", draft.hero.ctaText, (v) =>
-                change({ ...draft, hero: { ...draft.hero, ctaText: v } }),
+              {field("Texto do botão", effectiveDraft.hero.ctaText, (v) =>
+                changeBlueprint({ ...draftBlueprint, hero: { ...draftBlueprint.hero, ctaText: v } }),
               )}
               <label className="block">
                 Canal do botão
                 <select
                   className="w-full bg-slate-800 p-2"
-                  value={draft.hero.ctaType}
+                  value={effectiveDraft.hero.ctaType}
                   onChange={(e) =>
-                    change({
-                      ...draft,
+                    changeBlueprint({
+                      ...draftBlueprint,
                       hero: {
-                        ...draft.hero,
+                        ...draftBlueprint.hero,
                         ctaType: e.target
                           .value as GeneratedSiteBlueprint["hero"]["ctaType"],
                       },
@@ -423,14 +466,13 @@ export const VisualEditorView: React.FC = () => {
                 Template
                 <select
                   className="w-full bg-slate-800 p-2"
-                  value={draft.templateId}
+                  value={effectiveDraft.templateId}
                   onChange={(e) =>
-                    change({
-                      ...draft,
-                      templateId: e.target
-                        .value as GeneratedSiteBlueprint["templateId"],
-                      visual: defaultVisualVariants(e.target.value as GeneratedSiteBlueprint["templateId"]),
-                    })
+                    changeOverrides((prev) => ({
+                      ...prev,
+                      templateId: e.target.value as GeneratedSiteBlueprint["templateId"],
+                      visual: { ...prev.visual, ...defaultVisualVariants(e.target.value as GeneratedSiteBlueprint["templateId"]) }
+                    }))
                   }
                 >
                   {templates.map((t) => (
@@ -445,16 +487,16 @@ export const VisualEditorView: React.FC = () => {
                     <input
                       aria-label={k}
                       type="color"
-                      value={draft.brand[k]}
+                      value={effectiveDraft.brand[k]}
                       onChange={(e) =>
-                        change({
-                          ...draft,
-                          brand: { ...draft.brand, [k]: e.target.value },
-                        })
+                        changeOverrides((prev) => ({
+                          ...prev,
+                          brand: { ...prev.brand, [k]: e.target.value },
+                        }))
                       }
                       className="block w-20 h-10"
                     />
-                    <span className="editor-color-value">{draft.brand[k]}</span>
+                    <span className="editor-color-value">{effectiveDraft.brand[k]}</span>
                   </label>
                 ))}
               </div>
@@ -462,16 +504,16 @@ export const VisualEditorView: React.FC = () => {
                 Tom
                 <select
                   className="w-full bg-slate-800 p-2"
-                  value={draft.brand.tone}
+                  value={effectiveDraft.brand.tone}
                   onChange={(e) =>
-                    change({
-                      ...draft,
+                    changeOverrides((prev) => ({
+                      ...prev,
                       brand: {
-                        ...draft.brand,
+                        ...prev.brand,
                         tone: e.target
                           .value as GeneratedSiteBlueprint["brand"]["tone"],
                       },
-                    })
+                    }))
                   }
                 >
                   {tones.map((t) => (
@@ -484,22 +526,39 @@ export const VisualEditorView: React.FC = () => {
               <h4 className="editor-section-title">Composição das seções</h4>
               {(["theme", "typography", "motion"] as const).map((key) => <label className="block" key={key}>
                 {{ theme: "Tema das superfícies", typography: "Tipografia", motion: "Animações" }[key]}
-                <select className="w-full bg-slate-800 p-2" value={resolvePresentation(draft)[key]} onChange={(event) => change({ ...draft, presentation: { ...resolvePresentation(draft), [key]: event.target.value } })}>
+                <select className="w-full bg-slate-800 p-2" value={resolvePresentation(effectiveDraft)[key]} onChange={(event) => changeOverrides((prev) => ({ ...prev, presentation: { ...prev.presentation, [key]: event.target.value } }))}>
                   {(key === "theme" ? [["light", "Claro"], ["dark", "Escuro"]] : key === "typography" ? [["modern", "Moderna"], ["editorial", "Editorial"]] : [["subtle", "Suaves"], ["none", "Sem animação"]]).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
                 </select>
               </label>)}
-              {(["hero", "about", "services", "contact", "footer"] as const).map((section) => <label className="block" key={section}>
-                {{ hero: "Composição da abertura", about: "Composição de Sobre", services: "Composição de Serviços", contact: "Composição de Contato", footer: "Composição do rodapé" }[section]}
-                <select className="w-full bg-slate-800 p-2" value={draft.visual[section]} onChange={(event) => change({ ...draft, visual: { ...draft.visual, [section]: event.target.value } })}>
+              {(["hero", "about", "services", "contact", "footer"] as const).map((section) => <div className="block" key={section}>
+                <div className="flex justify-between items-center mb-1">
+                  <span>{{ hero: "Composição da abertura", about: "Composição de Sobre", services: "Composição de Serviços", contact: "Composição de Contato", footer: "Composição do rodapé" }[section]}</span>
+                  {draftOverrides.visual?.[section] && (
+                    <button 
+                      type="button"
+                      onClick={() => changeOverrides((prev) => {
+                        const newVisual = { ...prev.visual };
+                        delete newVisual[section];
+                        return { ...prev, visual: newVisual };
+                      })} 
+                      className="text-[10px] text-rose-400 hover:text-rose-300"
+                    >
+                      Restaurar original
+                    </button>
+                  )}
+                </div>
+                <select className="w-full bg-slate-800 p-2" value={effectiveDraft.visual[section]} onChange={(event) => changeOverrides((prev) => ({ ...prev, visual: { ...prev.visual, [section]: event.target.value } }))}>
                   {visualVariants[section].map((variant) => <option key={variant} value={variant}>{{ "full-bleed": "Abertura ampla", split: "Duas colunas", minimal: "Essencial", "editorial-split": "Editorial em colunas", "centered-story": "Narrativa centralizada", "editorial-list": "Lista editorial", "horizontal-cards": "Blocos em colunas", "contact-minimal": "Contato essencial", "contact-split": "Contato em colunas", editorial: "Editorial" }[variant]}</option>)}
                 </select>
-              </label>)}
+              </div>)}
             </section>
             {mediaPlan && (
               <section className="editor-control-section" data-testid="media-panel-section">
-                <h4 className="editor-section-title">
-                  <ImageIcon size={15} aria-hidden="true" /> Mídia do Site
-                </h4>
+                <div className="flex justify-between items-center">
+                  <h4 className="editor-section-title mb-0">
+                    <ImageIcon size={15} aria-hidden="true" /> Mídia do Site
+                  </h4>
+                </div>
                 <MediaPanel
                   mediaPlan={mediaPlan}
                   manifest={mediaManager.manifest}
@@ -508,14 +567,38 @@ export const VisualEditorView: React.FC = () => {
                   loadingByItem={mediaManager.loadingByItem}
                   errorByItem={mediaManager.errorByItem}
                   searchMedia={mediaManager.searchMedia}
-                  selectCandidate={mediaManager.selectCandidate}
+                  selectCandidate={async (item, candidate) => {
+                    const assetId = await mediaManager.selectCandidate(item, candidate);
+                    if (assetId) {
+                      changeOverrides((prev) => {
+                        const newContent = { ...prev.content };
+                        const secId = item.section as 'hero' | 'about';
+                        if (secId === 'hero' || secId === 'about') {
+                          newContent[secId] = { ...newContent[secId], assetId };
+                        }
+                        return { ...prev, content: newContent };
+                      });
+                    }
+                  }}
                   approveMedia={mediaManager.approveMedia}
                   rejectMedia={mediaManager.rejectMedia}
                   autoResolveStatus={autoResolveStatus}
                   autoResolveMessage={autoResolveMessage as any}
                   getProjectAssets={mediaManager.getProjectAssets}
                   getAssetUrl={mediaManager.getAssetUrl}
-                  selectProjectAsset={mediaManager.selectProjectAsset}
+                  selectProjectAsset={async (item, asset) => {
+                    const assetId = await mediaManager.selectProjectAsset(item, asset);
+                    if (assetId) {
+                      changeOverrides((prev) => {
+                        const newContent = { ...prev.content };
+                        const secId = item.section as 'hero' | 'about';
+                        if (secId === 'hero' || secId === 'about') {
+                          newContent[secId] = { ...newContent[secId], assetId };
+                        }
+                        return { ...prev, content: newContent };
+                      });
+                    }
+                  }}
                 />
                 {autoResolveStatus === 'idle' && mediaPlan.items.some(i => i.sourcePreference === 'licensed') && (
                   <button
@@ -530,35 +613,54 @@ export const VisualEditorView: React.FC = () => {
               </section>
             )}
             <section className="editor-control-section">
-              <h4 className="editor-section-title">Sobre o negócio</h4>
-              {field("Título Sobre", draft.about.title, (v) =>
-                change({ ...draft, about: { ...draft.about, title: v } }),
+              <div className="flex items-center justify-between">
+                <h4 className="editor-section-title mb-0">Sobre o negócio</h4>
+                {effectiveDraft.about.assetId && (
+                  <button 
+                    type="button"
+                    onClick={() => changeOverrides((prev) => {
+                      const newContent = { ...prev.content };
+                      if (newContent.about) {
+                        newContent.about = { ...newContent.about, assetId: "__REMOVE__" };
+                      } else {
+                        newContent.about = { assetId: "__REMOVE__" };
+                      }
+                      return { ...prev, content: newContent };
+                    })} 
+                    className="text-xs text-rose-400 hover:text-rose-300 underline"
+                  >
+                    Remover mídia
+                  </button>
+                )}
+              </div>
+              {field("Título Sobre", effectiveDraft.about.title, (v) =>
+                changeBlueprint({ ...draftBlueprint, about: { ...draftBlueprint.about, title: v } }),
               )}
               {field(
                 "Sobre",
-                draft.about.description,
+                effectiveDraft.about.description,
                 (v) =>
-                  change({
-                    ...draft,
-                    about: { ...draft.about, description: v },
+                  changeBlueprint({
+                    ...draftBlueprint,
+                    about: { ...draftBlueprint.about, description: v },
                   }),
                 true,
               )}
             </section>
             <details>
               <summary className="font-bold cursor-pointer">
-                Serviços ({draft.services.length})
+                Serviços ({effectiveDraft.services.length})
               </summary>
               <div className="space-y-4 mt-3">
-                {draft.services.map((s, i) => (
+                {effectiveDraft.services.map((s, i) => (
                   <div
                     key={i}
                     className="border border-slate-600 rounded-xl p-3 space-y-2"
                   >
                     {field("Serviço", s.title, (v) =>
-                      change({
-                        ...draft,
-                        services: draft.services.map((x, j) =>
+                      changeBlueprint({
+                        ...draftBlueprint,
+                        services: draftBlueprint.services.map((x, j) =>
                           j === i ? { ...x, title: v } : x,
                         ),
                       }),
@@ -567,9 +669,9 @@ export const VisualEditorView: React.FC = () => {
                       "Descrição",
                       s.description,
                       (v) =>
-                        change({
-                          ...draft,
-                          services: draft.services.map((x, j) =>
+                        changeBlueprint({
+                          ...draftBlueprint,
+                          services: draftBlueprint.services.map((x, j) =>
                             j === i ? { ...x, description: v } : x,
                           ),
                         }),
@@ -577,9 +679,9 @@ export const VisualEditorView: React.FC = () => {
                     )}
                     {s.source === "known" &&
                       field("Preço confirmado (opcional)", s.price || "", (v) =>
-                        change({
-                          ...draft,
-                          services: draft.services.map((x, j) =>
+                        changeBlueprint({
+                          ...draftBlueprint,
+                          services: draftBlueprint.services.map((x, j) =>
                             j === i ? { ...x, price: v } : x,
                           ),
                         }),
@@ -592,9 +694,9 @@ export const VisualEditorView: React.FC = () => {
                         <button
                           className="underline text-emerald-300"
                           onClick={() =>
-                            change({
-                              ...draft,
-                              services: draft.services.map((x, j) =>
+                            changeBlueprint({
+                              ...draftBlueprint,
+                              services: draftBlueprint.services.map((x, j) =>
                                 j === i ? { ...x, source: "known" } : x,
                               ),
                             })
@@ -607,9 +709,9 @@ export const VisualEditorView: React.FC = () => {
                     <button
                       className="block text-rose-300 underline"
                       onClick={() =>
-                        change({
-                          ...draft,
-                          services: draft.services.filter((_, j) => j !== i),
+                        changeBlueprint({
+                          ...draftBlueprint,
+                          services: draftBlueprint.services.filter((_, j) => j !== i),
                         })
                       }
                     >
@@ -618,13 +720,13 @@ export const VisualEditorView: React.FC = () => {
                   </div>
                 ))}
                 <button
-                  disabled={draft.services.length >= 12}
+                  disabled={effectiveDraft.services.length >= 12}
                   className="underline"
                   onClick={() =>
-                    change({
-                      ...draft,
+                    changeBlueprint({
+                      ...draftBlueprint,
                       services: [
-                        ...draft.services,
+                        ...draftBlueprint.services,
                         {
                           title: "Novo serviço",
                           description: "",
@@ -640,33 +742,33 @@ export const VisualEditorView: React.FC = () => {
             </details>
             <details>
               <summary>SEO</summary>
-              {field("Título SEO", draft.seo.title, (v) =>
-                change({ ...draft, seo: { ...draft.seo, title: v } }),
+              {field("Título SEO", effectiveDraft.seo.title, (v) =>
+                changeBlueprint({ ...draftBlueprint, seo: { ...draftBlueprint.seo, title: v } }),
               )}
               {field(
                 "Descrição SEO",
-                draft.seo.description,
+                effectiveDraft.seo.description,
                 (v) =>
-                  change({ ...draft, seo: { ...draft.seo, description: v } }),
+                  changeBlueprint({ ...draftBlueprint, seo: { ...draftBlueprint.seo, description: v } }),
                 true,
               )}
             </details>
             <div className="editor-control-section editor-section-order">
               <p className="font-bold">Seções e ordem</p>
-              {draft.sectionOrder.map((s, i) => (
+              {effectiveDraft.sectionOrder.map((s, i) => (
                 <div key={s} className="flex gap-2 items-center">
                   <label className="flex-1">
                     <input
                       type="checkbox"
-                      checked={draft.sections[s]}
+                      checked={effectiveDraft.sections[s]}
                       onChange={(e) =>
-                        change({
-                          ...draft,
-                          sections: {
-                            ...draft.sections,
+                        changeOverrides((prev) => ({
+                          ...prev,
+                          sectionVisibility: {
+                            ...prev.sectionVisibility,
                             [s]: e.target.checked,
                           },
-                        })
+                        }))
                       }
                     />{" "}
                     {s}
@@ -675,9 +777,9 @@ export const VisualEditorView: React.FC = () => {
                     aria-label={"Mover " + s + " acima"}
                     disabled={i === 0}
                     onClick={() => {
-                      const a = [...draft.sectionOrder];
+                      const a = [...effectiveDraft.sectionOrder];
                       [a[i - 1], a[i]] = [a[i], a[i - 1]];
-                      change({ ...draft, sectionOrder: a });
+                      changeOverrides((prev) => ({ ...prev, sectionOrder: a as any }));
                     }}
                   >
                     ↑
@@ -686,9 +788,9 @@ export const VisualEditorView: React.FC = () => {
                     aria-label={"Mover " + s + " abaixo"}
                     disabled={i === 4}
                     onClick={() => {
-                      const a = [...draft.sectionOrder];
+                      const a = [...effectiveDraft.sectionOrder];
                       [a[i], a[i + 1]] = [a[i + 1], a[i]];
-                      change({ ...draft, sectionOrder: a });
+                      changeOverrides((prev) => ({ ...prev, sectionOrder: a as any }));
                     }}
                   >
                     ↓
@@ -772,7 +874,7 @@ export const VisualEditorView: React.FC = () => {
                 experiência e benefícios sugeridos não são fatos confirmados.
               </p>
             )}
-            <SitePreview blueprint={draft} context={project.siteContext} design={project.siteDesign} mediaManifest={mediaManager.manifest} assetUrls={mediaManager.objectUrls} />
+            <SitePreview blueprint={effectiveDraft} context={project.siteContext} design={project.siteDesign} mediaManifest={mediaManager.manifest} assetUrls={mediaManager.objectUrls} />
           </section>
         </div>
       )}

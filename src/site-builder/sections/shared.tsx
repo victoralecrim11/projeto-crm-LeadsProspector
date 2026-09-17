@@ -15,9 +15,25 @@ export function findSectionMedia(
   section: keyof typeof sectionNames,
 ): (MediaManifestEntry & { url: string }) | undefined {
   if (!props.mediaManifest) return undefined;
-  const entry = props.mediaManifest.entries.find(
-    (e) => e.section === section && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
-  );
+
+  let overrideId: string | undefined;
+  if (section === 'hero') overrideId = props.blueprint.hero?.assetId;
+  else if (section === 'about') overrideId = props.blueprint.about?.assetId;
+
+  if (overrideId === "__REMOVE__") return undefined;
+
+  let entry: MediaManifestEntry | undefined;
+  
+  if (overrideId) {
+    entry = props.mediaManifest.entries.find(e => e.assetId === overrideId);
+  }
+
+  if (!entry) {
+    entry = props.mediaManifest.entries.find(
+      (e) => e.section === section && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
+    );
+  }
+
   if (!entry) return undefined;
   const url = props.assetUrls?.[entry.assetId] || props.assetUrls?.[entry.id];
   return url ? { ...entry, url } : undefined;

@@ -56,7 +56,7 @@ function makeStrategy(niche: string, subNiche?: string) {
 
 test('D.2 Request Builder: produces PII-safe request from strategy', () => {
   const strategy = makeStrategy('dentistry');
-  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
 
   assert.equal(request.niche, 'dentistry');
   assert.equal(request.visualMood, 'clean');
@@ -68,14 +68,14 @@ test('D.2 Request Builder: produces PII-safe request from strategy', () => {
 
 test('D.2 Request Builder: PII sentinel check finds no PII', () => {
   const strategy = makeStrategy('barbershop');
-  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
   const pii = detectPiiInRequest(request);
   assert.deepEqual(pii, []);
 });
 
 test('D.2 Request Builder: PII sentinel detects injected PII values', () => {
   const strategy = makeStrategy('barbershop');
-  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
   // Inject PII sentinels to prove the detector works
   (request as any).sitePurpose = 'contato@barbershop.com / 31-99999-1234';
   const pii = detectPiiInRequest(request);
@@ -428,7 +428,7 @@ test('D.2 Ownership: design-director is Logical Owner, not orchestrator', () => 
   // delegates exploration to an injected client (not self-generating).
 
   const strategy = makeStrategy('barbershop');
-  const request = buildExplorationRequest(strategy, 'p', 'r');
+  const request = buildExplorationRequest(strategy, 'p', 'r', 'MOBILE');
 
   // Request contains design signals from strategy, not orchestrator opinions
   assert.equal(request.visualMood, strategy.visualMood);

@@ -38,11 +38,13 @@ export async function produceArtifact(
   projectId: string,
   requestId: string,
   options: ProducerOrchestratorOptions,
+  deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC' = 'MOBILE',
+  responsivePairId?: string,
 ): Promise<ProducerResult> {
   const { client, basePath } = options;
 
   // 1. Build PII-safe request
-  const request = buildExplorationRequest(strategy, projectId, requestId);
+  const request = buildExplorationRequest(strategy, projectId, requestId, deviceType, responsivePairId);
 
   // 2. Call Stitch MCP
   let rawResult;
@@ -74,7 +76,7 @@ export async function produceArtifact(
   }
 
   // 4. Map raw result to artifact
-  const artifact = mapStitchRawToArtifact(rawResult, strategy, projectId, requestId);
+  const artifact = mapStitchRawToArtifact(rawResult, strategy, projectId, requestId, deviceType, responsivePairId);
   if (!artifact) {
     return { status: 'MAPPING_FAILED', candidates: [], request };
   }

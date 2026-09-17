@@ -22,13 +22,13 @@ export interface MediaManagerState {
   loadingByItem: Record<string, boolean>;
   errorByItem: Record<string, string | null>;
   searchMedia: (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => Promise<void>;
-  selectCandidate: (item: MediaPlan['items'][number], candidate: MediaCandidate) => Promise<void>;
+  selectCandidate: (item: MediaPlan['items'][number], candidate: MediaCandidate) => Promise<string | void>;
   approveMedia: (itemId: string) => void;
   rejectMedia: (itemId: string) => Promise<void>;
   reloadAssets: () => Promise<void>;
   getProjectAssets: () => Promise<import('../contracts/media').StoredMediaAsset[]>;
   getAssetUrl: (assetId: string) => Promise<string | null>;
-  selectProjectAsset: (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => Promise<void>;
+  selectProjectAsset: (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => Promise<string | void>;
 }
 
 export function useMediaManager({
@@ -145,7 +145,7 @@ export function useMediaManager({
   );
 
   const selectCandidate = useCallback(
-    async (item: MediaPlan['items'][number], candidate: MediaCandidate) => {
+    async (item: MediaPlan['items'][number], candidate: MediaCandidate): Promise<string | void> => {
       setLoadingByItem((prev) => ({ ...prev, [item.id]: true }));
       setErrorByItem((prev) => ({ ...prev, [item.id]: null }));
 
@@ -214,6 +214,8 @@ export function useMediaManager({
 
         setManifest(updatedManifest);
         onManifestChange?.(updatedManifest);
+        
+        return assetId;
       } catch (err: unknown) {
         setErrorByItem((prev) => ({
           ...prev,
@@ -280,7 +282,7 @@ export function useMediaManager({
   }, [store]);
 
   const selectProjectAsset = useCallback(
-    async (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => {
+    async (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset): Promise<string | void> => {
       // Find existing entry in manifest to inherit attribution if possible
       const existingEntry = manifest.entries.find(e => e.assetId === asset.assetId);
 
@@ -325,6 +327,7 @@ export function useMediaManager({
 
       setManifest(updatedManifest);
       onManifestChange?.(updatedManifest);
+      return asset.assetId;
     },
     [manifest, onManifestChange]
   );

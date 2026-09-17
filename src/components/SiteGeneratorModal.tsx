@@ -171,13 +171,46 @@ export const SiteGeneratorModal: React.FC = () => {
           sugestões antes de exportar.
         </p>
         <fieldset disabled={busy} className="site-generator-grid">
-          <label className="generator-field-wide">Modo de criação
-            <select className="block w-full p-2 bg-slate-800 rounded-lg" value={generationMode} onChange={e => setGenerationMode(e.target.value as 'standard' | 'existing')}>
-              <option value="standard">Standard — Design pesquisado + IA (clínica/restaurante)</option>
-              <option value="existing">Gerador existente — sugestões com IA</option>
-            </select>
-            {generationMode === 'standard' && <p className="text-sm text-slate-300">Analisa o negócio e o site atual, resolve a direção visual antes da geração e usa IA para criar a página seguindo essa especificação. Se a IA estiver indisponível, utiliza fallback determinístico.</p>}
-          </label>
+          <div className="generator-field-wide space-y-2">
+            <span className="font-bold">Modo de criação</span>
+            <div className="flex flex-col gap-3">
+              <label className={`flex gap-3 p-4 border rounded-xl cursor-pointer transition-colors ${generationMode === 'standard' ? 'bg-indigo-900/40 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-800/80'}`}>
+                <input type="radio" name="generationMode" value="standard" checked={generationMode === 'standard'} onChange={() => setGenerationMode('standard')} className="mt-1" />
+                <div className="flex flex-col">
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold text-white">IA + Design Inteligente</span>
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-indigo-500 text-white">RECOMENDADO</span>
+                  </div>
+                  <span className="text-sm text-slate-300 mt-1">Cria um site completo com estrutura visual adaptada ao nicho, conteúdo por IA e mídia contextual.</span>
+                  
+                  {generationMode === 'standard' && lead && (
+                    <div className="mt-3 p-3 bg-black/30 rounded-lg text-xs space-y-1">
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Nicho</span>
+                        <span className="text-slate-200">{lead.category || 'Não definido'}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Design</span>
+                        <span className="text-slate-200">Será resolvido automaticamente</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-slate-400">Mídia</span>
+                        <span className="text-slate-200">Contextual + IA</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </label>
+
+              <label className={`flex gap-3 p-4 border rounded-xl cursor-pointer transition-colors ${generationMode === 'existing' ? 'bg-indigo-900/40 border-indigo-500' : 'bg-slate-800 border-slate-700 hover:bg-slate-800/80'}`}>
+                <input type="radio" name="generationMode" value="existing" checked={generationMode === 'existing'} onChange={() => setGenerationMode('existing')} className="mt-1" />
+                <div className="flex flex-col">
+                  <span className="font-bold text-white">Gerador clássico</span>
+                  <span className="text-sm text-slate-300 mt-1">Mantém o fluxo tradicional do Site Builder com assistência de IA para conteúdo.</span>
+                </div>
+              </label>
+            </div>
+          </div>
           <label className="generator-field-wide">
             Lead
             <select

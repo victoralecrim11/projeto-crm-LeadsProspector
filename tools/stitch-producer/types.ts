@@ -28,6 +28,8 @@ export interface StitchExplorationRequest {
   variantCount: number;
   performanceBudget: string;
   accessibilityConstraints: string[];
+  deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC';
+  responsivePairId?: string;
   strategyId: string;
   /** Safety instruction appended to every request. */
   safetyInstruction: string;

@@ -20,14 +20,22 @@ import type { StitchRawVariant, StitchRawResult } from './types.js';
  * Map a single raw Stitch variant into a DesignCandidate.
  * Scores are initialized to 0 — the CRM Ranker is responsible for scoring.
  */
-function mapRawVariant(raw: StitchRawVariant, strategy: DesignStrategy, index: number): DesignCandidate {
-  const candidateId = raw.id || `stitch-candidate-${index}`;
+function mapRawVariant(
+  raw: StitchRawVariant,
+  strategy: DesignStrategy,
+  index: number,
+  deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC',
+  responsivePairId?: string
+): DesignCandidate {
+  const candidateId = raw.id || `stitch-candidate-${index}-${deviceType.toLowerCase()}`;
   
   return {
     candidateId,
     source: 'stitch',
     projectId: raw.projectId,
     screenId: raw.screenId,
+    viewport: deviceType === 'MOBILE' || deviceType === 'DESKTOP' ? (deviceType.toLowerCase() as 'mobile' | 'desktop') : undefined,
+    responsivePairId,
     projectUrl: raw.projectUrl && isValidUrl(raw.projectUrl) ? raw.projectUrl : undefined,
     strategyId: strategy.strategyId,
     layoutPatterns: sanitizeStringArray(raw.layoutPatterns) || [strategy.compositionDirection],
@@ -54,7 +62,7 @@ function mapRawVariant(raw: StitchRawVariant, strategy: DesignStrategy, index: n
       total: 0,
     },
     provenance: [
-      { decision: `Mapped from Stitch raw variant ${index}`, origin: 'ProducerMapper' },
+      { decision: `Mapped from Stitch raw variant ${index} for ${deviceType}`, origin: 'ProducerMapper' },
       ...(raw.projectUrl ? [{ decision: 'Stitch project reference', origin: raw.projectUrl }] : []),
     ],
   };
@@ -70,11 +78,13 @@ export function mapStitchRawToArtifact(
   strategy: DesignStrategy,
   projectId: string,
   requestId: string,
+  deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC' = 'MOBILE',
+  responsivePairId?: string
 ): StitchCandidateArtifact | null {
   if (rawResult.status !== 'ok') return null;
   if (!rawResult.variants || rawResult.variants.length === 0) return null;
 
-  const candidates = rawResult.variants.map((v, i) => mapRawVariant(v, strategy, i));
+  const candidates = rawResult.variants.map((v, i) => mapRawVariant(v, strategy, i, deviceType, responsivePairId));
 
   return {
     schemaVersion: 1,

@@ -11,6 +11,7 @@ import { reactToolkitProfile } from '../../../src/site-builder/guidance/reactToo
 import { globalDesignResearchCache, DesignResearchCache } from './snapshotCache.js';
 import { businessFromSource } from '../../../src/site-builder/leadSource.js';
 import { isCooling, setCooldown } from '../ai/providerCooldown.js';
+import { sanitizePtBr } from '../../../src/site-builder/contentLanguageGuard.js';
 
 type Dependencies = {
   audit?: typeof auditCurrentSite;
@@ -46,6 +47,12 @@ export function getFallbackUserMessage(
 
 function preserveDesign(raw: unknown, design: ResolvedDesign): GeneratedSiteBlueprint {
   const candidate = constrainBlueprint(raw, design.referenceBrief.business.lead, true);
+
+  // Apply sanitization against English leaks on critical UI text blocks
+  if (candidate.hero) {
+    candidate.hero.ctaText = sanitizePtBr(candidate.hero.ctaText, 'Falar no WhatsApp');
+  }
+  
   candidate.templateId = design.specification.templateId;
   candidate.visual = design.specification.visual;
   candidate.presentation = design.specification.presentation;
@@ -77,7 +84,19 @@ export async function generateStandardAiSite(
     fallbackReason 
   } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides));
 
-  const contract = buildDesignSystemContract(design);
+  let finalDesign = design;
+  if (finalDesign.stitch?.viewportAnchors?.mobile) {
+    const { resolveRuntimeResponsiveDesign } = await import('./siteGenerationResponsiveResolver.js');
+    try {
+      const resp = await resolveRuntimeResponsiveDesign(finalDesign);
+      finalDesign = resp.resolvedDesign;
+    } catch (e) {
+      console.error('[SiteAI] Failed to resolve responsive design:', e);
+      // fallback to original design if resolution fails
+    }
+  }
+
+  const contract = buildDesignSystemContract(finalDesign);
   const fallback = (
     reason: GenerationMetadata['fallbackReason'],
     detail?: GenerationMetadata['fallbackDetail'],
@@ -98,8 +117,8 @@ export async function generateStandardAiSite(
       })}`,
     );
     return {
-      blueprint: blueprintFromDesign(design),
-      design,
+      blueprint: blueprintFromDesign(finalDesign),
+      design: finalDesign,
       contract,
       warnings: [getFallbackUserMessage(detail, reason)],
       generation: {
@@ -139,10 +158,10 @@ export async function generateStandardAiSite(
       try {
         const raw = await (dependencies.requestBlueprint ?? requestBlueprint)(
           model,
-          buildStandardAiPrompt(source, design, contract),
+          buildStandardAiPrompt(source, finalDesign, contract),
           credentials,
         );
-        const blueprint = preserveDesign(raw, design);
+        const blueprint = preserveDesign(raw, finalDesign);
         const durationMs = Date.now() - startTime;
         console.log(
           `[SiteAI] ${JSON.stringify({
@@ -156,7 +175,7 @@ export async function generateStandardAiSite(
         );
         return {
           blueprint,
-          design,
+          design: finalDesign,
           contract,
           warnings: [...catalog.warnings, ...blueprint.warnings],
           generation: {
@@ -169,7 +188,7 @@ export async function generateStandardAiSite(
             fallbackUsed: false,
             requestId,
             durationMs,
-            designFamily: design.specification.family.id,
+            designFamily: finalDesign.specification.family.id,
             guidance: reactToolkitProfile,
             designSource,
             designFallbackReason: fallbackReason,

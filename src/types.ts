@@ -149,6 +149,7 @@ export interface Project {
   siteBlueprint?: import('./site-builder/types').GeneratedSiteBlueprint;
   siteContext?: import('./site-builder/types').LeadSiteContext;
   aiGeneration?: import('./site-builder/types').GenerationMetadata;
+  siteOverrides?: import('./site-builder/contracts/overrides').SiteUserOverrides;
   contentReviewed?: boolean;
   generationError?: string;
   id: string;
