@@ -295,7 +295,7 @@ test('D.5 Site Generation Runtime Integration: DesignArtifactReference explicit 
       candidates: [
         {
           candidateId: 'cand-1', source: 'stitch', strategyId: s,
-          layoutPatterns: [], heroPattern: `hero-for-${r}`, aboutPattern: 'about', servicePattern: 'services',
+          layoutPatterns: [], heroPattern: r.includes('reqA') ? 'full-bleed' : 'minimal', aboutPattern: 'about', servicePattern: 'services',
           sectionOrder: ['hero', 'services', 'about', 'location', 'contact'],
           typographySignals: [], colorSignals: [], spacingSignals: [], imageryDirection: '', motionSignals: [], responsiveSignals: [],
           scores: { nicheFit: 100, purposeFit: 100, researchFit: 100, structuralDiversity: 100, accessibility: 100, performance: 100, responsiveQuality: 100, total: 700 },
@@ -321,8 +321,8 @@ test('D.5 Site Generation Runtime Integration: DesignArtifactReference explicit 
     assert.strictEqual(resA.artifactIdentity?.requestId, reqA);
     assert.strictEqual(resB.artifactIdentity?.requestId, reqB);
     
-    assert.strictEqual(resA.resolvedDesign.specification.visual.hero, `hero-for-${reqA}`);
-    assert.strictEqual(resB.resolvedDesign.specification.visual.hero, `hero-for-${reqB}`);
+    assert.strictEqual(resA.resolvedDesign.specification.visual.hero, `full-bleed`);
+    assert.strictEqual(resB.resolvedDesign.specification.visual.hero, `minimal`);
     
   } finally {
     ArtifactMcpProvider.prototype.probe = originalProbe;

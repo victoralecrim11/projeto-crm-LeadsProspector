@@ -77,12 +77,12 @@ export function MediaPanel({
 
   return (
     <div className="flex max-w-full flex-col gap-6 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-slate-100">
-      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
-          <ImageIcon className="w-5 h-5 text-indigo-400" />
+          <ImageIcon className="w-5 h-5 flex-shrink-0 text-indigo-400" />
           <h3 className="font-semibold text-base">Banco de Imagens Licenciadas</h3>
         </div>
-        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1">
+        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1 whitespace-nowrap">
           <ShieldCheck className="w-3.5 h-3.5" /> Pexels / Pixabay
         </span>
       </div>

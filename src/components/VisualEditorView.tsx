@@ -248,8 +248,14 @@ export const VisualEditorView: React.FC = () => {
     const exists = effectiveDraft.sectionOrder.includes(
       selectedTarget.sectionId as any,
     );
-    if (!exists) setSelectedTarget(null);
-  }, [effectiveDraft.sectionOrder, selectedTarget]);
+    const isVisible = effectiveDraft.sections[selectedTarget.sectionId as keyof typeof effectiveDraft.sections] !== false;
+
+    if (!exists) {
+      setSelectedTarget(null);
+    } else if (!isVisible) {
+      setSelectedTarget({ scope: "site" });
+    }
+  }, [effectiveDraft.sectionOrder, effectiveDraft.sections, selectedTarget]);
 
   // ── Save / Export ──────────────────────────────────────────
   const save = useCallback(() => {

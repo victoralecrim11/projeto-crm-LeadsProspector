@@ -74,7 +74,12 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     if (!styleEl) {
       styleEl = doc.createElement("style");
       styleEl.id = "__editor_style__";
-      doc.head.appendChild(styleEl);
+      const target = doc.head || doc.body || doc.documentElement;
+      if (target) {
+        target.appendChild(styleEl);
+      } else {
+        return;
+      }
     }
     styleRef.current = styleEl;
 
