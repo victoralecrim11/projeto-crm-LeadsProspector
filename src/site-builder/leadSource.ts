@@ -1,7 +1,7 @@
 import type { Lead } from '../types.js';
 import { buildLeadSiteContext } from './context.js';
 import { leadSourceContextSchema, sourcedBusinessContextSchema, type LeadSourceContext } from './contracts/research.js';
-import { getCanonicalBusinessCategory, normalizeLegacyBusinessNiche } from '../domain/businessTaxonomy.js';
+import { BUSINESS_TAXONOMY_VERSION, CanonicalNiche, getCanonicalBusinessCategory, normalizeLegacyBusinessNiche } from '../domain/businessTaxonomy.js';
 
 export function normalizeLeadSource(lead: Lead): LeadSourceContext {
   const osmElement = lead.osmType && /^\d+$/.test(lead.osmId ?? '') ? `${lead.osmType}/${lead.osmId}` : undefined;
@@ -29,15 +29,36 @@ export function businessFromSource(input: LeadSourceContext) {
   return sourcedBusinessContextSchema.parse({ version: 1, lead: source.context, confirmed: {}, source, businessType: 'local-business', derivedNiche, facts });
 }
 
-export function getLeadCategory(lead: Lead): string {
-  if (lead.canonicalNiche) {
-    return getCanonicalBusinessCategory(lead.canonicalNiche);
+export function resolveLeadCanonicalNiche(lead: Lead): CanonicalNiche {
+  // 1. Current classification version
+  if (lead.classificationVersion === BUSINESS_TAXONOMY_VERSION && lead.canonicalNiche) {
+    return lead.canonicalNiche;
   }
-  const candidates = [
-    lead.category?.trim(),
-    lead.niche?.trim(),
-    // Fallback if needed, though category and niche are usually defined
-    'Sem categoria'
-  ];
-  return candidates.find(c => Boolean(c)) || 'Sem categoria';
+  
+  // 2. Name-based override if it strongly indicates hair-salon over barbershop
+  const nameNorm = (lead.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (nameNorm.includes('cabeleireir') || nameNorm.includes('salao de beleza')) {
+    return 'hair-salon';
+  }
+
+  // 3. Aliases legacy inequívocos
+  const catFallback = normalizeLegacyBusinessNiche(lead.category || '');
+  if (catFallback !== 'other') return catFallback;
+
+  const nicheFallback = normalizeLegacyBusinessNiche(lead.niche || '');
+  if (nicheFallback !== 'other') return nicheFallback;
+
+  // 4. General name inference
+  const nameFallback = normalizeLegacyBusinessNiche(lead.name || '');
+  if (nameFallback !== 'other') return nameFallback;
+
+  // 5. Stale canonical niche se nada funcionou
+  if (lead.canonicalNiche) return lead.canonicalNiche;
+
+  return 'other';
+}
+
+export function getLeadCategory(lead: Lead): string {
+  const niche = resolveLeadCanonicalNiche(lead);
+  return getCanonicalBusinessCategory(niche);
 }

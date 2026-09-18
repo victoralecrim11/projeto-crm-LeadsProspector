@@ -66,6 +66,7 @@ export interface Lead {
   category: string;
   niche: string;
   canonicalNiche?: CanonicalNiche;
+  classificationVersion?: number;
   subNiche?: string;
   prospectingGroup?: string;
   temperature: LeadTemperature;

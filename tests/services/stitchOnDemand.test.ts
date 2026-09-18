@@ -7,13 +7,18 @@ import { stitchDesignProductionService } from '../../server/services/research/st
 import { resolveSiteGenerationDesign } from '../../server/services/research/siteGenerationDesignResolver.js';
 
 test('1. getLeadCategory precedence', () => {
-  assert.equal(getLeadCategory({ category: 'Cat' } as any), 'Cat');
-  assert.equal(getLeadCategory({ niche: 'Niche' } as any), 'Niche');
-  assert.equal(getLeadCategory({ category: 'Cat', niche: 'Niche' } as any), 'Cat');
+  // Teste antigo esperava 'Cat'. Na nova taxonomia rigorosa, 'Cat' cai no fallback 'other' -> 'Outro'
+  assert.equal(getLeadCategory({ category: 'Cat' } as any), 'Outro');
+  
+  // Mas se for uma categoria conhecida, mapeia corretamente via normalizeLegacyBusinessNiche
+  assert.equal(getLeadCategory({ category: 'Barbearia' } as any), 'Barbearia');
+  
+  assert.equal(getLeadCategory({ niche: 'Dentist' } as any), 'Clínica Odontológica');
 });
 
 test('3. Sem categoria', () => {
-  assert.equal(getLeadCategory({} as any), 'Sem categoria');
+  // 'other' -> 'Outro'
+  assert.equal(getLeadCategory({} as any), 'Outro');
 });
 
 const mockValidSource = {

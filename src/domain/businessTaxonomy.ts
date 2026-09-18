@@ -38,6 +38,8 @@ export const BUSINESS_CATEGORIES: { id: CanonicalNiche; label: string }[] = [
   { id: 'other', label: 'Outro' },
 ];
 
+export const BUSINESS_TAXONOMY_VERSION = 2;
+
 export const PROSPECTING_GROUPS = [
   { id: 'todos', label: 'Todos os Nichos' },
   { id: 'Barbearia', label: 'Barbearias & Salões' },

@@ -200,7 +200,7 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     ? 'Facilitar contato para agendamentos e horários; destacar corte de cabelo e barba.'
     : niche === 'hair-salon'
     ? 'Facilitar contato para agendamento de serviços de beleza; destacar especialidades.'
-    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food' || niche === 'bakery'
+    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food'
     ? 'Facilitar contato para consultar reservas; não simular disponibilidade.'
     : 'Facilitar o primeiro contato; exibir informações principais de forma clara.';
 
@@ -210,7 +210,7 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     ? 'Fase C: fotografias de cortes reais e ambiente com iluminação direcional; ferramentas e produtos autorizados.'
     : niche === 'hair-salon'
     ? 'Fase C: fotografias de cabelos, styling, profissionais em ação e interior do salão; somente quando autorizadas e contextuais.'
-    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food' || niche === 'bakery'
+    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food'
     ? 'Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.'
     : 'Fase C: imagens profissionais e autênticas do ambiente de negócios; sem representações enganosas de pessoas ou instalações.';
 
