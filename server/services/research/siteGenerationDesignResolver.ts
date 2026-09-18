@@ -216,12 +216,28 @@ export async function resolveSiteGenerationDesign(
     resolvedDesign.composition = [...stitchSectionOrder];
   }
   
+function mapAboutVariant(pattern: string): any {
+  if (pattern === 'story' || pattern === 'centered-story') return 'centered-story';
+  return 'editorial-split'; // default for about
+}
+
+function mapServicesVariant(pattern: string): any {
+  if (pattern === 'editorial' || pattern === 'list' || pattern === 'editorial-list') return 'editorial-list';
+  return 'horizontal-cards'; // default for services
+}
+
+function mapHeroVariant(pattern: string): any {
+  if (pattern === 'minimal') return 'minimal';
+  if (pattern === 'centered' || pattern === 'full-bleed') return 'full-bleed';
+  return 'split'; // default for hero
+}
+
   if (stitchVisualPatterns && designSource === 'STITCH') {
     resolvedDesign.specification.visual = {
       ...resolvedDesign.specification.visual,
-      hero: stitchVisualPatterns.hero as any,
-      about: stitchVisualPatterns.about as any,
-      services: stitchVisualPatterns.services as any
+      hero: mapHeroVariant(stitchVisualPatterns.hero),
+      about: mapAboutVariant(stitchVisualPatterns.about),
+      services: mapServicesVariant(stitchVisualPatterns.services)
     };
   }
 

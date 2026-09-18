@@ -281,6 +281,17 @@ export function siteGenerationRouter() {
       ));
     }
     catch (error) {
+      if (error instanceof z.ZodError) {
+        console.error(`[SiteGeneration] Zod schema error in standard-ai for ${requestId}:`, JSON.stringify(error.issues));
+        return res.status(422).json({
+          code: "SITE_AI_SCHEMA_ERROR",
+          error: "O design foi criado, mas houve um problema ao preparar a estrutura do site.",
+          retryable: true,
+          resumeFrom: "SITE_GENERATION",
+          requestId
+        });
+      }
+      
       const status = error instanceof SiteAiError ? error.status : 422;
       const code = error instanceof SiteAiError ? error.code : 'SITE_AI_INTERNAL_ERROR';
       const message = error instanceof Error ? error.message : 'Não foi possível gerar o site.';

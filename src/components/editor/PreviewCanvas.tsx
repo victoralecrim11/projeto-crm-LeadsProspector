@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useCallback } from "react";
+import React, { useEffect, useRef, useCallback, useState } from "react";
 import type { GeneratedSiteBlueprint, LeadSiteContext } from "../../site-builder/types";
 import type { ResolvedDesign } from "../../site-builder/contracts/research";
 import type { MediaManifest } from "../../site-builder/contracts/media";
@@ -162,13 +162,44 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     el?.scrollIntoView({ behavior: "smooth", block: "start" });
   }, [selectedSectionId]);
 
-  const containerWidth = viewportWidth;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  // Measure container width to compute scale
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
+    const observer = new ResizeObserver((entries) => {
+      const entry = entries[0];
+      if (entry) {
+        const availableWidth = entry.contentRect.width;
+        // Avoid division by zero
+        const newScale = viewportWidth > 0 ? Math.min(1, availableWidth / viewportWidth) : 1;
+        setScale(newScale);
+      }
+    });
+    
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [viewportWidth]);
 
   return (
-    <div className="adv-preview-canvas" aria-label={`Prévia do site — ${previewViewport}`}>
+    <div 
+      className="adv-preview-canvas" 
+      aria-label={`Prévia do site — ${previewViewport}`}
+      ref={containerRef}
+      style={{ overflow: 'hidden', display: 'flex', justifyContent: 'center' }}
+    >
       <div
         className="adv-preview-scaler"
-        style={{ "--preview-width": `${containerWidth}px` } as React.CSSProperties}
+        style={{ 
+          width: '100%',
+          height: '100%',
+          display: 'flex',
+          justifyContent: 'center',
+          overflow: 'hidden' 
+        }}
       >
         {html ? (
           <iframe
@@ -176,7 +207,14 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
             title="Prévia do site em edição"
             sandbox="allow-scripts allow-popups allow-popups-to-escape-sandbox allow-same-origin"
             className="adv-preview-iframe"
-            style={{ width: containerWidth }}
+            style={{ 
+              width: `${viewportWidth}px`, 
+              height: `${100 / scale}%`,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top center',
+              border: 'none',
+              flexShrink: 0
+            }}
           />
         ) : (
           <p role="status" className="adv-preview-empty-msg">

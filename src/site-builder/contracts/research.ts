@@ -227,7 +227,7 @@ export const resolvedDesignSchema = z.object({
       mobile: designArtifactReferenceSchema.optional(),
       desktop: designArtifactReferenceSchema.optional(),
     }).optional(),
-    alternatives: z.array(text).min(2).max(3), 
+    alternatives: z.array(text).min(1).max(3), 
     selected: text, 
     review: text,
     provider: text.optional(),

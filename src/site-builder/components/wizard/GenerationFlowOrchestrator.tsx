@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCrm } from '../../../hooks/useCrm';
 import { 
@@ -49,6 +49,14 @@ interface GenerationFlowOrchestratorProps {
 export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProps> = ({ initialLeadId, onClose }) => {
   const crm = useCrm();
   const navigate = useNavigate();
+  
+  type GenerationCheckpoint = {
+    generationRequestId: string;
+    designProductionId: string;
+    productionStatus: string;
+    intentKey: string;
+  };
+  const checkpointRef = useRef<GenerationCheckpoint | null>(null);
   
   // Transient state
   const [currentStep, setCurrentStep] = useState<WizardStep>('lead');
@@ -113,37 +121,55 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
       const context = buildLeadSiteContext(selectedLead);
       const sourceContext = normalizeLeadSource(selectedLead);
       
+      const currentIntentKey = `${selectedLead.id}_${draft.prefs.siteType}_${draft.generationMode}_${draft.prefs.templateId}_${draft.prefs.designBrief.paletteMode}`;
+      
       let finalGenerationRequestId: string | undefined;
       let finalDesignProductionId: string | undefined;
       
       if (draft.generationMode === 'standard') {
          setPhase('design');
-         const reqId = crypto.randomUUID();
          
-         const produceRes = await fetch('/api/ai/research/stitch/produce', {
-           method: 'POST',
-           headers: { 'Content-Type': 'application/json' },
-           body: JSON.stringify({
-             generationRequestId: reqId,
-             leadId: selectedLead.id,
-             source: sourceContext
-           })
-         });
-         
-         if (!produceRes.ok) {
-           const errData = await produceRes.json();
-           const msg = errData.error || 'Falha ao iniciar produção de design.';
-           // Provider block parsing
-           if (msg.toLowerCase().includes('timeout') || produceRes.status === 504 || produceRes.status === 429) {
-             throw new Error('O serviço de design está indisponível ou demorando mais que o esperado. ' + msg);
+         const cp = checkpointRef.current;
+         const canReuseStitch = cp && cp.intentKey === currentIntentKey && 
+             (cp.productionStatus === 'PAIRED' || cp.productionStatus === 'PARTIAL');
+             
+         if (canReuseStitch) {
+           finalGenerationRequestId = cp.generationRequestId;
+           finalDesignProductionId = cp.designProductionId;
+           setProductionStatus(cp.productionStatus);
+           setProductionStage('COMPLETED');
+           console.info('[StitchFlow] Reusing existing production', {
+             generationRequestId: finalGenerationRequestId,
+             designProductionId: finalDesignProductionId,
+             status: cp.productionStatus
+           });
+         } else {
+           checkpointRef.current = null;
+           const reqId = crypto.randomUUID();
+           
+           const produceRes = await fetch('/api/ai/research/stitch/produce', {
+             method: 'POST',
+             headers: { 'Content-Type': 'application/json' },
+             body: JSON.stringify({
+               generationRequestId: reqId,
+               leadId: selectedLead.id,
+               source: sourceContext
+             })
+           });
+           
+           if (!produceRes.ok) {
+             const errData = await produceRes.json();
+             const msg = errData.error || 'Falha ao iniciar produção de design.';
+             if (msg.toLowerCase().includes('timeout') || produceRes.status === 504 || produceRes.status === 429) {
+               throw new Error('O serviço de design está indisponível ou demorando mais que o esperado. ' + msg);
+             }
+             throw new Error(msg);
            }
-           throw new Error(msg);
-         }
-         
-         const produceData = await produceRes.json();
-         finalGenerationRequestId = produceData.generationRequestId;
-         finalDesignProductionId = produceData.designProductionId;
-         setProductionStatus(produceData.status);
+           
+           const produceData = await produceRes.json();
+           finalGenerationRequestId = produceData.generationRequestId;
+           finalDesignProductionId = produceData.designProductionId;
+           setProductionStatus(produceData.status);
          
          // Polling
          const terminalStates = ['PAIRED', 'PARTIAL', 'FAILED'];
@@ -169,8 +195,9 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                  if (!pollRes.ok) throw new Error('Falha ao ler status da produção');
                  const pollData = await pollRes.json();
                  
+                 const nextStage = pollData.status === 'PAIRED' ? (pollData.stage || 'COMPLETED') : (pollData.stage || currentStage);
                  const statusChanged = currentStatus !== pollData.status;
-                 const stageChanged = currentStage !== pollData.stage;
+                 const stageChanged = currentStage !== nextStage;
                  
                  if (statusChanged || stageChanged) {
                    console.info('[StitchFlow]', {
@@ -179,14 +206,14 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                      previousStatus: currentStatus,
                      status: pollData.status,
                      previousStage: currentStage,
-                     stage: pollData.stage,
+                     stage: nextStage,
                      elapsedMs: pollData.elapsedMs || 0,
                      lastEvent: 'State transition'
                    });
                  }
                  
                  currentStatus = pollData.status;
-                 currentStage = pollData.stage || currentStage;
+                 currentStage = nextStage;
                  
                  setProductionStatus(currentStatus);
                  setProductionStage(currentStage);
@@ -203,7 +230,6 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                      providerStatus: pollData.providerStatus
                    });
                    
-                   // Translate technical error to user-friendly error based on stage/code
                    let userMsg = `Falha na produção do design: ${pollData.errorCode || 'UNHANDLED'}`;
                    if (pollData.errorCode === 'STITCH_MOBILE_TIMEOUT' || pollData.errorCode === 'STITCH_JOB_TIMEOUT') {
                      userMsg = 'O serviço de design demorou mais que o esperado durante a criação da direção visual.';
@@ -224,6 +250,13 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                      });
                    }
                    
+                   checkpointRef.current = {
+                     generationRequestId: finalGenerationRequestId!,
+                     designProductionId: finalDesignProductionId!,
+                     productionStatus: currentStatus,
+                     intentKey: currentIntentKey
+                   };
+                   
                    resolve();
                  }
                } catch (e) {
@@ -233,6 +266,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
              }, 2000);
            });
          }
+         } // Closes the `else` block
       }
 
       setPhase('site-generation');
@@ -302,11 +336,15 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         ? "A IA não estava disponível. Site criado com fallback; você pode regenerá-lo com IA depois."
         : "Site gerado com sucesso.");
         
-    } catch (e) {
+    } catch (e: any) {
       if (pollInterval) clearInterval(pollInterval);
       setPhase('failed');
-      const message = e instanceof Error ? e.message : "Falha inesperada ao gerar site.";
-      setErrorDetails(message);
+      if (e && e.code === 'SITE_AI_SCHEMA_ERROR') {
+        setErrorDetails("O design visual foi criado, mas ocorreu um problema ao preparar a estrutura do site. Você pode tentar novamente ou revisar as configurações.");
+      } else {
+        const message = e instanceof Error ? e.message : "Falha inesperada ao gerar site.";
+        setErrorDetails(message);
+      }
     } finally {
       if (pollInterval) clearInterval(pollInterval);
     }
@@ -343,7 +381,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
     <div className="flex flex-col h-full">
       <div className="flex justify-between items-center mb-6 shrink-0">
         <h2 id="site-generator-title" className="text-2xl font-bold text-white tracking-tight">
-          {isDecisionPhase ? 'Gerar Site' : 'Produção em andamento'}
+          {isDecisionPhase ? 'Gerar Site' : (phase === 'failed' ? 'Não foi possível finalizar o site' : (phase === 'completed' ? 'Site gerado com sucesso' : 'Produção em andamento'))}
         </h2>
         <button 
           aria-label="Fechar gerador" 

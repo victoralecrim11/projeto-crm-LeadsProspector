@@ -159,12 +159,16 @@ async function api(path: string, settings: CrmSettingsConfig, body?: unknown) {
   } catch {
     throw new Error("O servidor retornou uma resposta inválida.");
   }
-  if (!response.ok)
-    throw new Error(
-      typeof (data as { error?: unknown })?.error === "string"
-        ? (data as { error: string }).error
-        : "A operação de IA falhou.",
-    );
+  if (!response.ok) {
+    const errorMsg = typeof (data as any)?.error === "string" ? (data as any).error : "A operação de IA falhou.";
+    const err: any = new Error(errorMsg);
+    if (data && typeof data === 'object') {
+      err.code = (data as any).code;
+      err.resumeFrom = (data as any).resumeFrom;
+      err.retryable = (data as any).retryable;
+    }
+    throw err;
+  }
   return data;
 }
 export async function getSiteModels(

@@ -1,7 +1,7 @@
 // Static system font stacks keep offline exports self-contained and avoid font CLS.
 export const baseStyles = `
 *{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;background:#fbfaf7;color:#202621;font-family:Arial,Helvetica,sans-serif;line-height:1.65;overflow-wrap:anywhere;min-width:320px}
-.site-root{--gutter:max(6%,calc((100% - 1200px)/2));--border:#c9cec7;--muted:#505950;min-height:100vh;width:100%;max-width:100vw;overflow-x:hidden}
+.site-root{--gutter:max(6%,calc((100% - 1200px)/2));--border:#c9cec7;--muted:#505950;min-height:100vh;width:100%;max-width:100%;overflow-x:hidden}
 h1,h2,h3,p{margin:0}h1,h2,h3{line-height:1.15}h1{letter-spacing:-.045em}h2{font-size:clamp(28px,3vw,40px);letter-spacing:-.025em}h3{font-size:24px}a{color:inherit}a:focus-visible{outline:3px solid currentColor;outline-offset:5px}main{outline:none}section{scroll-margin-top:24px}.section-inner{padding:88px var(--gutter)}.eyebrow{text-transform:uppercase;font-size:12px;letter-spacing:.16em;font-weight:600}.cta{display:inline-flex;gap:16px;align-items:center;justify-content:center;min-height:48px;flex-shrink:0;padding:14px 24px;background:#fff;color:#202621;border:1px solid #202621;text-decoration:none;font-weight:700}.skip-link{position:absolute;left:16px;top:-100px;z-index:10;padding:12px;background:#fff;color:#202621}.skip-link:focus{top:16px}
 @media(max-width:600px){.section-inner{padding:48px 6%}.cta{width:100%;max-width:100%;font-size:16px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
