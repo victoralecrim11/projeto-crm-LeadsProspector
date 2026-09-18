@@ -24,15 +24,11 @@ export interface PreviewCanvasProps {
 }
 
 /**
- * PreviewCanvas renders the site in an iframe using the existing renderSiteDocument
- * (no renderer duplication). In editor mode it:
+ * PreviewCanvas renders the site in an iframe using the existing renderSiteDocument.
+ * In editor mode it:
  *  1. Injects a single stable <style id="__editor_style__"> for hover/selected highlighting.
- *  2. Uses event delegation on contentDocument to detect clicks on
- *     [data-editor-section-id] elements emitted by the editor-mode renderer.
- *  3. Cleans up listeners on every HTML change to prevent accumulation.
- *
- * The editor metadata attributes (data-editor-section-id) are injected only when
- * editorMode=true is passed to renderSiteDocument, keeping the export clean.
+ *  2. Updates DOM atomically on content changes to avoid white flashes and iframe navigations.
+ *  3. Uses event delegation on contentDocument to detect clicks on [data-editor-section-id].
  */
 export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   blueprint,
@@ -47,12 +43,22 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
   onHoverSection,
 }) => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const styleRef = useRef<HTMLStyleElement | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
+  
+  // Stable refs for callbacks and transient state to avoid unnecessary effect triggers
+  const callbacksRef = useRef({ onSectionSelected, onHoverSection });
+  const transientStateRef = useRef({ selectedSectionId, hoveredSectionId });
+
+  useEffect(() => {
+    callbacksRef.current = { onSectionSelected, onHoverSection };
+  }, [onSectionSelected, onHoverSection]);
+
+  useEffect(() => {
+    transientStateRef.current = { selectedSectionId, hoveredSectionId };
+  }, [selectedSectionId, hoveredSectionId]);
 
   const viewportWidth = PREVIEW_WIDTHS[previewViewport] ?? 1440;
 
-  // Generate HTML with editor metadata attributes
+  // Generate HTML based ONLY on render-affecting inputs
   const html = React.useMemo(() => {
     try {
       return renderSiteDocument(
@@ -68,8 +74,8 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     }
   }, [blueprint, context, design, mediaManifest, assetUrls]);
 
-  // Inject/update selection+hover CSS into iframe without accumulating <style> tags
-  const updateEditorStyles = useCallback((doc: Document) => {
+  // Inject/update selection+hover CSS into iframe idempotently
+  const updateEditorStyles = useCallback((doc: Document, selId: string | null, hovId: string | null) => {
     let styleEl = doc.getElementById("__editor_style__") as HTMLStyleElement | null;
     if (!styleEl) {
       styleEl = doc.createElement("style");
@@ -81,17 +87,15 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         return;
       }
     }
-    styleRef.current = styleEl;
 
-    const selRule = selectedSectionId
-      ? `[data-editor-section-id="${selectedSectionId}"] { outline: 2px solid #6366f1 !important; outline-offset: 2px; }`
+    const selRule = selId
+      ? `[data-editor-section-id="${selId}"] { outline: 2px solid #6366f1 !important; outline-offset: 2px; }`
       : "";
-    const hovRule = hoveredSectionId && hoveredSectionId !== selectedSectionId
-      ? `[data-editor-section-id="${hoveredSectionId}"] { outline: 1px dashed #38bdf8 !important; outline-offset: 2px; }`
+    const hovRule = hovId && hovId !== selId
+      ? `[data-editor-section-id="${hovId}"] { outline: 1px dashed #38bdf8 !important; outline-offset: 2px; }`
       : "";
-    // Label on hover
-    const labelRule = hoveredSectionId
-      ? `[data-editor-section-id="${hoveredSectionId}"]::before { content: attr(data-editor-section-label); position: absolute; top: 0; left: 0; background: #38bdf8cc; color: #fff; font-size: 10px; padding: 2px 6px; pointer-events: none; z-index: 9999; }`
+    const labelRule = hovId
+      ? `[data-editor-section-id="${hovId}"]::before { content: attr(data-editor-section-label); position: absolute; top: 0; left: 0; background: #38bdf8cc; color: #fff; font-size: 10px; padding: 2px 6px; pointer-events: none; z-index: 9999; }`
       : "";
 
     styleEl.textContent = [
@@ -100,71 +104,85 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       hovRule,
       labelRule,
     ].join("\n");
-  }, [selectedSectionId, hoveredSectionId]);
+  }, []);
 
-  // Re-attach listeners after HTML changes (srcDoc update triggers load)
+  // Atomic content update: never triggers full iframe reload/navigation
   useEffect(() => {
     const iframe = iframeRef.current;
     if (!iframe || !html) return;
+    const doc = iframe.contentDocument;
+    if (!doc) return;
 
-    const blobUrl = URL.createObjectURL(new Blob([html], { type: "text/html;charset=utf-8" }));
+    const isInitialized = doc.documentElement.hasAttribute("data-editor-initialized");
 
-    // Abort previous controller if any
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const { signal } = controller;
+    if (!isInitialized) {
+      // 1. Initial write
+      doc.open();
+      doc.write(html);
+      doc.close();
+      doc.documentElement.setAttribute("data-editor-initialized", "true");
 
-    const onLoad = () => {
-      if (signal.aborted) return;
-      const doc = iframe.contentDocument;
-      if (!doc) return;
-
-      updateEditorStyles(doc);
-
-      // Click delegation — find closest section with editor metadata
+      // Attach delegated event listeners to the Document (survives body replacement)
       const handleClick = (e: MouseEvent) => {
         const target = (e.target as HTMLElement).closest("[data-editor-section-id]") as HTMLElement | null;
         if (!target) return;
         const sectionId = target.dataset.editorSectionId;
-        if (sectionId) onSectionSelected(sectionId);
+        if (sectionId) callbacksRef.current.onSectionSelected(sectionId);
       };
 
-      // Hover delegation
       const handleMouseOver = (e: MouseEvent) => {
         const target = (e.target as HTMLElement).closest("[data-editor-section-id]") as HTMLElement | null;
-        onHoverSection(target?.dataset.editorSectionId ?? null);
+        callbacksRef.current.onHoverSection(target?.dataset.editorSectionId ?? null);
       };
-      const handleMouseOut = () => onHoverSection(null);
 
-      doc.addEventListener("click", handleClick, { signal } as any);
-      doc.addEventListener("mouseover", handleMouseOver, { signal } as any);
-      doc.addEventListener("mouseout", handleMouseOut, { signal } as any);
-    };
+      const handleMouseOut = () => callbacksRef.current.onHoverSection(null);
 
-    iframe.addEventListener("load", onLoad, { signal } as any);
-    iframe.src = blobUrl;
+      doc.addEventListener("click", handleClick);
+      doc.addEventListener("mouseover", handleMouseOver);
+      doc.addEventListener("mouseout", handleMouseOut);
+    } else {
+      // 2. Atomic in-place update for subsequent content changes
+      const newDoc = new DOMParser().parseFromString(html, "text/html");
+      const win = iframe.contentWindow;
+      const scrollY = win?.scrollY || 0;
 
-    return () => {
-      controller.abort();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-    };
-  }, [html, onSectionSelected, onHoverSection, updateEditorStyles]);
+      // Replace site-owned head and body
+      if (doc.head && newDoc.head) {
+        doc.documentElement.replaceChild(doc.adoptNode(newDoc.head), doc.head);
+      }
+      if (doc.body && newDoc.body) {
+        doc.documentElement.replaceChild(doc.adoptNode(newDoc.body), doc.body);
+      }
 
-  // Update styles reactively without reloading iframe
+      // Restore scroll after layout frame
+      if (win) {
+        requestAnimationFrame(() => {
+          win.scrollTo(0, scrollY);
+        });
+      }
+    }
+    
+    // Always apply editor styles because head might have been replaced
+    updateEditorStyles(doc, transientStateRef.current.selectedSectionId, transientStateRef.current.hoveredSectionId);
+    
+    // We intentionally omit transient states to prevent full rebuilds on selection
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [html, updateEditorStyles]);
+
+  // Update styles reactively for transient state WITHOUT reloading iframe
   useEffect(() => {
     const doc = iframeRef.current?.contentDocument;
     if (!doc || doc.readyState === "loading") return;
-    updateEditorStyles(doc);
+    updateEditorStyles(doc, selectedSectionId, hoveredSectionId);
   }, [selectedSectionId, hoveredSectionId, updateEditorStyles]);
 
-  // Scroll selected section into view inside iframe
+  // Scroll selected section into view 
   useEffect(() => {
     if (!selectedSectionId) return;
     const doc = iframeRef.current?.contentDocument;
     if (!doc) return;
     const el = doc.querySelector(`[data-editor-section-id="${selectedSectionId}"]`);
-    el?.scrollIntoView({ behavior: "smooth", block: "start" });
+    el?.scrollIntoView({ behavior: "smooth", block: "nearest" });
   }, [selectedSectionId]);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -179,7 +197,6 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
       const entry = entries[0];
       if (entry) {
         const availableWidth = entry.contentRect.width;
-        // Avoid division by zero
         const newScale = viewportWidth > 0 ? Math.min(1, availableWidth / viewportWidth) : 1;
         setScale(newScale);
       }
@@ -230,3 +247,4 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
     </div>
   );
 };
+

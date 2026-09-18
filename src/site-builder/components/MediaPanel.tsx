@@ -82,13 +82,13 @@ export function MediaPanel({
           <ImageIcon className="w-5 h-5 flex-shrink-0 text-indigo-400" />
           <h3 className="font-semibold text-base">Banco de Imagens Licenciadas</h3>
         </div>
-        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1 whitespace-nowrap">
-          <ShieldCheck className="w-3.5 h-3.5" /> Pexels / Pixabay
+        <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1 whitespace-nowrap shrink-0">
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Pexels / Pixabay
         </span>
       </div>
 
       {autoResolveStatus && autoResolveMessage && (
-        <p className={`text-xs px-3 py-2 rounded-lg border ${
+        <p className={`text-xs px-3 py-2 rounded-lg border break-words min-w-0 ${
           autoResolveStatus === 'resolving'
             ? 'bg-blue-500/10 text-blue-300 border-blue-500/20'
             : autoResolveStatus === 'not-configured'
@@ -212,7 +212,7 @@ export function MediaPanel({
                     type="button"
                     onClick={() => openPicker(item)}
                     disabled={isLoading}
-                    className="w-full py-2 px-3 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs flex items-center justify-center gap-2 transition-all shadow-sm"
+                    className="w-full py-2 px-3 rounded-lg bg-indigo-600/90 hover:bg-indigo-600 text-white font-medium text-xs flex flex-wrap items-center justify-center gap-2 transition-all shadow-sm break-words min-w-0"
                   >
                     {isLoading ? (
                       <>
@@ -267,9 +267,11 @@ export function MediaPanel({
         />
       )}
 
-      <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800 text-[11px] text-slate-500 flex items-center gap-2">
-        <span className="text-slate-400">Nota ética:</span> Fotografias licenciadas servem como ilustração conceitual e
-        não representam evidência factual das instalações, colaboradores ou serviços específicos do cliente.
+      <div className="p-3 rounded-lg bg-slate-800/20 border border-slate-800 text-[11px] text-slate-500 flex flex-col gap-1">
+        <span className="text-slate-400 font-medium whitespace-nowrap shrink-0">Nota ética:</span>
+        <span className="min-w-0 break-words leading-relaxed">
+          Fotografias licenciadas servem como ilustração conceitual e não representam evidência factual das instalações, colaboradores ou serviços específicos do cliente.
+        </span>
       </div>
     </div>
   );
