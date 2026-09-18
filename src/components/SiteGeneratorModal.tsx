@@ -12,6 +12,7 @@ import {
 import { normalizeDesignBrief } from "../site-builder/designBrief";
 import { generateSiteBlueprint, generateStandardAiBlueprint } from "../services/siteGenerationService";
 import { normalizeLeadSource, getLeadCategory } from '../site-builder/leadSource';
+import { BUSINESS_CATEGORIES } from '../domain/businessTaxonomy';
 import { resolvedDesignSchema } from '../site-builder/contracts/research';
 import { deriveDefaultMediaPlan } from '../site-builder/media/mediaPlanBuilder';
 import { ModelControls } from "../site-builder/components/ModelControls";
@@ -50,13 +51,26 @@ export const SiteGeneratorModal: React.FC = () => {
     goal: "contact",
     designBrief: defaultDesignBrief,
   });
+  const [productionStatus, setProductionStatus] = useState<string>('');
+  const [productionRequestId, setProductionRequestId] = useState<string>('');
+  
+  // Clean up polling if modal closes
+  useEffect(() => {
+    if (!crm.isCreateSiteModalOpen) {
+      setProductionStatus('');
+      setProductionRequestId('');
+    }
+  }, [crm.isCreateSiteModalOpen]);
+
   useEffect(() => {
     if (crm.isCreateSiteModalOpen) {
       setLeadId(crm.siteGeneratorLead?.id || crm.leads[0]?.id || "");
       setError("");
     }
   }, [crm.isCreateSiteModalOpen, crm.siteGeneratorLead?.id]);
+
   if (!crm.isCreateSiteModalOpen) return null;
+
   const lead =
     crm.leads.find((l) => l.id === leadId) ||
     (crm.siteGeneratorLead?.id === leadId ? crm.siteGeneratorLead : undefined);
@@ -77,16 +91,6 @@ export const SiteGeneratorModal: React.FC = () => {
       crm.setSiteGeneratorLead(null);
     }
   };
-  const [productionStatus, setProductionStatus] = useState<string>('');
-  const [productionRequestId, setProductionRequestId] = useState<string>('');
-  
-  // Clean up polling if modal closes
-  useEffect(() => {
-    if (!crm.isCreateSiteModalOpen) {
-      setProductionStatus('');
-      setProductionRequestId('');
-    }
-  }, [crm.isCreateSiteModalOpen]);
 
   const generate = async () => {
     if (!lead || busy) return;
@@ -317,9 +321,14 @@ export const SiteGeneratorModal: React.FC = () => {
                 }}
               >
                 <option value="all">Todas as Categorias</option>
-                {Array.from(new Set(crm.leads.map(l => getLeadCategory(l)).filter(Boolean))).map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
-                ))}
+                {BUSINESS_CATEGORIES.map(cat => {
+                  const count = crm.leads.filter(l => getLeadCategory(l) === cat.label).length;
+                  return (
+                    <option key={cat.label} value={cat.label} disabled={count === 0}>
+                      {cat.label} ({count})
+                    </option>
+                  );
+                })}
               </select>
             </label>
             <label className="flex-[2] block">

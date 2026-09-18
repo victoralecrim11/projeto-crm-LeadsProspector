@@ -5,13 +5,9 @@ export function normalizeStr(text: string): string {
   return (text || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
 }
 
-export const NICHE_OPTIONS = [
-  { id: 'todos', label: 'Todos os Nichos' }, { id: 'Barbearia', label: 'Barbearias & Salões' },
-  { id: 'Clínica Odontológica', label: 'Dentistas & Odonto' }, { id: 'Restaurante & Pizzaria', label: 'Restaurantes & Pizzarias' },
-  { id: 'Estética & Beleza', label: 'Estética, Beleza & Fitness' }, { id: 'Advocacia', label: 'Advocacia & Jurídico' },
-  { id: 'Pet Shop & Veterinária', label: 'Pet Shops & Veterinárias' }, { id: 'Oficina Mecânica', label: 'Oficinas Mecânicas & Auto' },
-  { id: 'Contabilidade', label: 'Contabilidade & Finanças' },
-];
+import { PROSPECTING_GROUPS } from '../domain/businessTaxonomy';
+
+export const NICHE_OPTIONS = PROSPECTING_GROUPS;
 
 // Used only as a geographic search center, never to fabricate locations or leads.
 export const NEIGHBORHOOD_CENTROIDS: Record<string, { lat: number; lng: number }> = {

@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { businessContextSchema, designSpecificationSchema, referenceBriefSchema } from './index.js';
 import { contextSchema, sectionIds } from '../types.js';
+import { canonicalNicheSchema } from '../../domain/businessTaxonomy.js';
 
 const text = z.string().trim().max(1600);
 export const provenanceSchema = z.enum(['CONFIRMED_FROM_LEAD', 'FOUND_ON_BUSINESS_WEBSITE', 'DERIVED', 'INFERRED', 'MARKET_REFERENCE', 'USER_CONFIRMED']);
@@ -10,6 +11,7 @@ export const leadSourceContextSchema = z.object({
   context: contextSchema,
   state: z.string().max(180),
   niche: z.string().max(180),
+  canonicalNiche: canonicalNicheSchema.optional(),
   osmElement: z.string().regex(/^(node|way|relation)\/\d+$/).optional(),
 }).strict();
 export type LeadSourceContext = z.infer<typeof leadSourceContextSchema>;
@@ -17,7 +19,7 @@ export const sourcedFactSchema = z.object({ value: text, provenance: provenanceS
 export const sourcedBusinessContextSchema = businessContextSchema.extend({
   source: leadSourceContextSchema,
   businessType: z.literal('local-business'),
-  derivedNiche: z.enum(['dentistry', 'restaurant', 'barbershop', 'other']),
+  derivedNiche: canonicalNicheSchema,
   facts: z.record(z.string(), sourcedFactSchema),
 }).strict();
 export type SourcedBusinessContext = z.infer<typeof sourcedBusinessContextSchema>;

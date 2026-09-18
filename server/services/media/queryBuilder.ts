@@ -38,13 +38,13 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
   let effectiveNiche = niche;
   if (niche === 'barbershop' || niche.includes('barbearia')) {
     if (subNiche.includes('salão') || subNiche.includes('beleza') || subNiche.includes('cabel') || subNiche.includes('salon')) {
-      effectiveNiche = 'salon';
+      effectiveNiche = 'hair-salon';
     }
   } else if (niche === 'restaurant' || niche.includes('restaurante')) {
     if (subNiche.includes('pizza')) {
       effectiveNiche = 'pizzeria';
     } else if (subNiche.includes('hamburg')) {
-      effectiveNiche = 'burger';
+      effectiveNiche = 'fast-food';
     }
   }
 
@@ -68,7 +68,7 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     queries.push('authentic artisan pizza baking');
     queries.push('pizzeria rustic oven italian');
     queries.push('pizza slice melted cheese');
-  } else if (effectiveNiche === 'burger') {
+  } else if (effectiveNiche === 'fast-food' || effectiveNiche === 'burger') {
     queries.push('gourmet craft burger fries');
     queries.push('burger restaurant fast casual interior');
     queries.push('juicy burger pub style');
@@ -87,7 +87,7 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     } else {
       queries.push('barber shop haircut styling');
     }
-  } else if (effectiveNiche === 'salon') {
+  } else if (effectiveNiche === 'hair-salon' || effectiveNiche === 'beauty-studio' || effectiveNiche === 'salon') {
     if (section === 'hero') {
       queries.push('modern hair beauty salon interior');
       queries.push('hairdresser styling hair salon');
@@ -97,7 +97,7 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     } else {
       queries.push('professional hair stylist salon');
     }
-  } else if (effectiveNiche === 'dentistry' || effectiveNiche.includes('odont') || effectiveNiche.includes('dental')) {
+  } else if (effectiveNiche === 'dentistry' || effectiveNiche === 'health-clinic' || effectiveNiche.includes('odont') || effectiveNiche.includes('dental')) {
     if (section === 'hero') {
       queries.push('modern dental clinic interior');
       queries.push('dentist consulting patient clinic');
@@ -108,6 +108,15 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
     } else {
       queries.push('dentistry healthy smile care');
     }
+  } else if (effectiveNiche === 'law-firm') {
+    queries.push('modern law firm office interior');
+    queries.push('professional lawyer attorney desk');
+  } else if (effectiveNiche === 'auto-repair') {
+    queries.push('professional auto repair shop mechanic');
+    queries.push('car service center garage');
+  } else if (effectiveNiche === 'veterinary' || effectiveNiche === 'pet-shop') {
+    queries.push('professional veterinary clinic pet care');
+    queries.push('happy dog veterinarian checkup');
   } else {
     // Generic fallback for any other niche
     const subject = subNiche || effectiveNiche || 'business';

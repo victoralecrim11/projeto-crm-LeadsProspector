@@ -39,11 +39,25 @@ const research = {
   },
 } as const;
 export type PilotNiche = keyof typeof research;
-export function marketReferenceKey(niche: PilotNiche, subNiche = 'unspecified', positioning = 'premium-design', version = 1) {
+export function marketReferenceKey(niche: string, subNiche = 'unspecified', positioning = 'premium-design', version = 1) {
   return JSON.stringify([niche, subNiche, positioning, version]);
 }
-export function getMarketReference(niche: PilotNiche, now = new Date()): ReferenceBrief {
+export function getMarketReference(niche: string, now = new Date()): ReferenceBrief {
   const researchedAt = '2026-09-08T22:30:00.000Z';
   if (now.getTime() - Date.parse(researchedAt) > 90 * 86400000) throw new Error('Referências expiradas: atualizar pesquisa antes de resolver o design.');
-  return referenceBriefSchema.parse({ version: 1, id: `${niche}-market-v1`, niche, researchedAt, ...research[niche] });
+  
+  if (niche in research) {
+    return referenceBriefSchema.parse({ version: 1, id: `${niche}-market-v1`, niche, researchedAt, ...research[niche as PilotNiche] });
+  }
+
+  // Fallback for non-pilot niches
+  return referenceBriefSchema.parse({
+    version: 1,
+    id: `${niche}-market-v1`,
+    niche,
+    researchedAt,
+    references: [{ url: 'https://example.com/reference', reason: 'Referência genérica estrutural para layout padrão.' }],
+    patterns: ['Priorizar estrutura limpa e profissional.', 'Apresentar informações de forma clara e acessível.', 'Garantir chamadas para ação objetivas.'],
+    avoid: ['Não copiar conteúdo de terceiros.', 'Não inventar serviços ou qualificações não confirmadas.', 'Não exagerar em elementos visuais desnecessários.'],
+  });
 }

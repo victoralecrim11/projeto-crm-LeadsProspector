@@ -201,5 +201,6 @@ export async function generateSiteBlueprint(
     generation: GenerationMetadata;
     warnings: string[];
   };
-  return { ...payload, blueprint: blueprintSchema.parse(payload.blueprint) };
+  return { ...payload, blueprint: blueprintSchema.parse((payload as any).blueprint) };
 }
+

@@ -36,5 +36,6 @@ export function deriveResponsiveCompanionIntent(
     responsivePairId,
     strategyId: originalStrategy.strategyId,
     safetyInstruction: SAFETY_INSTRUCTION,
+    targetProjectId: winner.projectId,
   };
 }

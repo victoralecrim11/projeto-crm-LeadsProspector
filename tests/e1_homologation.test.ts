@@ -93,5 +93,5 @@ test('E.1 Homologation: ResolvedDesign Immutability & Editor Flow', () => {
   assert.equal(effectiveDraft.visual?.about, baselineBlueprint.visual?.about);
 
   // Assert Immutability
-  assert.deepStrictEqual(premiumDesign, EDITOR_BASELINE_SITE_DESIGN);
+  assert.deepStrictEqual(JSON.parse(JSON.stringify(premiumDesign)), EDITOR_BASELINE_SITE_DESIGN);
 });

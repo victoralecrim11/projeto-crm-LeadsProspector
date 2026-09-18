@@ -58,11 +58,16 @@ export interface ContractData {
   pdfGenerated: boolean;
 }
 
+import type { CanonicalNiche } from './domain/businessTaxonomy.js';
+
 export interface Lead {
   id: string;
   name: string;
   category: string;
   niche: string;
+  canonicalNiche?: CanonicalNiche;
+  subNiche?: string;
+  prospectingGroup?: string;
   temperature: LeadTemperature;
   score: number; // 0 - 100
   rating?: number; // e.g. 4.9, 5.0

@@ -122,6 +122,8 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
+import { classifyOsmBusiness } from '../domain/businessTaxonomy';
+
 function osmElementToLead(
   element: OverpassElement,
   cityName: string,
@@ -155,18 +157,7 @@ function osmElementToLead(
   const address = buildAddress(tags, cityName);
   const neighborhood = extractNeighborhood(tags);
 
-  let realCategory = fallbackNiche;
-  if (fallbackNiche === 'Negócio Local') {
-     for (const [n, reqTags] of Object.entries(NICHE_TO_OSM_TAGS)) {
-        for (const rt of reqTags) {
-           if (tags[rt.key] === rt.value) {
-              realCategory = n;
-              break;
-           }
-        }
-        if (realCategory !== 'Negócio Local') break;
-     }
-  }
+  const classification = classifyOsmBusiness(tags, fallbackNiche);
 
   const distanceKm = Number(calculateDistance(originLat, originLng, lat, lng).toFixed(1));
 
@@ -175,7 +166,7 @@ function osmElementToLead(
     phone,
     email: tags['email'] || tags['contact:email'],
     address,
-    category: realCategory,
+    category: classification.categoryLabel,
   });
 
   const rawWhatsapp = tags['contact:whatsapp'] || tags['whatsapp'] || '';
@@ -184,8 +175,11 @@ function osmElementToLead(
 
   return {
     name: name.trim(),
-    category: realCategory,
-    niche: realCategory,
+    category: classification.categoryLabel,
+    niche: classification.categoryLabel,
+    canonicalNiche: classification.canonicalNiche,
+    subNiche: classification.subNiche,
+    prospectingGroup: classification.prospectingGroup,
     temperature: 'quente',
     score: opportunityScore,
     rating,

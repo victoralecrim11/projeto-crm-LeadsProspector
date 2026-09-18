@@ -28,11 +28,11 @@ test('DesignStrategy Resolver handles niches properly', () => {
   assert.equal(barbershop.visualMood, 'bold');
   assert.ok(dentist.skillProfile.includes('clinical-layout'));
 
-  const pizzeria = resolveDesignStrategy(getMockResolvedDesign('restaurant', 'pizzeria'));
+  const pizzeria = resolveDesignStrategy(getMockResolvedDesign('pizzeria', 'pizzeria'));
   assert.equal(pizzeria.visualMood, 'warm');
   assert.ok(pizzeria.skillProfile.includes('food-centric-layout'));
   
-  const hairSalon = resolveDesignStrategy(getMockResolvedDesign('other', 'hair salon'));
+  const hairSalon = resolveDesignStrategy(getMockResolvedDesign('hair-salon', 'hair salon'));
   assert.equal(hairSalon.visualMood, 'refined');
   assert.ok(hairSalon.skillProfile.includes('beauty-editorial'));
 });

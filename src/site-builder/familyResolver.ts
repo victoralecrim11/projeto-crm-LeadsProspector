@@ -34,9 +34,8 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
   const business = businessFromSource(input.source);
   const niche = business.derivedNiche;
 
-  if (niche === 'other') {
-    throw new Error('Este modo atende odontologia, restaurantes e barbearias. Use o gerador existente para outros nichos.');
-  }
+  // Remove exception block for non-pilot niches
+  // if (niche === 'other') { ... }
 
   const overrides = input.overrides;
   const snapshot = input.researchSnapshot;
@@ -199,13 +198,21 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     ? 'Facilitar contato para consultar atendimento; não prometer agendamento confirmado.'
     : niche === 'barbershop'
     ? 'Facilitar contato para agendamentos e horários; destacar corte de cabelo e barba.'
-    : 'Facilitar contato para consultar reservas; não simular disponibilidade.';
+    : niche === 'hair-salon'
+    ? 'Facilitar contato para agendamento de serviços de beleza; destacar especialidades.'
+    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food' || niche === 'bakery'
+    ? 'Facilitar contato para consultar reservas; não simular disponibilidade.'
+    : 'Facilitar o primeiro contato; exibir informações principais de forma clara.';
 
   const imageryDirection = niche === 'dentistry'
     ? 'Fase C: imagens autorizadas do negócio; nenhuma equipe, instalação ou resultado clínico inventado.'
     : niche === 'barbershop'
     ? 'Fase C: fotografias de cortes reais e ambiente com iluminação direcional; ferramentas e produtos autorizados.'
-    : 'Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.';
+    : niche === 'hair-salon'
+    ? 'Fase C: fotografias de cabelos, styling, profissionais em ação e interior do salão; somente quando autorizadas e contextuais.'
+    : niche === 'restaurant' || niche === 'pizzeria' || niche === 'fast-food' || niche === 'bakery'
+    ? 'Fase C: fotografias autorizadas de pratos e ambiente; ilustrações devem ser identificadas.'
+    : 'Fase C: imagens profissionais e autênticas do ambiente de negócios; sem representações enganosas de pessoas ou instalações.';
 
   const preservedBrandElements = overrides
     ? ['Paleta explicitamente escolhida no briefing; cores de texto calculadas para contraste.']
@@ -213,7 +220,7 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
     ? ['Identidade observada no site do cliente preservada provisoriamente.']
     : ['Identidade existente não confirmada: direção provisória, sem substituir logo ou alegar branding oficial.'];
 
-  const marketBrief = getMarketReference(niche as PilotNiche, now);
+  const marketBrief = getMarketReference(niche, now);
 
   const direction = {
     version: 1 as const,
@@ -223,7 +230,7 @@ export function resolveDesignWithResearch(input: FamilyResolverInput): ResolvedD
       business,
       currentBusiness: current,
       market: marketBrief,
-      marketKey: marketReferenceKey(niche as PilotNiche),
+      marketKey: marketReferenceKey(niche),
       opportunities: current.opportunities,
       ...(snapshot ? { researchSnapshot: snapshot } : {}),
     },

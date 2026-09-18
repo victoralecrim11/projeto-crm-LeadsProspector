@@ -9,21 +9,27 @@ export class RealStitchMcpClient implements StitchMcpClient {
   private client: StitchToolClient;
 
   constructor() {
-    this.client = new StitchToolClient();
+    this.client = new StitchToolClient({
+      apiKey: process.env.STITCH_API_KEY
+    });
   }
 
   async explore(request: StitchExplorationRequest): Promise<StitchRawResult> {
     try {
       await this.client.connect();
       
-      const projectTitle = `Project - ${request.niche} - ${Date.now()}`;
-      const projectResult = await this.client.callTool<any>('create_project', {
-        title: projectTitle
-      });
+      let projectId = request.targetProjectId;
       
-      const projectId = projectResult.name?.replace('projects/', '') || projectResult.projectId;
       if (!projectId) {
-        throw new Error('Failed to create project: no projectId returned.');
+        const projectTitle = `Project - ${request.niche} - ${Date.now()}`;
+        const projectResult = await this.client.callTool<any>('create_project', {
+          title: projectTitle
+        });
+        
+        projectId = projectResult.name?.replace('projects/', '') || projectResult.projectId;
+        if (!projectId) {
+          throw new Error('Failed to create project: no projectId returned.');
+        }
       }
       
       const promptString = `Design a website for a ${request.niche}.
@@ -38,7 +44,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
       const numVariants = request.variantCount || 3;
       const variants = [];
       const CONCURRENCY_LIMIT = 2;
-      const PER_REQUEST_TIMEOUT_MS = 60000; // 60s timeout
+      const PER_REQUEST_TIMEOUT_MS = 240000; // 4 minutes timeout (aligns with 5m production budget)
 
       // Bounded Async Concurrency
       const tasks = Array.from({ length: numVariants }).map((_, i) => i);

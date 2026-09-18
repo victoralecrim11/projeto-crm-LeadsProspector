@@ -69,10 +69,9 @@ test('29. unknown production retorna not found', () => {
 const mockValidCurrent = {
   kind: 'current-business',
   status: 'absent',
-  auditedAt: '',
+  auditedAt: '2026-09-08T00:00:00.000Z',
   method: 'bounded-static-html',
   observations: [],
-  brandContext: { colorPalette: { primary: '#0284c7', secondary: '#0f766e', background: '#fff', text: '#000', textMuted: '#555', border: '#ccc', accent: '#000', surface: '#fff' } },
   structure: [], identity: [], technicalProblems: [],
   visualProblems: [], conversionProblems: [], contentProblems: [],
   accessibilityProblems: [], opportunities: [], limitations: []
@@ -94,5 +93,5 @@ test('13. legacy path pode usar latest', async () => {
   const overrides = { primary: '#000000', accent: '#ffffff' };
   
   const res = await resolveSiteGenerationDesign(mockValidSource, mockValidCurrent, overrides, undefined, false);
-  assert.equal(res.fallbackReason, 'latest');
+  assert.equal(res.artifactIdentity?.requestId, 'latest');
 });

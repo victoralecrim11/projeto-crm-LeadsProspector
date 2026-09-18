@@ -5,6 +5,7 @@ import { produceArtifact } from '../../../tools/stitch-producer/producerOrchestr
 import { deriveResponsiveCompanionIntent } from '../../../tools/stitch-producer/responsiveCompanion.js';
 import { RealStitchMcpClient } from '../../../tools/stitch-producer/clients/realStitchMcpClient.js';
 import { rankCandidates } from './stitch/stitchCandidateRanker.js';
+import { validateAnchorCoherence } from '../../../src/site-builder/anchorCoherence.js';
 import type { DesignArtifactReference, LeadSourceContext, DesignStrategy } from '../../../src/site-builder/contracts/research.js';
 
 export type ProductionStatus = 
@@ -44,7 +45,7 @@ class StitchDesignProductionServiceImpl {
 
   private cleanupExpired() {
     const now = Date.now();
-    for (const [id, production] of this.store.entries()) {
+    for (const [id, production] of Array.from(this.store.entries())) {
       if (production.terminalAt) {
         if (now > production.terminalAt + PRODUCTION_TTL_MS) {
           this.store.delete(id);
@@ -202,24 +203,42 @@ class StitchDesignProductionServiceImpl {
 
       const desktopRequestId = `${production.generationRequestId}-desk`;
       
+      const companionIntent = deriveResponsiveCompanionIntent(
+        mobileWinner,
+        strategy,
+        production.leadId,
+        desktopRequestId,
+        responsivePairId
+      );
+      
       const desktopResult = await produceArtifact(
         strategy,
         production.leadId,
         desktopRequestId,
         { client },
         'DESKTOP',
-        responsivePairId
+        responsivePairId,
+        companionIntent
       );
       
       if (desktopResult.status === 'PRODUCED' && desktopResult.candidates.length > 0) {
-        production.desktopReference = {
-           projectId: production.leadId,
-           requestId: desktopRequestId,
-           strategyId: strategy.strategyId,
-           source: 'stitch',
-           createdAt: new Date().toISOString()
-        };
-        production.status = 'PAIRED';
+        const desktopWinner = rankCandidates(desktopResult.candidates, strategy)[0] || desktopResult.candidates[0];
+        const coherence = validateAnchorCoherence(mobileWinner, desktopWinner);
+        
+        if (coherence.status === 'PAIRED') {
+          production.desktopReference = {
+             projectId: production.leadId,
+             requestId: desktopRequestId,
+             strategyId: strategy.strategyId,
+             source: 'stitch',
+             createdAt: new Date().toISOString()
+          };
+          production.status = 'PAIRED';
+        } else {
+          console.warn(`[DesignProduction] Coherence validation failed: ${coherence.reason}`);
+          production.status = 'PARTIAL';
+          production.errorCode = 'COHERENCE_FAILED';
+        }
       } else {
         production.status = 'PARTIAL';
       }

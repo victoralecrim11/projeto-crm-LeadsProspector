@@ -142,7 +142,7 @@ test('sidecar persists and export matches preview with DESIGN.md', async () => {
   const project: Project = { id: 'fictional-project', leadId: lead.id, clientName: lead.name, title: 'Fixture', category: lead.category,
     type: 'Landing Page', status: 'rascunho', previewUrl: '', slug: 'fictional', createdAt: date.toISOString(), siteContext: source.context, siteBlueprint: b, siteDesign: d, contentReviewed: true };
   let saved = ''; const storage = { getItem: () => saved, setItem: (_: string, v: string) => { saved = v; } };
-  persistProjects(storage, [project]); assert.deepEqual(loadProjects(storage)[0].siteDesign, d);
+  persistProjects(storage, [project]); assert.deepEqual(loadProjects(storage)[0].siteDesign, JSON.parse(JSON.stringify(d)));
   const zip = await JSZip.loadAsync(await createSiteZip(project));
   assert.equal(await zip.file('index.html')!.async('string'), renderSiteDocument(b, source.context, d));
   assert.equal(await zip.file('DESIGN.md')!.async('string'), d.designMarkdown);

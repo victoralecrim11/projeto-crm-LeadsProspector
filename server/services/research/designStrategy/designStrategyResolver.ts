@@ -16,7 +16,7 @@ export function resolveDesignStrategy(d: ResolvedDesign): DesignStrategy {
   let performanceBudget: DesignStrategy['performanceBudget'] = 'medium';
 
   // Niche-specific guidance
-  if (niche === 'dentistry') {
+  if (niche === 'health-clinic' || niche === 'dentistry' || niche === 'veterinary') {
     visualMood = 'clean';
     compositionDirection = 'text-led';
     typographyDirection = 'modern';
@@ -29,27 +29,30 @@ export function resolveDesignStrategy(d: ResolvedDesign): DesignStrategy {
     typographyDirection = 'editorial';
     motionLevel = 'moderate';
     informationDensity = 'low';
-  } else if (niche === 'restaurant') {
+  } else if (niche === 'hair-salon' || niche === 'beauty-studio' || niche === 'cosmetics-retail') {
+    visualMood = 'refined';
+    compositionDirection = 'image-led';
+    typographyDirection = 'editorial';
+    motionLevel = 'moderate';
+    informationDensity = 'medium';
+  } else if (niche === 'restaurant' || niche === 'fast-food') {
     visualMood = 'warm';
     compositionDirection = 'image-led';
     typographyDirection = 'expressive';
     motionLevel = 'expressive';
     informationDensity = 'medium';
-  }
-
-  // Pizzeria uses restaurant niche but could have specific traits
-  if (d.referenceBrief.business.businessType === 'local-business' && subNiche.toLowerCase().includes('pizz')) {
+  } else if (niche === 'pizzeria') {
     visualMood = 'warm';
     compositionDirection = 'image-led';
+    typographyDirection = 'expressive';
     motionLevel = 'expressive';
-  }
-  
-  // Hair salon uses barbershop or other but needs refinement
-  if (subNiche.toLowerCase().includes('hair') || subNiche.toLowerCase().includes('salon')) {
-    visualMood = 'refined';
-    compositionDirection = 'image-led';
-    typographyDirection = 'editorial';
-    motionLevel = 'moderate';
+    informationDensity = 'medium';
+  } else if (niche === 'law-firm' || niche === 'auto-repair' || niche === 'real-estate' || niche === 'accounting' || niche === 'financial-services') {
+    visualMood = 'corporate';
+    compositionDirection = 'balanced';
+    typographyDirection = 'modern';
+    motionLevel = 'subtle';
+    informationDensity = 'high';
   }
 
   const skillProfile = selectDesignSkills({

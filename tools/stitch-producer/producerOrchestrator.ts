@@ -40,11 +40,12 @@ export async function produceArtifact(
   options: ProducerOrchestratorOptions,
   deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC' = 'MOBILE',
   responsivePairId?: string,
+  companionIntent?: import('./types.js').StitchExplorationRequest,
 ): Promise<ProducerResult> {
   const { client, basePath } = options;
 
   // 1. Build PII-safe request
-  const request = buildExplorationRequest(strategy, projectId, requestId, deviceType, responsivePairId);
+  const request = companionIntent || buildExplorationRequest(strategy, projectId, requestId, deviceType, responsivePairId);
 
   // 2. Call Stitch MCP
   let rawResult;

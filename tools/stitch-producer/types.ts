@@ -33,6 +33,8 @@ export interface StitchExplorationRequest {
   strategyId: string;
   /** Safety instruction appended to every request. */
   safetyInstruction: string;
+  /** Existing Stitch project ID to reuse (for responsive companion). */
+  targetProjectId?: string;
 }
 
 /** A single raw variant returned from Stitch MCP (format may vary). */

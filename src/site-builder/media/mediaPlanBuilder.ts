@@ -35,6 +35,8 @@ function defaultAspectRatio(section: string): '16:9' | '4:3' | '1:1' {
   return '4:3';
 }
 
+import { isSupportedDesignNiche, getCanonicalBusinessCategory, type CanonicalNiche } from '../../domain/businessTaxonomy.js';
+
 /**
  * Imagery purpose per section, contextualized by niche.
  */
@@ -43,14 +45,9 @@ function sectionPurpose(
   niche: string,
   imageryDirection?: string,
 ): string {
-  const nicheLabel =
-    niche === 'dentistry'
-      ? 'clínica odontológica'
-      : niche === 'restaurant'
-        ? 'restaurante'
-        : niche === 'barbershop'
-          ? 'barbearia'
-          : niche;
+  const nicheLabel = isSupportedDesignNiche(niche) 
+    ? getCanonicalBusinessCategory(niche as CanonicalNiche).toLowerCase() 
+    : niche;
 
   const directionSuffix = imageryDirection
     ? ` Direção visual: ${imageryDirection.slice(0, 200)}.`
@@ -70,14 +67,9 @@ function sectionPurpose(
 function sectionAlt(section: string, niche: string, decorative: boolean): string {
   if (decorative) return '';
 
-  const nicheLabel =
-    niche === 'dentistry'
-      ? 'clínica odontológica'
-      : niche === 'restaurant'
-        ? 'ambiente gastronômico'
-        : niche === 'barbershop'
-          ? 'barbearia'
-          : niche;
+  const nicheLabel = isSupportedDesignNiche(niche) 
+    ? getCanonicalBusinessCategory(niche as CanonicalNiche).toLowerCase() 
+    : niche;
 
   const alts: Record<string, string> = {
     hero: `Ambiente acolhedor e profissional de ${nicheLabel}`,
