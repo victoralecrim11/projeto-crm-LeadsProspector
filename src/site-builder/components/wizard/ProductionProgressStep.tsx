@@ -2,10 +2,30 @@ import React from 'react';
 
 interface ProductionProgressStepProps {
   status: string;
+  stage?: string;
 }
 
-export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ status }) => {
-  const getStatusDisplay = (s: string) => {
+export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ status, stage }) => {
+  const getStatusDisplay = (s: string, stg?: string) => {
+    // If we have a specific stage, use it first for more granular UI feedback
+    if (stg) {
+      switch (stg) {
+        case 'MCP_HEALTHCHECK':
+          return { label: 'Verificando serviço de design...', icon: '🔍', desc: 'Conectando ao provedor de design visual.' };
+        case 'PROJECT_CREATING':
+          return { label: 'Preparando projeto de design...', icon: '📁', desc: 'Criando estrutura inicial.' };
+        case 'MOBILE_GENERATING':
+          return { label: 'Criando direção visual mobile...', icon: '📱', desc: 'Gerando layout base para dispositivos móveis.' };
+        case 'MOBILE_RANKING':
+          return { label: 'Selecionando a melhor direção visual...', icon: '🏆', desc: 'Avaliando candidatos e escolhendo o melhor design.' };
+        case 'DESKTOP_GENERATING':
+          return { label: 'Adaptando o design para desktop...', icon: '💻', desc: 'Expandindo estrutura para telas grandes.' };
+        case 'COHERENCE_VALIDATING':
+          return { label: 'Validando a consistência responsiva...', icon: '✅', desc: 'Garantindo alinhamento visual entre telas.' };
+      }
+    }
+    
+    // Fallback to coarse status
     switch (s) {
       case 'PENDING':
         return { label: 'Preparando design...', icon: '⏳', desc: 'Iniciando produção baseada no nicho.' };
@@ -24,7 +44,7 @@ export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ 
     }
   };
 
-  const display = getStatusDisplay(status);
+  const display = getStatusDisplay(status, stage);
 
   return (
     <div className="flex flex-col items-center justify-center py-12 text-center space-y-6">

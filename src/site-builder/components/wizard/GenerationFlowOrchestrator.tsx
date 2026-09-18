@@ -56,6 +56,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
   
   // Real design production tracking
   const [productionStatus, setProductionStatus] = useState<string>('');
+  const [productionStage, setProductionStage] = useState<string>('');
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [generatedProjectId, setGeneratedProjectId] = useState<string>('');
 
@@ -147,6 +148,18 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
          // Polling
          const terminalStates = ['PAIRED', 'PARTIAL', 'FAILED'];
          let currentStatus = produceData.status;
+         let currentStage = produceData.stage || 'INITIALIZING';
+         
+         console.info('[StitchFlow]', {
+           generationRequestId: finalGenerationRequestId,
+           designProductionId: finalDesignProductionId,
+           previousStatus: 'PENDING',
+           status: currentStatus,
+           previousStage: 'NONE',
+           stage: currentStage,
+           elapsedMs: 0,
+           lastEvent: 'Started production'
+         });
          
          if (!terminalStates.includes(currentStatus)) {
            await new Promise<void>((resolve, reject) => {
@@ -155,14 +168,62 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                  const pollRes = await fetch(`/api/ai/research/stitch/produce/${finalGenerationRequestId}`);
                  if (!pollRes.ok) throw new Error('Falha ao ler status da produção');
                  const pollData = await pollRes.json();
+                 
+                 const statusChanged = currentStatus !== pollData.status;
+                 const stageChanged = currentStage !== pollData.stage;
+                 
+                 if (statusChanged || stageChanged) {
+                   console.info('[StitchFlow]', {
+                     generationRequestId: finalGenerationRequestId,
+                     designProductionId: finalDesignProductionId,
+                     previousStatus: currentStatus,
+                     status: pollData.status,
+                     previousStage: currentStage,
+                     stage: pollData.stage,
+                     elapsedMs: pollData.elapsedMs || 0,
+                     lastEvent: 'State transition'
+                   });
+                 }
+                 
                  currentStatus = pollData.status;
+                 currentStage = pollData.stage || currentStage;
+                 
                  setProductionStatus(currentStatus);
+                 setProductionStage(currentStage);
                  
                  if (currentStatus === 'FAILED') {
                    clearInterval(pollInterval);
-                   reject(new Error(`Falha na produção do design: ${pollData.errorCode || 'UNHANDLED'}`));
+                   
+                   console.error('[StitchFlow] FAILED', {
+                     generationRequestId: finalGenerationRequestId,
+                     designProductionId: finalDesignProductionId,
+                     errorCode: pollData.errorCode,
+                     stage: currentStage,
+                     elapsedMs: pollData.elapsedMs || 0,
+                     providerStatus: pollData.providerStatus
+                   });
+                   
+                   // Translate technical error to user-friendly error based on stage/code
+                   let userMsg = `Falha na produção do design: ${pollData.errorCode || 'UNHANDLED'}`;
+                   if (pollData.errorCode === 'STITCH_MOBILE_TIMEOUT' || pollData.errorCode === 'STITCH_JOB_TIMEOUT') {
+                     userMsg = 'O serviço de design demorou mais que o esperado durante a criação da direção visual.';
+                   }
+                   
+                   reject(new Error(userMsg));
                  } else if (terminalStates.includes(currentStatus)) {
                    clearInterval(pollInterval);
+                   
+                   if (currentStatus === 'PARTIAL') {
+                     console.warn('[StitchFlow] PARTIAL', {
+                       generationRequestId: finalGenerationRequestId,
+                       designProductionId: finalDesignProductionId,
+                       errorCode: pollData.errorCode,
+                       stage: currentStage,
+                       elapsedMs: pollData.elapsedMs || 0,
+                       providerStatus: pollData.providerStatus
+                     });
+                   }
+                   
                    resolve();
                  }
                } catch (e) {
@@ -313,7 +374,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         )}
 
         {(phase === 'starting' || phase === 'design' || phase === 'site-generation') && (
-          <ProductionProgressStep status={productionStatus} />
+          <ProductionProgressStep status={productionStatus} stage={productionStage} />
         )}
 
         {(phase === 'completed' || phase === 'failed') && (

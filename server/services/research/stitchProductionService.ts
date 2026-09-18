@@ -16,24 +16,38 @@ export type ProductionStatus =
   | 'PARTIAL'
   | 'FAILED';
 
+export type ProductionStage = 
+  | 'INITIALIZING'
+  | 'MCP_HEALTHCHECK'
+  | 'PROJECT_CREATING'
+  | 'MOBILE_GENERATING'
+  | 'MOBILE_RANKING'
+  | 'MOBILE_READY'
+  | 'DESKTOP_GENERATING'
+  | 'COHERENCE_VALIDATING'
+  | 'COMPLETED';
+
 export interface DesignProduction {
   designProductionId: string;
   generationRequestId: string;
   leadId: string;
   strategyId: string;
   status: ProductionStatus;
+  stage: ProductionStage;
   mobileReference?: DesignArtifactReference;
   desktopReference?: DesignArtifactReference;
   responsivePairId?: string;
   errorCode?: string;
+  providerStatus?: 'AVAILABLE' | 'DEGRADED' | 'BLOCKED' | 'UNKNOWN';
   createdAt: number;
   updatedAt: number;
+  lastTransitionAt: number;
   terminalAt?: number;
 }
 
 const PRODUCTION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const POLLING_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
-const STITCH_JOB_TIMEOUT_MS = 300 * 1000; // 5 minutes max per background job
+const STITCH_JOB_TIMEOUT_MS = 600 * 1000; // 10 minutes max per background job (provides safe margin for Mobile + Desktop)
 
 class StitchDesignProductionServiceImpl {
   private store = new Map<string, DesignProduction>();
@@ -71,6 +85,29 @@ class StitchDesignProductionServiceImpl {
     return prod;
   }
 
+  private transition(production: DesignProduction, updates: Partial<DesignProduction>) {
+    const prevStatus = production.status;
+    const prevStage = production.stage;
+    
+    Object.assign(production, updates);
+    production.updatedAt = Date.now();
+    
+    if (prevStatus !== production.status || prevStage !== production.stage) {
+      production.lastTransitionAt = production.updatedAt;
+      console.info('[StitchProduction]', {
+        generationRequestId: production.generationRequestId,
+        designProductionId: production.designProductionId,
+        previousStatus: prevStatus,
+        status: production.status,
+        previousStage: prevStage,
+        stage: production.stage,
+        elapsedMs: production.updatedAt - production.createdAt,
+        errorCode: production.errorCode,
+        providerStatus: production.providerStatus
+      });
+    }
+  }
+
   public async getOrCreateProduction(
     generationRequestId: string, 
     leadId: string, 
@@ -103,8 +140,11 @@ class StitchDesignProductionServiceImpl {
       leadId,
       strategyId: strategy.strategyId,
       status: 'PENDING',
+      stage: 'INITIALIZING',
+      providerStatus: 'UNKNOWN',
       createdAt: now,
       updatedAt: now,
+      lastTransitionAt: now,
     };
     
     this.store.set(generationRequestId, production);
@@ -112,18 +152,41 @@ class StitchDesignProductionServiceImpl {
     if (!this.activeJobs.has(generationRequestId)) {
       const jobPromise = this.executeProductionJob(production, strategy, sourceContext);
       
-      const timeoutPromise = new Promise<void>((_, reject) => 
-        setTimeout(() => reject(new Error('STITCH_TIMEOUT')), STITCH_JOB_TIMEOUT_MS)
-      );
+      let timer: NodeJS.Timeout;
+      const timeoutPromise = new Promise<void>((_, reject) => {
+        timer = setTimeout(() => reject(new Error('STITCH_JOB_TIMEOUT')), STITCH_JOB_TIMEOUT_MS);
+      });
 
       const guardedJob = Promise.race([jobPromise, timeoutPromise]).catch((e) => {
         if (production.status !== 'PAIRED' && production.status !== 'PARTIAL' && production.status !== 'FAILED') {
-          production.status = 'FAILED';
-          production.errorCode = e.message === 'STITCH_TIMEOUT' ? 'STITCH_TIMEOUT' : 'UNHANDLED_ERROR';
-          production.terminalAt = Date.now();
-          console.error(`[DesignProduction] Job Timeout or Unhandled Error for ${generationRequestId}:`, e);
+          const isTimeout = e.message === 'STITCH_JOB_TIMEOUT';
+          
+          if (isTimeout && production.mobileReference) {
+            // Stage-aware fallback: Desktop timed out but Mobile exists
+            this.transition(production, {
+              status: 'PARTIAL',
+              errorCode: 'STITCH_DESKTOP_TIMEOUT',
+              providerStatus: 'BLOCKED',
+              terminalAt: Date.now()
+            });
+          } else {
+            // Failed before mobile checkpoint or unhandled error
+            this.transition(production, {
+              status: 'FAILED',
+              errorCode: isTimeout ? 'STITCH_MOBILE_TIMEOUT' : 'UNHANDLED_ERROR',
+              providerStatus: isTimeout ? 'BLOCKED' : 'UNKNOWN',
+              terminalAt: Date.now()
+            });
+          }
+          console.error(`[DesignProduction] Guard caught error for ${generationRequestId}:`, {
+            errorCode: production.errorCode,
+            stage: production.stage,
+            elapsedMs: Date.now() - production.createdAt,
+            error: e.message
+          });
         }
       }).finally(() => {
+        clearTimeout(timer);
         this.activeJobs.delete(generationRequestId);
       });
       
@@ -140,20 +203,25 @@ class StitchDesignProductionServiceImpl {
   ): Promise<void> {
     const client = new RealStitchMcpClient();
     try {
-      console.log(`[DesignProduction] Starting job generationRequestId=${production.generationRequestId} leadId=${production.leadId} strategyId=${production.strategyId}`);
+      this.transition(production, { stage: 'MCP_HEALTHCHECK' });
       
       const { probeStitch } = await import('./stitch/index.js');
       const stitchAvailable = await probeStitch('default', 'default', 'default');
       if (!stitchAvailable) {
-         production.status = 'FAILED';
-         production.errorCode = 'STITCH_NOT_CONFIGURED';
-         production.terminalAt = Date.now();
-         console.warn(`[DesignProduction] STITCH_NOT_CONFIGURED`);
+         this.transition(production, {
+           status: 'FAILED',
+           errorCode: 'STITCH_NOT_CONFIGURED',
+           providerStatus: 'UNKNOWN',
+           terminalAt: Date.now()
+         });
          return;
       }
 
-      production.status = 'MOBILE_GENERATING';
-      production.updatedAt = Date.now();
+      this.transition(production, {
+         status: 'MOBILE_GENERATING',
+         stage: 'MOBILE_GENERATING',
+         providerStatus: 'AVAILABLE'
+      });
       
       const responsivePairId = `pair_${production.generationRequestId.replace(/[^a-zA-Z0-9]/g, '')}`;
       production.responsivePairId = responsivePairId;
@@ -173,23 +241,30 @@ class StitchDesignProductionServiceImpl {
       );
 
       if (mobileResult.status !== 'PRODUCED' || mobileResult.candidates.length === 0) {
-        production.status = 'FAILED';
-        production.errorCode = mobileResult.status;
-        production.terminalAt = Date.now();
-        console.warn(`[DesignProduction] Mobile generation failed: ${mobileResult.status}`);
+        this.transition(production, {
+           status: 'FAILED',
+           errorCode: mobileResult.status,
+           providerStatus: mobileResult.status.includes('TIMEOUT') ? 'BLOCKED' : 'UNKNOWN',
+           terminalAt: Date.now()
+        });
         return;
       }
 
+      this.transition(production, { stage: 'MOBILE_RANKING' });
+      
       const ranked = rankCandidates(mobileResult.candidates, strategy);
       const mobileWinner = ranked[0];
       
       if (!mobileWinner) {
-        production.status = 'FAILED';
-        production.errorCode = 'NO_WINNER_FOUND';
-        production.terminalAt = Date.now();
+        this.transition(production, {
+           status: 'FAILED',
+           errorCode: 'NO_WINNER_FOUND',
+           terminalAt: Date.now()
+        });
         return;
       }
 
+      // Checkpoint persisted
       production.mobileReference = {
         projectId: production.leadId,
         requestId: mobileRequestId,
@@ -198,8 +273,17 @@ class StitchDesignProductionServiceImpl {
         createdAt: new Date().toISOString()
       };
 
-      production.status = 'DESKTOP_GENERATING';
-      production.updatedAt = Date.now();
+      this.transition(production, { 
+        stage: 'MOBILE_READY',
+      });
+      
+      // Delay explicitly for observable transition
+      await new Promise(r => setTimeout(r, 100));
+
+      this.transition(production, {
+        status: 'DESKTOP_GENERATING',
+        stage: 'DESKTOP_GENERATING'
+      });
 
       const desktopRequestId = `${production.generationRequestId}-desk`;
       
@@ -221,6 +305,8 @@ class StitchDesignProductionServiceImpl {
         companionIntent
       );
       
+      this.transition(production, { stage: 'COHERENCE_VALIDATING' });
+      
       if (desktopResult.status === 'PRODUCED' && desktopResult.candidates.length > 0) {
         const desktopWinner = rankCandidates(desktopResult.candidates, strategy)[0] || desktopResult.candidates[0];
         const coherence = validateAnchorCoherence(mobileWinner, desktopWinner);
@@ -233,27 +319,41 @@ class StitchDesignProductionServiceImpl {
              source: 'stitch',
              createdAt: new Date().toISOString()
           };
-          production.status = 'PAIRED';
+          this.transition(production, { 
+            status: 'PAIRED',
+            stage: 'COMPLETED'
+          });
         } else {
           console.warn(`[DesignProduction] Coherence validation failed: ${coherence.reason}`);
-          production.status = 'PARTIAL';
-          production.errorCode = 'COHERENCE_FAILED';
+          this.transition(production, {
+             status: 'PARTIAL',
+             stage: 'COMPLETED',
+             errorCode: 'COHERENCE_FAILED'
+          });
         }
       } else {
-        production.status = 'PARTIAL';
+        this.transition(production, {
+           status: 'PARTIAL',
+           stage: 'COMPLETED',
+           errorCode: desktopResult.status,
+           providerStatus: desktopResult.status.includes('TIMEOUT') ? 'BLOCKED' : 'UNKNOWN'
+        });
       }
       
       production.terminalAt = Date.now();
-      console.log(`[DesignProduction] Job completed generationRequestId=${production.generationRequestId} status=${production.status}`);
+      console.log(`[DesignProduction] Job terminal generationRequestId=${production.generationRequestId} status=${production.status}`);
 
     } catch (e) {
       console.error(`[DesignProduction] Unhandled error generationRequestId=${production.generationRequestId}:`, e);
-      production.status = 'FAILED';
-      production.errorCode = 'UNHANDLED_ERROR';
-      production.terminalAt = Date.now();
+      // Ensure we don't overwrite a successful status
+      if (production.status !== 'PAIRED' && production.status !== 'PARTIAL') {
+        this.transition(production, {
+           status: 'FAILED',
+           errorCode: 'UNHANDLED_ERROR',
+           terminalAt: Date.now()
+        });
+      }
       throw e; // throw to be caught by the outer guard
-    } finally {
-      production.updatedAt = Date.now();
     }
   }
 }

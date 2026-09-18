@@ -229,7 +229,11 @@ export function siteGenerationRouter() {
       designProductionId: prod.designProductionId,
       generationRequestId: prod.generationRequestId,
       status: prod.status,
-      errorCode: prod.errorCode
+      stage: prod.stage,
+      errorCode: prod.errorCode,
+      providerStatus: prod.providerStatus,
+      elapsedMs: prod.updatedAt - prod.createdAt,
+      lastTransitionAt: prod.lastTransitionAt
     });
   });
 

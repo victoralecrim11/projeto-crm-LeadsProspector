@@ -10,7 +10,8 @@ export class RealStitchMcpClient implements StitchMcpClient {
 
   constructor() {
     this.client = new StitchToolClient({
-      apiKey: process.env.STITCH_API_KEY
+      apiKey: process.env.STITCH_API_KEY,
+      timeout: 240000 // 4 minutes request timeout
     });
   }
 
@@ -44,19 +45,20 @@ export class RealStitchMcpClient implements StitchMcpClient {
       const numVariants = request.variantCount || 3;
       const variants = [];
       const CONCURRENCY_LIMIT = 2;
-      const PER_REQUEST_TIMEOUT_MS = 240000; // 4 minutes timeout (aligns with 5m production budget)
+      const PER_REQUEST_TIMEOUT_MS = 240000; // 4 minutes timeout (aligns with production budget)
+
+      // Instantiate a new client for the request with the specific timeout
+      // Note: We could do this in the constructor, but we'll do it here if needed, or 
+      // actually, the constructor takes it. Let's assume this.client already has a default timeout
+      // but to be safe, since it's already instantiated, we will just use the callTool which
+      // depends on the client config. Wait, the constructor is called once per `explore`? No, it's reused.
+      // But we can recreate the client if we want to pass a specific timeout, or set it in the constructor.
+      // Let's modify the class constructor in a separate chunk.
 
       // Bounded Async Concurrency
       const tasks = Array.from({ length: numVariants }).map((_, i) => i);
       const results: any[] = [];
       
-      const executeWithTimeout = async (taskFn: () => Promise<any>, timeoutMs: number) => {
-        return Promise.race([
-          taskFn(),
-          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
-        ]);
-      };
-
       for (let i = 0; i < tasks.length; i += CONCURRENCY_LIMIT) {
         const batch = tasks.slice(i, i + CONCURRENCY_LIMIT);
         const batchPromises = batch.map(async (variantIndex) => {
@@ -66,13 +68,11 @@ export class RealStitchMcpClient implements StitchMcpClient {
 
           while (!success && retryCount <= 1) { // Max 1 retry for 5xx/429
             try {
-              const screenResult = await executeWithTimeout(() => 
-                this.client.callTool<any>('generate_screen_from_text', {
+              const screenResult = await this.client.callTool<any>('generate_screen_from_text', {
                   projectId: projectId,
                   deviceType: request.deviceType,
                   prompt: promptString + (variantIndex > 0 ? ` Variant ${variantIndex + 1}.` : '')
-                }), 
-              PER_REQUEST_TIMEOUT_MS);
+              });
               
               let design = null;
               if (screenResult.outputComponents && Array.isArray(screenResult.outputComponents)) {
@@ -94,18 +94,28 @@ export class RealStitchMcpClient implements StitchMcpClient {
               success = true;
             } catch (err: any) {
               lastError = err;
-              const isTransient = err.message?.includes('429') || err.message?.match(/50[0-9]/) || err.message?.includes('timeout') || err.message?.includes('network');
+              
+              const isRateLimited = err.message?.includes('429');
+              const isServerError = err.message?.match(/50[0-9]/);
+              const isTimeout = err.message?.includes('timeout') || err.message?.includes('Timeout');
+              const isNetwork = err.message?.includes('network') || err.message?.includes('fetch failed') || err.message?.includes('ECONNRESET');
               const isAuthError = err.message?.includes('401') || err.message?.includes('403');
               
               if (isAuthError) {
                 throw err; // Fail fast on auth errors
               }
 
-              if (!isTransient || retryCount >= 1) {
-                console.error(`Failed to generate variant ${variantIndex+1} (final):`, err.message);
+              // DO NOT blind retry on timeout or network errors to prevent duplicate remote generation
+              const isTransientAndSafeToRetry = isRateLimited || isServerError;
+
+              if (!isTransientAndSafeToRetry || retryCount >= 1) {
+                console.error(`[StitchMcpClient] Failed to generate variant ${variantIndex+1} (final):`, err.message);
+                if (isTimeout || isNetwork) {
+                    throw err; // Bubble up timeouts/network errors so they can be handled by orchestrator
+                }
                 break;
               }
-              console.warn(`Transient error generating variant ${variantIndex+1}, retrying...`, err.message);
+              console.warn(`[StitchMcpClient] Safe transient error generating variant ${variantIndex+1}, retrying...`, err.message);
               retryCount++;
               // Simple backoff
               await new Promise(r => setTimeout(r, 2000));
