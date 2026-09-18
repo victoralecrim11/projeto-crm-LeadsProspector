@@ -29,18 +29,29 @@ export const mediaStyles = `
 
 export const siteCss = baseStyles + variantStyles + presentationStyles;
 
+const SECTION_LABELS: Record<string, string> = {
+  hero: 'Abertura',
+  about: 'Sobre',
+  services: 'Serviços',
+  contact: 'Contato',
+  location: 'Localização',
+};
+
 export function SiteRenderer({
   blueprint: input,
   context,
   design: designInput,
   mediaManifest: manifestInput,
   assetUrls,
+  editorMode,
 }: {
   blueprint: GeneratedSiteBlueprint;
   context: LeadSiteContext;
   design?: ResolvedDesign;
   mediaManifest?: MediaManifest;
   assetUrls?: Record<string, string>;
+  /** When true, adds data-editor-section-id attrs for click-to-select. Never set in export. */
+  editorMode?: boolean;
 }) {
   const design = designInput ? resolvedDesignSchema.parse(designInput) : undefined;
   const mediaManifest = manifestInput ? mediaManifestSchema.parse(manifestInput) : undefined;
@@ -95,8 +106,20 @@ export function SiteRenderer({
           .filter((section) => b.sections[section])
           .map((section) => {
             const Component = resolveSection(section, b.visual[section]);
+            const editorAttrs = editorMode
+              ? {
+                  'data-editor-section-id': section,
+                  'data-editor-section-label': SECTION_LABELS[section] ?? section,
+                }
+              : {};
             return (
-              <section id={section} className={section} data-variant={b.visual[section]} key={section}>
+              <section
+                id={section}
+                className={section}
+                data-variant={b.visual[section]}
+                key={section}
+                {...editorAttrs}
+              >
                 <Component {...props} />
               </section>
             );
@@ -114,6 +137,7 @@ export function renderSiteDocument(
   design?: ResolvedDesign,
   mediaManifest?: MediaManifest,
   assetUrls?: Record<string, string>,
+  editorMode?: boolean,
 ) {
   const blueprint = constrainBlueprint(normalizeForRender(input), context);
   return (
@@ -138,6 +162,7 @@ export function renderSiteDocument(
             design={design}
             mediaManifest={mediaManifest}
             assetUrls={assetUrls}
+            editorMode={editorMode}
           />
         </body>
       </html>,
