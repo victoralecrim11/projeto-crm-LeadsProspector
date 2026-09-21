@@ -45,6 +45,23 @@ export interface DesignProduction {
   terminalAt?: number;
 }
 
+import fs from 'fs/promises';
+import path from 'path';
+import { resolveRuntimeResponsiveDesign } from './siteGenerationResponsiveResolver.js';
+import { ArtifactMcpProvider } from './stitch/providers/artifactMcpProvider.js';
+
+export function resolveStitchRuntimeRoot(customCwd?: string): string {
+  const base = customCwd || process.cwd();
+  return path.join(base, '.stitch', 'runtime');
+}
+
+export interface DesignConsumabilityResult {
+  isConsumable: boolean;
+  status: 'PAIRED' | 'PARTIAL' | 'FAILED';
+  errorCode?: string;
+  incoherenceReason?: string;
+}
+
 const PRODUCTION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const POLLING_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const STITCH_JOB_TIMEOUT_MS = 600 * 1000; // 10 minutes max per background job (provides safe margin for Mobile + Desktop)
@@ -55,6 +72,83 @@ class StitchDesignProductionServiceImpl {
   
   constructor() {
     setInterval(() => this.cleanupExpired(), POLLING_CLEANUP_INTERVAL).unref();
+  }
+
+  private getJobPath(generationRequestId: string): string {
+    return path.join(resolveStitchRuntimeRoot(), 'jobs', `${generationRequestId}.json`);
+  }
+
+  private async persistProduction(production: DesignProduction) {
+    try {
+      const jobPath = this.getJobPath(production.generationRequestId);
+      await fs.mkdir(path.dirname(jobPath), { recursive: true });
+      await fs.writeFile(jobPath, JSON.stringify(production, null, 2), 'utf-8');
+    } catch (e) {
+      console.warn(`[StitchProduction] Failed to persist job ${production.generationRequestId}:`, e);
+    }
+  }
+
+  public async getProduction(generationRequestId: string): Promise<DesignProduction | undefined> {
+    const prod = this.store.get(generationRequestId);
+    if (prod) {
+      prod.updatedAt = Date.now();
+      return prod;
+    }
+
+    try {
+      const jobPath = this.getJobPath(generationRequestId);
+      const content = await fs.readFile(jobPath, 'utf-8');
+      const loaded = JSON.parse(content) as DesignProduction;
+      this.store.set(generationRequestId, loaded);
+      return loaded;
+    } catch {
+      return undefined;
+    }
+  }
+
+  public async loadConsumableDesignProduction(generationRequestId: string): Promise<{ production?: DesignProduction, consumability?: DesignConsumabilityResult }> {
+    const production = await this.getProduction(generationRequestId);
+    if (!production) return {};
+    
+    // Resume validation parity check
+    const parity = await this.validateConsumerParity(production);
+    if (!parity.isConsumable && (production.status === 'PAIRED' || production.status === 'PARTIAL')) {
+      console.warn(`[StitchProduction] Historical production ${generationRequestId} failed consumer parity check. Classifying as FAILED.`);
+      await this.transition(production, { status: 'FAILED', errorCode: parity.errorCode || 'CONSUMER_PARITY_FAILED', stage: 'COMPLETED' });
+    }
+    
+    return { production, consumability: parity };
+  }
+
+  public async validateConsumerParity(production: DesignProduction): Promise<DesignConsumabilityResult> {
+    if (!production.mobileReference) {
+      return { isConsumable: false, status: 'FAILED', errorCode: 'MISSING_MOBILE_REF' };
+    }
+    
+    try {
+      const provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot().replace(/([\\/])\.stitch[\\/]runtime$/, ''));
+      // Dummy mock design just to pass into the resolver, we only care about the anchors being resolved
+      const dummyDesign = { specification: { family: { id: 'default' }, tokens: { color: { primary: '#000', accent: '#fff' } } } } as any;
+      
+      const anchors = {
+        mobile: production.mobileReference,
+        desktop: production.desktopReference
+      };
+      
+      const result = await resolveRuntimeResponsiveDesign(dummyDesign, anchors, provider);
+      
+      if (!result.resolvedDesign.stitch || result.resolvedDesign.stitch.alternatives.length === 0) {
+        return { isConsumable: false, status: 'FAILED', errorCode: 'NO_USABLE_ALTERNATIVES' };
+      }
+      
+      return {
+        isConsumable: true,
+        status: result.resolution.status === 'PAIRED' ? 'PAIRED' : 'PARTIAL',
+        incoherenceReason: result.resolution.incoherenceReason
+      };
+    } catch (e: any) {
+      return { isConsumable: false, status: 'FAILED', errorCode: e.message?.split(':')[0] || 'CONSUMER_RESOLUTION_FAILED' };
+    }
   }
 
   private cleanupExpired() {
@@ -78,14 +172,7 @@ class StitchDesignProductionServiceImpl {
     return `ProspectorCRM - ${niche} - ${safeName} - ${shortId}`;
   }
 
-  public getProduction(generationRequestId: string): DesignProduction | undefined {
-    const prod = this.store.get(generationRequestId);
-    if (!prod) return undefined;
-    prod.updatedAt = Date.now();
-    return prod;
-  }
-
-  private transition(production: DesignProduction, updates: Partial<DesignProduction>) {
+  private async transition(production: DesignProduction, updates: Partial<DesignProduction>) {
     const prevStatus = production.status;
     const prevStage = production.stage;
     
@@ -106,6 +193,8 @@ class StitchDesignProductionServiceImpl {
         providerStatus: production.providerStatus
       });
     }
+    
+    await this.persistProduction(production);
   }
 
   public async getOrCreateProduction(
@@ -113,7 +202,7 @@ class StitchDesignProductionServiceImpl {
     leadId: string, 
     sourceContext: LeadSourceContext
   ): Promise<DesignProduction> {
-    const existing = this.getProduction(generationRequestId);
+    const existing = await this.getProduction(generationRequestId);
     if (existing) {
       if (existing.leadId !== leadId) {
         throw new Error('CROSS_LEAD_PROTECTION_ERROR');
@@ -157,13 +246,13 @@ class StitchDesignProductionServiceImpl {
         timer = setTimeout(() => reject(new Error('STITCH_JOB_TIMEOUT')), STITCH_JOB_TIMEOUT_MS);
       });
 
-      const guardedJob = Promise.race([jobPromise, timeoutPromise]).catch((e) => {
+      const guardedJob = Promise.race([jobPromise, timeoutPromise]).catch(async (e) => {
         if (production.status !== 'PAIRED' && production.status !== 'PARTIAL' && production.status !== 'FAILED') {
           const isTimeout = e.message === 'STITCH_JOB_TIMEOUT';
           
           if (isTimeout && production.mobileReference) {
             // Stage-aware fallback: Desktop timed out but Mobile exists
-            this.transition(production, {
+            await this.transition(production, {
               status: 'PARTIAL',
               errorCode: 'STITCH_DESKTOP_TIMEOUT',
               providerStatus: 'BLOCKED',
@@ -171,7 +260,7 @@ class StitchDesignProductionServiceImpl {
             });
           } else {
             // Failed before mobile checkpoint or unhandled error
-            this.transition(production, {
+            await this.transition(production, {
               status: 'FAILED',
               errorCode: isTimeout ? 'STITCH_MOBILE_TIMEOUT' : 'UNHANDLED_ERROR',
               providerStatus: isTimeout ? 'BLOCKED' : 'UNKNOWN',
@@ -203,12 +292,12 @@ class StitchDesignProductionServiceImpl {
   ): Promise<void> {
     const client = new RealStitchMcpClient();
     try {
-      this.transition(production, { stage: 'MCP_HEALTHCHECK' });
+      await this.transition(production, { stage: 'MCP_HEALTHCHECK' });
       
       const { probeStitch } = await import('./stitch/index.js');
       const stitchAvailable = await probeStitch('default', 'default', 'default');
       if (!stitchAvailable) {
-         this.transition(production, {
+         await this.transition(production, {
            status: 'FAILED',
            errorCode: 'STITCH_NOT_CONFIGURED',
            providerStatus: 'UNKNOWN',
@@ -217,7 +306,7 @@ class StitchDesignProductionServiceImpl {
          return;
       }
 
-      this.transition(production, {
+      await this.transition(production, {
          status: 'MOBILE_GENERATING',
          stage: 'MOBILE_GENERATING',
          providerStatus: 'AVAILABLE'
@@ -241,7 +330,7 @@ class StitchDesignProductionServiceImpl {
       );
 
       if (mobileResult.status !== 'PRODUCED' || mobileResult.candidates.length === 0) {
-        this.transition(production, {
+        await this.transition(production, {
            status: 'FAILED',
            errorCode: mobileResult.status,
            providerStatus: mobileResult.status.includes('TIMEOUT') ? 'BLOCKED' : 'UNKNOWN',
@@ -250,13 +339,13 @@ class StitchDesignProductionServiceImpl {
         return;
       }
 
-      this.transition(production, { stage: 'MOBILE_RANKING' });
+      await this.transition(production, { stage: 'MOBILE_RANKING' });
       
       const ranked = rankCandidates(mobileResult.candidates, strategy);
       const mobileWinner = ranked[0];
       
       if (!mobileWinner) {
-        this.transition(production, {
+        await this.transition(production, {
            status: 'FAILED',
            errorCode: 'NO_WINNER_FOUND',
            terminalAt: Date.now()
@@ -273,14 +362,14 @@ class StitchDesignProductionServiceImpl {
         createdAt: new Date().toISOString()
       };
 
-      this.transition(production, { 
+      await this.transition(production, { 
         stage: 'MOBILE_READY',
       });
       
       // Delay explicitly for observable transition
       await new Promise(r => setTimeout(r, 100));
 
-      this.transition(production, {
+      await this.transition(production, {
         status: 'DESKTOP_GENERATING',
         stage: 'DESKTOP_GENERATING'
       });
@@ -305,7 +394,7 @@ class StitchDesignProductionServiceImpl {
         companionIntent
       );
       
-      this.transition(production, { stage: 'COHERENCE_VALIDATING' });
+      await this.transition(production, { stage: 'COHERENCE_VALIDATING' });
       
       if (desktopResult.status === 'PRODUCED' && desktopResult.candidates.length > 0) {
         const desktopWinner = rankCandidates(desktopResult.candidates, strategy)[0] || desktopResult.candidates[0];
@@ -336,22 +425,34 @@ class StitchDesignProductionServiceImpl {
                source: 'stitch',
                createdAt: new Date().toISOString()
             };
-            this.transition(production, { 
-              status: 'PAIRED',
-              stage: 'COMPLETED'
-            });
+            
+            // TERMINAL INVARIANT: PAIRED MUST IMPLY CONSUMABLE!
+            const parity = await this.validateConsumerParity(production);
+            if (parity.isConsumable) {
+              await this.transition(production, { 
+                status: parity.status,
+                stage: 'COMPLETED'
+              });
+            } else {
+              console.warn(`[StitchProduction] Production failed consumer parity check. Classifying as FAILED. Reason:`, parity.errorCode);
+              await this.transition(production, {
+                status: 'FAILED',
+                stage: 'COMPLETED',
+                errorCode: parity.errorCode || 'SITE_DESIGN_ARTIFACT_EMPTY'
+              });
+            }
           } else {
             console.warn(`[DesignProduction] Artifact semantic readiness validation failed after production. Mobile ready: ${mobileReady}, Desktop ready: ${desktopReady}`);
             
             // If mobile is ready but desktop failed, we can fallback to PARTIAL, preserving the mobile anchor
             if (mobileReady) {
-               this.transition(production, {
+               await this.transition(production, {
                   status: 'PARTIAL',
                   stage: 'COMPLETED',
                   errorCode: 'ARTIFACT_UNREADABLE'
                });
             } else {
-               this.transition(production, {
+               await this.transition(production, {
                   status: 'FAILED',
                   stage: 'COMPLETED',
                   errorCode: 'SITE_DESIGN_ARTIFACT_EMPTY'

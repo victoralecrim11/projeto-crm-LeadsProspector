@@ -88,7 +88,8 @@ export async function generateStandardAiSite(
       throw new SiteAiError('Mismatched request identities.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
     }
     const { stitchDesignProductionService } = await import('./stitchProductionService.js');
-    const production = stitchDesignProductionService.getProduction(dependencies.generationRequestId);
+    const result = await stitchDesignProductionService.loadConsumableDesignProduction(dependencies.generationRequestId);
+    const production = result.production;
     
     if (!production) {
       throw new SiteAiError('A sessão de criação do design expirou. Gere o design novamente.', 404, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
@@ -125,7 +126,8 @@ export async function generateStandardAiSite(
 
   if (isFreshIntelligent && dependencies.generationRequestId) {
     const { stitchDesignProductionService } = await import('./stitchProductionService.js');
-    const production = stitchDesignProductionService.getProduction(dependencies.generationRequestId);
+    const result = await stitchDesignProductionService.loadConsumableDesignProduction(dependencies.generationRequestId);
+    const production = result.production;
     if (production) {
       if (production.status === 'PAIRED' || production.status === 'PARTIAL') {
          if (!production.mobileReference) {

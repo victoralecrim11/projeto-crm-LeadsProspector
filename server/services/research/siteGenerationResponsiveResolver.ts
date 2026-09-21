@@ -17,11 +17,16 @@ import { resolveDesignStrategy } from './designStrategy/designStrategyResolver.j
 export async function resolveRuntimeResponsiveDesign(
   resolvedDesign: ResolvedDesign,
   anchors: { mobile?: any, desktop?: any },
-  provider: ArtifactMcpProvider = new ArtifactMcpProvider()
+  provider?: ArtifactMcpProvider
 ): Promise<{ resolvedDesign: ResolvedDesign; resolution: ResponsiveDesignResolution }> {
   
   const mobileRef = anchors.mobile;
   const desktopRef = anchors.desktop;
+
+  if (!provider) {
+    const { resolveStitchRuntimeRoot } = await import('./stitchProductionService.js');
+    provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot().replace(/([\\/])\.stitch[\\/]runtime$/, ''));
+  }
 
   if (!mobileRef) {
     throw new Error('Mobile anchor reference is missing. Cannot resolve responsive design.');

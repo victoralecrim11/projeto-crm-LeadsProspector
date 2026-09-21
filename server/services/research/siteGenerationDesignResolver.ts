@@ -70,7 +70,8 @@ export async function resolveSiteGenerationDesign(
   const baseDesign = resolveStandardDesign(source, current, overrides, new Date());
   const strategy = resolveDesignStrategy(baseDesign);
   
-  const provider = new ArtifactMcpProvider();
+  const { resolveStitchRuntimeRoot } = await import('./stitchProductionService.js');
+  const provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot().replace(/([\\/])\.stitch[\\/]runtime$/, ''));
   
   let stitchStatus = 'STITCH_NOT_CONFIGURED';
   try {

@@ -10,16 +10,22 @@ export interface StitchProvider {
   consumeArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null>;
 }
 
-export class ArtifactMcpProvider implements StitchProvider {
-  private basePath: string;
+import { resolveStitchRuntimeRoot } from '../../stitchProductionService.js';
 
-  constructor(basePath: string = process.cwd()) {
-    this.basePath = basePath;
+export class ArtifactMcpProvider implements StitchProvider {
+  private runtimeRoot: string;
+
+  constructor(customRuntimeRoot?: string) {
+    this.runtimeRoot = customRuntimeRoot || resolveStitchRuntimeRoot();
+  }
+
+  private getRuntimeRoot(projectId: string): string {
+    return path.join(this.runtimeRoot, projectId);
   }
 
   private async getArtifactPath(projectId: string, requestId: string) {
+    const projectDir = this.getRuntimeRoot(projectId);
     if (requestId === 'default' || requestId === 'latest') {
-      const projectDir = path.join(this.basePath, '.stitch', 'runtime', projectId);
       try {
         const entries = await fs.readdir(projectDir, { withFileTypes: true });
         const requestDirs = entries
@@ -44,12 +50,12 @@ export class ArtifactMcpProvider implements StitchProvider {
         // Fallback below
       }
     }
-    return path.join(this.basePath, '.stitch', 'runtime', projectId, requestId, 'candidates.json');
+    return path.join(projectDir, requestId, 'candidates.json');
   }
 
   private async getTempArtifactPath(projectId: string, requestId: string) {
+    const projectDir = this.getRuntimeRoot(projectId);
     if (requestId === 'default' || requestId === 'latest') {
-      const projectDir = path.join(this.basePath, '.stitch', 'runtime', projectId);
       try {
         const entries = await fs.readdir(projectDir, { withFileTypes: true });
         // Just return the first tmp we find, if any, or a dummy path
@@ -62,7 +68,7 @@ export class ArtifactMcpProvider implements StitchProvider {
         }
       } catch {}
     }
-    return path.join(this.basePath, '.stitch', 'runtime', projectId, requestId, 'candidates.tmp');
+    return path.join(projectDir, requestId, 'candidates.tmp');
   }
 
   async probe(projectId: string, requestId: string, strategyId: string): Promise<{ status: StitchStatus }> {
@@ -105,10 +111,10 @@ export class ArtifactMcpProvider implements StitchProvider {
         return { status: 'STITCH_ARTIFACT_MISMATCH' };
       }
 
-      // Stale check (e.g. older than 5 minutes)
+      // Stale check (match Production TTL of 60 minutes)
       const generatedTime = new Date(data.generatedAt).getTime();
       const now = Date.now();
-      if (isNaN(generatedTime) || now - generatedTime > 5 * 60 * 1000) {
+      if (isNaN(generatedTime) || now - generatedTime > 60 * 60 * 1000) {
         return { status: 'STITCH_ARTIFACT_STALE' };
       }
 

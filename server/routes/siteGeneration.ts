@@ -219,7 +219,7 @@ export function siteGenerationRouter() {
     if (!id) return res.status(400).json({ error: 'Missing ID' });
     
     const { stitchDesignProductionService } = await import('../services/research/stitchProductionService.js');
-    const prod = stitchDesignProductionService.getProduction(id);
+    const prod = await stitchDesignProductionService.getProduction(id);
     
     if (!prod) {
        return res.status(404).json({ error: 'DESIGN_PRODUCTION_NOT_FOUND' });
