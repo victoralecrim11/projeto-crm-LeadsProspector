@@ -47,7 +47,7 @@ test('E.1 Homologation: Responsive Pair / Stitch Live', async () => {
 
   // 5. Artifact Reading via Provider
   const provider = new ArtifactMcpProvider(TEST_BASE);
-  const result = await resolveRuntimeResponsiveDesign(mockDesign, provider);
+  const result = await resolveRuntimeResponsiveDesign(mockDesign, mockDesign.stitch!.viewportAnchors!, provider);
 
   // Assertions
   assert.equal(result.resolution.effectiveCandidate.viewport, 'mobile');

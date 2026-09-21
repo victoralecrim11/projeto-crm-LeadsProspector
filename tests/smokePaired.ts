@@ -38,7 +38,7 @@ async function run() {
 
   // 4. Resolve
   const provider = new ArtifactMcpProvider(TEST_BASE);
-  const result = await resolveRuntimeResponsiveDesign(mockDesign, provider);
+  const result = await resolveRuntimeResponsiveDesign(mockDesign, mockDesign.stitch!.viewportAnchors!, provider);
   
   console.log('Mobile Candidate count:', mobileArtifact!.candidates.length);
   console.log('Mobile Winner:', result.resolution.effectiveCandidate?.candidateId);

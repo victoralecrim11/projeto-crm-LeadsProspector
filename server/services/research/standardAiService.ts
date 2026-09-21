@@ -121,29 +121,29 @@ export async function generateStandardAiSite(
     fallbackReason 
   } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides, artifactReference, isFreshIntelligent));
   
+  let anchors: { mobile?: any, desktop?: any } | undefined = undefined;
+
   if (isFreshIntelligent && dependencies.generationRequestId) {
     const { stitchDesignProductionService } = await import('./stitchProductionService.js');
     const production = stitchDesignProductionService.getProduction(dependencies.generationRequestId);
-    if (production && production.desktopReference) {
-      // Inject desktop reference to be caught by the Responsive Resolver
-      if (!design.stitch) {
-        design.stitch = {
-          alternatives: [],
-          selected: '',
-          review: '',
-          generatedAt: new Date().toISOString(),
-        };
+    if (production) {
+      if (production.status === 'PAIRED' || production.status === 'PARTIAL') {
+         if (!production.mobileReference) {
+           throw new SiteAiError('Valid mobile reference is required for PAIRED/PARTIAL states.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+         }
+         anchors = {
+           mobile: production.mobileReference,
+           desktop: production.desktopReference
+         };
       }
-      if (!design.stitch.viewportAnchors) design.stitch.viewportAnchors = { mobile: production.mobileReference! };
-      design.stitch.viewportAnchors.desktop = production.desktopReference;
     }
   }
 
   let finalDesign = design;
-  if (finalDesign.stitch?.viewportAnchors?.mobile) {
+  if (anchors?.mobile) {
     const { resolveRuntimeResponsiveDesign } = await import('./siteGenerationResponsiveResolver.js');
     try {
-      const resp = await resolveRuntimeResponsiveDesign(finalDesign);
+      const resp = await resolveRuntimeResponsiveDesign(finalDesign, anchors);
       finalDesign = resp.resolvedDesign;
       
       // 32. TRACE PAYLOAD: Imediatamente antes de blueprintSchema/standard-ai parse
@@ -156,6 +156,12 @@ export async function generateStandardAiSite(
         const errorMsg = e.message || String(e);
         if (errorMsg.includes('SITE_DESIGN_NO_USABLE_ALTERNATIVES')) {
            throw new SiteAiError('O design visual foi criado, mas nenhum candidato utilizável foi encontrado. Tente gerar um novo design.', 422, false, 'SITE_DESIGN_NO_USABLE_ALTERNATIVES', undefined, errorMsg);
+        }
+        if (errorMsg.includes('SITE_DESIGN_ARTIFACT_STALE')) {
+           throw new SiteAiError('O design visual expirou ou tornou-se inválido. Tente gerar novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
+        }
+        if (errorMsg.includes('SITE_DESIGN_ARTIFACT_INVALID') || errorMsg.includes('SITE_DESIGN_ARTIFACT_MISMATCH')) {
+           throw new SiteAiError('O design visual possui um formato inválido ou corrompido. Tente gerar novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
         }
         throw new SiteAiError('O design visual foi criado, mas não foi possível recuperar os artefatos necessários para finalizar o site. Tente novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
       }

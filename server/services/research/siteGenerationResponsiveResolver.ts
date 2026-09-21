@@ -16,11 +16,12 @@ import { resolveDesignStrategy } from './designStrategy/designStrategyResolver.j
  */
 export async function resolveRuntimeResponsiveDesign(
   resolvedDesign: ResolvedDesign,
+  anchors: { mobile?: any, desktop?: any },
   provider: ArtifactMcpProvider = new ArtifactMcpProvider()
 ): Promise<{ resolvedDesign: ResolvedDesign; resolution: ResponsiveDesignResolution }> {
   
-  const mobileRef = resolvedDesign.stitch?.viewportAnchors?.mobile;
-  const desktopRef = resolvedDesign.stitch?.viewportAnchors?.desktop;
+  const mobileRef = anchors.mobile;
+  const desktopRef = anchors.desktop;
 
   if (!mobileRef) {
     throw new Error('Mobile anchor reference is missing. Cannot resolve responsive design.');
@@ -34,7 +35,15 @@ export async function resolveRuntimeResponsiveDesign(
   );
 
   if (!mobileArtifact || !mobileArtifact.candidates || mobileArtifact.candidates.length === 0) {
-    throw new Error(`Failed to read Mobile Anchor artifact: ${mobileRef.projectId}/${mobileRef.requestId}`);
+    const probe = await provider.probe(mobileRef.projectId, mobileRef.requestId, mobileRef.strategyId);
+    if (probe.status === 'STITCH_ARTIFACT_STALE') {
+      throw new Error(`SITE_DESIGN_ARTIFACT_STALE: Mobile artifact ${mobileRef.requestId} is stale.`);
+    } else if (probe.status === 'STITCH_ARTIFACT_INVALID') {
+      throw new Error(`SITE_DESIGN_ARTIFACT_INVALID: Mobile artifact ${mobileRef.requestId} has an invalid schema.`);
+    } else if (probe.status === 'STITCH_ARTIFACT_MISMATCH') {
+      throw new Error(`SITE_DESIGN_ARTIFACT_MISMATCH: Mobile artifact ${mobileRef.requestId} does not match strategy.`);
+    }
+    throw new Error(`SITE_DESIGN_ARTIFACT_UNAVAILABLE: Failed to read Mobile Anchor artifact ${mobileRef.projectId}/${mobileRef.requestId}. Probe: ${probe.status}`);
   }
 
   // Rank Mobile Candidates to find the winner
@@ -69,7 +78,11 @@ export async function resolveRuntimeResponsiveDesign(
 
   // Preserve selected winner and inject resolved alternatives
   const updatedStitch = {
-    ...resolvedDesign.stitch!,
+    ...(resolvedDesign.stitch || { 
+      review: 'Resolved at runtime',
+      generatedAt: new Date().toISOString()
+    }),
+    viewportAnchors: anchors,
     alternatives: canonicalAlternatives,
     selected: mobileWinner.candidateId,
   };
