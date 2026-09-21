@@ -312,13 +312,23 @@ class StitchDesignProductionServiceImpl {
         const coherence = validateAnchorCoherence(mobileWinner, desktopWinner);
         
         if (coherence.status === 'PAIRED') {
-          // 25. PERSISTENCE BARRIER: Readability Check
+          // 25. PERSISTENCE BARRIER: Semantic Readiness Check
           const { ArtifactMcpProvider } = await import('./stitch/providers/artifactMcpProvider.js');
           const provider = new ArtifactMcpProvider();
           const mobileReadable = await provider.readArtifact(production.leadId, mobileRequestId, strategy.strategyId);
           const desktopReadable = await provider.readArtifact(production.leadId, desktopRequestId, strategy.strategyId);
 
-          if (mobileReadable && desktopReadable) {
+          const isSemanticallyReady = (artifact: any) => {
+            if (!artifact || !artifact.candidates || artifact.candidates.length === 0) return false;
+            const ranked = rankCandidates(artifact.candidates, strategy);
+            if (!ranked || ranked.length === 0 || !ranked[0].candidateId) return false;
+            return true;
+          };
+
+          const mobileReady = isSemanticallyReady(mobileReadable);
+          const desktopReady = isSemanticallyReady(desktopReadable);
+
+          if (mobileReady && desktopReady) {
             production.desktopReference = {
                projectId: production.leadId,
                requestId: desktopRequestId,
@@ -331,12 +341,22 @@ class StitchDesignProductionServiceImpl {
               stage: 'COMPLETED'
             });
           } else {
-            console.warn(`[DesignProduction] Artifact readability validation failed after production`);
-            this.transition(production, {
-               status: 'FAILED',
-               stage: 'COMPLETED',
-               errorCode: 'ARTIFACT_UNREADABLE'
-            });
+            console.warn(`[DesignProduction] Artifact semantic readiness validation failed after production. Mobile ready: ${mobileReady}, Desktop ready: ${desktopReady}`);
+            
+            // If mobile is ready but desktop failed, we can fallback to PARTIAL, preserving the mobile anchor
+            if (mobileReady) {
+               this.transition(production, {
+                  status: 'PARTIAL',
+                  stage: 'COMPLETED',
+                  errorCode: 'ARTIFACT_UNREADABLE'
+               });
+            } else {
+               this.transition(production, {
+                  status: 'FAILED',
+                  stage: 'COMPLETED',
+                  errorCode: 'SITE_DESIGN_ARTIFACT_EMPTY'
+               });
+            }
           }
         } else {
           console.warn(`[DesignProduction] Coherence validation failed: ${coherence.reason}`);

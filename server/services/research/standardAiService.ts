@@ -145,10 +145,19 @@ export async function generateStandardAiSite(
     try {
       const resp = await resolveRuntimeResponsiveDesign(finalDesign);
       finalDesign = resp.resolvedDesign;
-    } catch (e) {
+      
+      // 32. TRACE PAYLOAD: Imediatamente antes de blueprintSchema/standard-ai parse
+      if (isFreshIntelligent && process.env.NODE_ENV === 'development') {
+        console.log(`[ResponsiveDesignTrace] Payload validation. GenerationRequestId: ${dependencies.generationRequestId}, payloadAlternativeCount: ${finalDesign.stitch?.alternatives?.length}`);
+      }
+    } catch (e: any) {
       console.error('[SiteAI] Failed to resolve responsive design:', e);
       if (isFreshIntelligent) {
-        throw new SiteAiError('O design visual foi criado, mas não foi possível recuperar os artefatos necessários para finalizar o site. Tente novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, e instanceof Error ? e.message : String(e));
+        const errorMsg = e.message || String(e);
+        if (errorMsg.includes('SITE_DESIGN_NO_USABLE_ALTERNATIVES')) {
+           throw new SiteAiError('O design visual foi criado, mas nenhum candidato utilizável foi encontrado. Tente gerar um novo design.', 422, false, 'SITE_DESIGN_NO_USABLE_ALTERNATIVES', undefined, errorMsg);
+        }
+        throw new SiteAiError('O design visual foi criado, mas não foi possível recuperar os artefatos necessários para finalizar o site. Tente novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
       }
       // legacy fallback to original design if resolution fails
     }

@@ -61,10 +61,23 @@ export async function resolveRuntimeResponsiveDesign(
   // 3. Resolve Coherence
   const resolution = resolveResponsiveAnchorPair(mobileWinner, desktopCompanion);
 
+  // Define canonical alternatives from Mobile candidates
+  const canonicalAlternatives = rankedMobile.map(c => c.candidateId).slice(0, 3);
+  if (canonicalAlternatives.length === 0) {
+    throw new Error('SITE_DESIGN_NO_USABLE_ALTERNATIVES: No usable candidates found after filtering.');
+  }
+
+  // Preserve selected winner and inject resolved alternatives
+  const updatedStitch = {
+    ...resolvedDesign.stitch!,
+    alternatives: canonicalAlternatives,
+    selected: mobileWinner.candidateId,
+  };
+
   // 4. Update the ResolvedDesign using designPipeline's responsive integrator
   const finalResolvedDesign = resolvePremiumSelectionResponsive(
     resolvedDesign,
-    resolvedDesign.stitch!,
+    updatedStitch,
     resolution
   );
 
