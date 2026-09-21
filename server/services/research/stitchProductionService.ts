@@ -312,17 +312,32 @@ class StitchDesignProductionServiceImpl {
         const coherence = validateAnchorCoherence(mobileWinner, desktopWinner);
         
         if (coherence.status === 'PAIRED') {
-          production.desktopReference = {
-             projectId: production.leadId,
-             requestId: desktopRequestId,
-             strategyId: strategy.strategyId,
-             source: 'stitch',
-             createdAt: new Date().toISOString()
-          };
-          this.transition(production, { 
-            status: 'PAIRED',
-            stage: 'COMPLETED'
-          });
+          // 25. PERSISTENCE BARRIER: Readability Check
+          const { ArtifactMcpProvider } = await import('./stitch/providers/artifactMcpProvider.js');
+          const provider = new ArtifactMcpProvider();
+          const mobileReadable = await provider.readArtifact(production.leadId, mobileRequestId, strategy.strategyId);
+          const desktopReadable = await provider.readArtifact(production.leadId, desktopRequestId, strategy.strategyId);
+
+          if (mobileReadable && desktopReadable) {
+            production.desktopReference = {
+               projectId: production.leadId,
+               requestId: desktopRequestId,
+               strategyId: strategy.strategyId,
+               source: 'stitch',
+               createdAt: new Date().toISOString()
+            };
+            this.transition(production, { 
+              status: 'PAIRED',
+              stage: 'COMPLETED'
+            });
+          } else {
+            console.warn(`[DesignProduction] Artifact readability validation failed after production`);
+            this.transition(production, {
+               status: 'FAILED',
+               stage: 'COMPLETED',
+               errorCode: 'ARTIFACT_UNREADABLE'
+            });
+          }
         } else {
           console.warn(`[DesignProduction] Coherence validation failed: ${coherence.reason}`);
           this.transition(production, {

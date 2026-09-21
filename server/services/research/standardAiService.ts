@@ -147,7 +147,10 @@ export async function generateStandardAiSite(
       finalDesign = resp.resolvedDesign;
     } catch (e) {
       console.error('[SiteAI] Failed to resolve responsive design:', e);
-      // fallback to original design if resolution fails
+      if (isFreshIntelligent) {
+        throw new SiteAiError('O design visual foi criado, mas não foi possível recuperar os artefatos necessários para finalizar o site. Tente novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, e instanceof Error ? e.message : String(e));
+      }
+      // legacy fallback to original design if resolution fails
     }
   }
 

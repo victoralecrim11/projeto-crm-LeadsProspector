@@ -88,13 +88,13 @@ test('D.5 Site Generation Runtime Integration: Valid Stitch Artifact is used and
   // Wait, strategyId is random!
   // We can mock ArtifactMcpProvider to return our artifact.
   
-  const originalExplore = ArtifactMcpProvider.prototype.explore;
+  const originalRead = ArtifactMcpProvider.prototype.readArtifact;
   const originalProbe = ArtifactMcpProvider.prototype.probe;
   
   ArtifactMcpProvider.prototype.probe = async function(pId, rId, sId) {
     return { status: 'STITCH_ARTIFACT_AVAILABLE' };
   };
-  ArtifactMcpProvider.prototype.explore = async function(pId, rId, sId) {
+  ArtifactMcpProvider.prototype.readArtifact = async function(pId, rId, sId) {
     return {
       schemaVersion: 1,
       projectId: pId,
@@ -183,7 +183,7 @@ test('D.5 Site Generation Runtime Integration: Valid Stitch Artifact is used and
     assert.strictEqual(result.blueprint.hero.headline, 'LLM Headline');
     
   } finally {
-    ArtifactMcpProvider.prototype.explore = originalExplore;
+    ArtifactMcpProvider.prototype.readArtifact = originalRead;
     ArtifactMcpProvider.prototype.probe = originalProbe;
   }
 });
@@ -287,7 +287,7 @@ test('D.5 Site Generation Runtime Integration: DesignArtifactReference explicit 
   const originalExplore = ArtifactMcpProvider.prototype.explore;
   
   ArtifactMcpProvider.prototype.probe = async function(p, r, s) { return { status: 'STITCH_ARTIFACT_AVAILABLE' }; };
-  ArtifactMcpProvider.prototype.explore = async function(p, r, s) {
+  ArtifactMcpProvider.prototype.readArtifact = async function(p, r, s) {
     // Return a mock that pretends it matches the strategy
     return {
       schemaVersion: 1, projectId: p, requestId: r, strategyId: s,

@@ -89,7 +89,7 @@ export async function resolveSiteGenerationDesign(
 
   if (stitchStatus === 'STITCH_ARTIFACT_AVAILABLE') {
     try {
-      const artifact = await provider.explore(projectId, requestId, strategy.strategyId);
+      const artifact = await provider.readArtifact(projectId, requestId, strategy.strategyId);
       
       if (artifact) {
         if (artifact.strategyId !== strategy.strategyId) {

@@ -13,7 +13,8 @@ export type SiteAiErrorCode =
   | 'SITE_AI_PROVIDER_INVALID_REQUEST'
   | 'SITE_AI_PROVIDER_INVALID_RESPONSE'
   | 'SITE_AI_NO_COMPATIBLE_MODEL'
-  | 'SITE_AI_INTERNAL_ERROR';
+  | 'SITE_AI_INTERNAL_ERROR'
+  | 'SITE_DESIGN_ARTIFACT_UNAVAILABLE';
 
 export class SiteAiError extends Error {
   constructor(
