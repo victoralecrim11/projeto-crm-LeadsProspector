@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { MediaCandidate, MediaManifest, MediaManifestEntry } from '../contracts/media';
+import { getSiteAiAuthHeaders } from '../../services/siteAiAuth';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { mediaCandidateSchema, mediaManifestSchema, type MediaCandidate, type MediaManifest, type MediaManifestEntry } from '../contracts/media';
 import type { MediaPlan } from '../contracts';
 import { IndexedDbMediaAssetStore, type MediaAssetStore } from './assetStore';
+import { useMediaAssetUrls } from './useMediaAssetUrls';
 import { authorizedJsonFetch, authorizedBinaryFetch } from './siteAiApiClient';
 
 export interface MediaManagerProps {
@@ -16,12 +18,14 @@ export interface MediaManagerProps {
 }
 
 export interface MediaManagerState {
+  generationConfigured: boolean;
   manifest: MediaManifest;
   objectUrls: Record<string, string>;
   candidatesByItem: Record<string, MediaCandidate[]>;
   loadingByItem: Record<string, boolean>;
   errorByItem: Record<string, string | null>;
-  searchMedia: (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => Promise<void>;
+  searchMedia: (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => Promise<MediaCandidate[]>;
+  generateMedia: (item: MediaPlan['items'][number], provider?: string) => Promise<void>;
   selectCandidate: (item: MediaPlan['items'][number], candidate: MediaCandidate) => Promise<string | void>;
   approveMedia: (itemId: string) => void;
   rejectMedia: (itemId: string) => Promise<void>;
@@ -43,69 +47,43 @@ export function useMediaManager({
 }: MediaManagerProps): MediaManagerState {
   const [store] = useState<MediaAssetStore>(() => assetStore ?? new IndexedDbMediaAssetStore());
   const [manifest, setManifest] = useState<MediaManifest>(
-    () => initialManifest ?? { version: 1, projectId, generatedAt: new Date().toISOString(), entries: [] },
+    () => (initialManifest?.projectId === projectId ? initialManifest : undefined) ?? { version: 1, projectId, generatedAt: new Date().toISOString(), entries: [] },
   );
+  const [generationConfigured, setGenerationConfigured] = useState(false);
+  useEffect(() => {
+    let active = true;
+    fetch('/api/ai/media/providers', { headers: getSiteAiAuthHeaders(), signal: AbortSignal.timeout(10000) })
+      .then(res => res.ok ? res.json() : null)
+      .then(data => { if (active) setGenerationConfigured(data?.imageGeneration?.configured === true); })
+      .catch(() => { if (active) setGenerationConfigured(false); });
+    return () => { active = false; };
+  }, []);
   const [candidatesByItem, setCandidatesByItem] = useState<Record<string, MediaCandidate[]>>({});
   const [loadingByItem, setLoadingByItem] = useState<Record<string, boolean>>({});
   const [errorByItem, setErrorByItem] = useState<Record<string, string | null>>({});
-  const [objectUrls, setObjectUrls] = useState<Record<string, string>>({});
-
-  // Load object URLs from store when mounting or when manifest changes
-  const loadUrls = useCallback(async (currentManifest: MediaManifest) => {
-    const newUrls: Record<string, string> = {};
-    const urlsToRevoke: string[] = [];
-
-    for (const entry of currentManifest.entries) {
-      if (['selected', 'reviewed', 'exportable'].includes(entry.reviewStatus)) {
-        try {
-          const blob = await store.get(entry.assetId);
-          if (blob) {
-            const url = URL.createObjectURL(blob);
-            urlsToRevoke.push(url);
-            newUrls[entry.assetId] = url;
-            newUrls[entry.id] = url;
-          }
-        } catch {
-          // Asset missing from IndexedDB — will show fallback
-        }
-      }
-    }
-
-    return { newUrls, urlsToRevoke };
-  }, [store]);
-
+  const manifestRef = useRef(manifest);
+  const onChangeRef = useRef(onManifestChange);
+  onChangeRef.current = onManifestChange;
+  const mounted = useRef(true);
+  const galleryUrls = useRef(new Set<string>());
+  useEffect(() => { mounted.current = true; return () => {
+    mounted.current = false;
+    galleryUrls.current.forEach(url => URL.revokeObjectURL(url));
+  }; }, []);
+  const commitEntries = useCallback((update: (entries: MediaManifestEntry[]) => MediaManifestEntry[]) => {
+    if (!mounted.current) return;
+    const next = mediaManifestSchema.parse({ ...manifestRef.current, generatedAt: new Date().toISOString(), entries: update(manifestRef.current.entries) });
+    manifestRef.current = next;
+    setManifest(next);
+    onChangeRef.current?.(next);
+  }, []);
   useEffect(() => {
-    let active = true;
-
-    loadUrls(manifest).then(({ newUrls, urlsToRevoke }) => {
-      if (active) {
-        setObjectUrls(prev => {
-          // Revoke URLs from previous state that are no longer needed
-          Object.values(prev).forEach(url => {
-            if (!Object.values(newUrls).includes(url)) {
-              setTimeout(() => URL.revokeObjectURL(String(url)), 1000); // Delay revocation
-            }
-          });
-          return newUrls;
-        });
-      } else {
-        urlsToRevoke.forEach((url) => URL.revokeObjectURL(url));
-      }
-    });
-
-    return () => {
-      active = false;
-      // We no longer revoke immediately on effect cleanup (manifest change)
-      // to prevent the iframe from breaking before the new URLs are loaded.
-    };
-  }, [manifest, loadUrls]);
-
-  // Sync initial manifest when project changes
-  useEffect(() => {
-    if (initialManifest) {
+    if (initialManifest?.projectId === projectId && initialManifest !== manifestRef.current) {
+      manifestRef.current = initialManifest;
       setManifest(initialManifest);
     }
-  }, [initialManifest]);
+  }, [initialManifest, projectId]);
+  const objectUrls = useMediaAssetUrls(manifest, store);
 
   const searchMedia = useCallback(
     async (item: MediaPlan['items'][number], overrideQuery?: string, providerFilter?: string) => {
@@ -128,10 +106,12 @@ export function useMediaManager({
           imageryDirection,
         });
 
-        setCandidatesByItem((prev) => ({ ...prev, [item.id]: data.candidates || [] }));
+        const candidates = data.candidates.map(candidate => mediaCandidateSchema.parse(candidate));
+        if (mounted.current) setCandidatesByItem((prev) => ({ ...prev, [item.id]: candidates }));
         if (data.candidates.length === 0 && data.error) {
           setErrorByItem((prev) => ({ ...prev, [item.id]: data.error || 'Nenhum resultado encontrado.' }));
         }
+        return candidates;
       } catch (err: unknown) {
         setErrorByItem((prev) => ({
           ...prev,
@@ -144,6 +124,23 @@ export function useMediaManager({
     [projectId, niche, subNiche, imageryDirection],
   );
 
+  const generateMedia = useCallback(async (item: MediaPlan['items'][number], provider?: string) => {
+    setLoadingByItem(prev => ({ ...prev, [item.id]: true }));
+    setErrorByItem(prev => ({ ...prev, [item.id]: null }));
+    try {
+      const result = await authorizedJsonFetch<MediaCandidate>('/api/ai/media/generate', {
+        requestId: `${projectId}_${item.id}`, niche, subNiche, section: item.section,
+        purpose: item.purpose, aspectRatio: item.aspectRatio, imageryDirection, provider,
+      }, AbortSignal.timeout(210000));
+      const candidate = mediaCandidateSchema.parse(result);
+      if (mounted.current) setCandidatesByItem(prev => ({ ...prev, [item.id]: [candidate] }));
+    } catch {
+      if (mounted.current) setErrorByItem(prev => ({ ...prev, [item.id]: 'Não foi possível gerar a imagem. Verifique a configuração do provedor de imagens.' }));
+    } finally {
+      if (mounted.current) setLoadingByItem(prev => ({ ...prev, [item.id]: false }));
+    }
+  }, [projectId, niche, subNiche, imageryDirection]);
+
   const selectCandidate = useCallback(
     async (item: MediaPlan['items'][number], candidate: MediaCandidate): Promise<string | void> => {
       setLoadingByItem((prev) => ({ ...prev, [item.id]: true }));
@@ -153,8 +150,9 @@ export function useMediaManager({
         const res = await authorizedBinaryFetch('/api/ai/media/acquire', { candidate });
 
         const mimeType = (res.headers.get('Content-Type') as 'image/jpeg' | 'image/png' | 'image/webp') || 'image/jpeg';
-        const contentHash = res.headers.get('X-Content-Hash') || 'hash_' + Date.now();
-        const assetId = `asset_${contentHash.slice(0, 16)}`;
+        const contentHash = res.headers.get('X-Content-Hash') || '';
+        if (!/^[a-f0-9]{64}$/.test(contentHash)) throw new Error('Resposta de imagem inválida.');
+        const assetId = `${projectId}_${contentHash.slice(0, 16)}`;
         const ext = mimeType === 'image/jpeg' ? 'jpg' : mimeType === 'image/png' ? 'png' : 'webp';
         const assetPath = `media-${item.section}-${contentHash.slice(0, 8)}.${ext}`;
 
@@ -180,7 +178,7 @@ export function useMediaManager({
           id: item.id,
           requestId: candidate.requestId,
           section: item.section,
-          sourceType: 'licensed',
+          sourceType: candidate.sourceType,
           provider: candidate.provider,
           providerAssetId: candidate.providerAssetId,
           sourcePageUrl: candidate.sourcePageUrl,
@@ -200,20 +198,12 @@ export function useMediaManager({
           alt: item.decorative ? '' : item.alt || item.purpose,
           decorative: item.decorative,
           realBusinessMedia: false,
-          licensed: true,
-          aiGenerated: false,
+          licensed: candidate.sourceType === 'licensed',
+          aiGenerated: candidate.sourceType === 'generated',
           reviewStatus: 'selected',
         };
 
-        const updatedEntries = manifest.entries.filter((e) => e.id !== item.id).concat(newEntry);
-        const updatedManifest: MediaManifest = {
-          ...manifest,
-          generatedAt: new Date().toISOString(),
-          entries: updatedEntries,
-        };
-
-        setManifest(updatedManifest);
-        onManifestChange?.(updatedManifest);
+        commitEntries(entries => entries.filter(e => e.id !== item.id).concat(newEntry));
         
         return assetId;
       } catch (err: unknown) {
@@ -225,120 +215,47 @@ export function useMediaManager({
         setLoadingByItem((prev) => ({ ...prev, [item.id]: false }));
       }
     },
-    [manifest, store, onManifestChange],
+    [store, projectId, commitEntries],
   );
 
-  const approveMedia = useCallback(
-    (itemId: string) => {
-      const updatedEntries = manifest.entries.map((e) =>
-        e.id === itemId ? { ...e, reviewStatus: 'exportable' as const } : e,
-      );
-      const updatedManifest: MediaManifest = {
-        ...manifest,
-        generatedAt: new Date().toISOString(),
-        entries: updatedEntries,
-      };
-      setManifest(updatedManifest);
-      onManifestChange?.(updatedManifest);
-    },
-    [manifest, onManifestChange],
-  );
-
-  const rejectMedia = useCallback(
-    async (itemId: string) => {
-      const entry = manifest.entries.find((e) => e.id === itemId);
-      if (entry) {
-        // Check if other entries are using this asset
-        const isUsedElsewhere = manifest.entries.some((e) => e.id !== itemId && e.assetId === entry.assetId);
-        if (!isUsedElsewhere) {
-          await store.remove(entry.assetId).catch(() => {});
-        }
-      }
-      const updatedEntries = manifest.entries.filter((e) => e.id !== itemId);
-      const updatedManifest: MediaManifest = {
-        ...manifest,
-        generatedAt: new Date().toISOString(),
-        entries: updatedEntries,
-      };
-      setManifest(updatedManifest);
-      onManifestChange?.(updatedManifest);
-    },
-    [manifest, store, onManifestChange],
-  );
-
-  const reloadAssets = useCallback(async () => {
-    const { newUrls } = await loadUrls(manifest);
-    setObjectUrls(newUrls);
-  }, [manifest, loadUrls]);
-
+  const approveMedia = useCallback((itemId: string) => {
+    commitEntries(entries => entries.map(e => e.id === itemId ? { ...e, reviewStatus: 'exportable' } : e));
+  }, [commitEntries]);
+  const rejectMedia = useCallback(async (itemId: string) => {
+    // Unlink only: another project or section may still reference these bytes.
+    commitEntries(entries => entries.filter(e => e.id !== itemId));
+  }, [commitEntries]);
+  const reloadAssets = useCallback(async () => { commitEntries(entries => [...entries]); }, [commitEntries]);
   const getProjectAssets = useCallback(async () => {
-    return await store.list();
+    const ids = new Set(manifestRef.current.entries.map(e => e.assetId));
+    return (await store.list()).filter(asset => ids.has(asset.assetId));
   }, [store]);
-
   const getAssetUrl = useCallback(async (assetId: string) => {
+    if (!manifestRef.current.entries.some(e => e.assetId === assetId)) return null;
     const blob = await store.get(assetId);
-    if (!blob) return null;
-    return URL.createObjectURL(blob);
+    if (!blob || !mounted.current) return null;
+    const url = URL.createObjectURL(blob);
+    galleryUrls.current.add(url);
+    return url;
   }, [store]);
-
-  const selectProjectAsset = useCallback(
-    async (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset): Promise<string | void> => {
-      // Find existing entry in manifest to inherit attribution if possible
-      const existingEntry = manifest.entries.find(e => e.assetId === asset.assetId);
-
-      const ext = asset.mimeType === 'image/jpeg' ? 'jpg' : asset.mimeType === 'image/png' ? 'png' : 'webp';
-      const assetPath = `media-${item.section}-${asset.contentHash.slice(0, 8)}.${ext}`;
-
-      const newEntry: import('../contracts/media').MediaManifestEntry = {
-        id: item.id,
-        requestId: asset.requestId,
-        section: item.section,
-        sourceType: 'licensed',
-        provider: asset.provider as any, // pexels | pixabay
-        providerAssetId: existingEntry?.providerAssetId || asset.assetId,
-        sourcePageUrl: existingEntry?.sourcePageUrl,
-        licenseLabel: existingEntry?.licenseLabel || 'Standard License',
-        licenseUrl: existingEntry?.licenseUrl,
-        attributionText: existingEntry?.attributionText || `Provided by ${asset.provider}`,
-        creator: existingEntry?.creator || '',
-        creatorUrl: existingEntry?.creatorUrl,
-        retrievedAt: asset.createdAt,
-        contentHash: asset.contentHash,
-        assetId: asset.assetId,
-        assetPath,
-        mimeType: asset.mimeType,
-        width: asset.width,
-        height: asset.height,
-        byteLength: asset.byteLength,
-        alt: item.decorative ? '' : item.alt || item.purpose,
-        decorative: item.decorative,
-        realBusinessMedia: false,
-        licensed: true,
-        aiGenerated: false,
-        reviewStatus: 'selected',
-      };
-
-      const updatedEntries = manifest.entries.filter((e) => e.id !== item.id).concat(newEntry);
-      const updatedManifest: MediaManifest = {
-        ...manifest,
-        generatedAt: new Date().toISOString(),
-        entries: updatedEntries,
-      };
-
-      setManifest(updatedManifest);
-      onManifestChange?.(updatedManifest);
-      return asset.assetId;
-    },
-    [manifest, onManifestChange]
-  );
+  const selectProjectAsset = useCallback(async (item: MediaPlan['items'][number], asset: import('../contracts/media').StoredMediaAsset) => {
+    const existing = manifestRef.current.entries.find(e => e.assetId === asset.assetId);
+    if (!existing) return;
+    const entry: MediaManifestEntry = { ...existing, id: item.id, section: item.section,
+      alt: item.decorative ? '' : item.alt, decorative: item.decorative, reviewStatus: 'selected' };
+    commitEntries(entries => entries.filter(e => e.id !== item.id).concat(entry));
+    return asset.assetId;
+  }, [commitEntries]);
 
   return {
+    generationConfigured,
     manifest,
     objectUrls,
     candidatesByItem,
     loadingByItem,
     errorByItem,
     searchMedia,
+    generateMedia,
     selectCandidate,
     approveMedia,
     rejectMedia,

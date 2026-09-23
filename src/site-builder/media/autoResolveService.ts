@@ -15,7 +15,7 @@ import { isLicensedAutoResolveEligible } from './mediaPlanBuilder';
  */
 export async function autoResolveEligibleMedia(
   mediaPlan: MediaPlan,
-  manager: Pick<MediaManagerState, 'searchMedia' | 'selectCandidate' | 'candidatesByItem'>,
+  manager: Pick<MediaManagerState, 'searchMedia' | 'selectCandidate'>,
   onProgress?: (resolved: number, total: number) => void,
 ): Promise<{ resolved: number; failed: number; skipped: number }> {
   const eligible = mediaPlan.items.filter(isLicensedAutoResolveEligible);
@@ -26,18 +26,13 @@ export async function autoResolveEligibleMedia(
 
   for (const item of eligible) {
     try {
-      await manager.searchMedia(item);
-
-      // After search, check candidates (they're set in state asynchronously)
-      // We need a small delay to let React state settle
-      await new Promise((r) => setTimeout(r, 100));
-
-      const candidates = manager.candidatesByItem[item.id];
+      const candidates = await manager.searchMedia(item);
       if (candidates && candidates.length > 0) {
         // Select the highest-confidence candidate
         const best = [...candidates].sort((a, b) => b.confidence - a.confidence)[0];
-        await manager.selectCandidate(item, best);
-        resolved++;
+        const assetId = await manager.selectCandidate(item, best);
+        if (assetId) resolved++;
+        else failed++;
       } else {
         skipped++;
       }

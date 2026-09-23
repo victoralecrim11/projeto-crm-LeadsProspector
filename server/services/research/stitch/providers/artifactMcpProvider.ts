@@ -133,7 +133,12 @@ export class ArtifactMcpProvider implements StitchProvider {
     try {
       const artifactPath = await this.getArtifactPath(projectId, requestId);
       const content = await fs.readFile(artifactPath, 'utf-8');
-      return stitchCandidateArtifactSchema.parse(JSON.parse(content));
+      const artifact = stitchCandidateArtifactSchema.parse(JSON.parse(content));
+      // Validate the bytes actually returned, even if a writer replaced the file after probe.
+      if (artifact.projectId !== projectId || artifact.strategyId !== strategyId ||
+        (requestId !== 'latest' && requestId !== 'default' && artifact.requestId !== requestId)) return null;
+      if (Date.now() - Date.parse(artifact.generatedAt) > 60 * 60 * 1000 || !Number.isFinite(Date.parse(artifact.generatedAt))) return null;
+      return artifact;
     } catch {
       return null;
     }
@@ -141,9 +146,10 @@ export class ArtifactMcpProvider implements StitchProvider {
 
   async consumeArtifact(projectId: string, requestId: string, strategyId: string): Promise<StitchCandidateArtifact | null> {
     const artifact = await this.readArtifact(projectId, requestId, strategyId);
+    // Explicit destructive consumption. Runtime generation must use readArtifact.
     if (artifact) {
-      const artifactPath = await this.getArtifactPath(projectId, requestId);
-      await fs.unlink(artifactPath).catch(() => {});
+      const artifactPath = await this.getArtifactPath(artifact.projectId, artifact.requestId);
+      await fs.unlink(artifactPath);
     }
     return artifact;
   }

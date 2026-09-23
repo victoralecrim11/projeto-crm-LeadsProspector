@@ -1,3 +1,4 @@
+import { readGeneratedMedia } from './generatedMediaStore.js';
 import { lookup } from 'node:dns/promises';
 import { createHash } from 'node:crypto';
 import http from 'node:http';
@@ -69,6 +70,8 @@ export async function acquireMediaAsset(
   dependencies: { resolve?: DnsResolve; transport?: MediaFetchTransport } = {},
 ): Promise<AcquiredMediaAsset> {
   const candidate = mediaCandidateSchema.parse(candidateInput);
+
+  if (candidate.sourceType === 'generated') return readGeneratedMedia(candidate);
 
   let currentUrl = candidate.previewUrl;
   let redirects = 0;

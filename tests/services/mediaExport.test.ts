@@ -136,3 +136,13 @@ test('exportSite: ZIP estático inclui assets binários, manifest e caminhos rel
   // 4. Créditos de imagem preservados
   assert.ok(indexHtml.includes('Photo by Chef Lucas on Pexels'));
 });
+
+
+test('export applies saved user overrides and refuses missing approved media', async () => {
+  const project = { id: 'proj_zip_test', siteBlueprint: baseBlueprint, siteContext: baseContext, contentReviewed: true,
+    siteOverrides: { version: 1, content: { hero: { headline: 'Saved edited headline' } } } } as unknown as Project;
+  const zip = await JSZip.loadAsync(await createSiteZip(project));
+  assert.match(await zip.file('index.html')!.async('string'), /Saved edited headline/);
+  await assert.rejects(createSiteZip({ ...project, siteMediaManifest: mockManifest }), /MEDIA_ASSET_MISSING/);
+  await assert.rejects(createSiteZip({ ...project, siteMediaManifest: mockManifest }, new InMemoryMediaAssetStore()), /MEDIA_ASSET_MISSING/);
+});

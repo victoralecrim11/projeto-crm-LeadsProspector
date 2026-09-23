@@ -67,6 +67,8 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
   const [productionStage, setProductionStage] = useState<string>('');
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [generatedProjectId, setGeneratedProjectId] = useState<string>('');
+  const [fallbackUsed, setFallbackUsed] = useState(false);
+  const [partialDesign, setPartialDesign] = useState(false);
 
   // Form draft state
   const [draft, setDraft] = useState<DraftFlowState>(() => {
@@ -114,6 +116,9 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
     setPhase('starting');
     setErrorDetails('');
     setProductionStatus('PENDING');
+    setProductionStage('INITIALIZING');
+    setPartialDesign(false);
+    setFallbackUsed(false);
 
     let pollInterval: NodeJS.Timeout | undefined;
     
@@ -137,6 +142,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
            finalGenerationRequestId = cp.generationRequestId;
            finalDesignProductionId = cp.designProductionId;
            setProductionStatus(cp.productionStatus);
+           setPartialDesign(cp.productionStatus === 'PARTIAL');
            setProductionStage('COMPLETED');
            console.info('[StitchFlow] Reusing existing production', {
              generationRequestId: finalGenerationRequestId,
@@ -230,7 +236,8 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                      providerStatus: pollData.providerStatus
                    });
                    
-                   let userMsg = `Falha na produção do design: ${pollData.errorCode || 'UNHANDLED'}`;
+                   let userMsg = 'Não foi possível preparar o design para finalizar o site. Revise as configurações ou tente novamente.';
+                   if (pollData.errorCode?.includes('MISMATCH') || pollData.errorCode === 'SITE_DESIGN_ARTIFACT_INVALID') userMsg = 'O design foi criado, mas houve uma inconsistência ao preparar os dados para finalizar o site.';
                    if (pollData.errorCode === 'STITCH_MOBILE_TIMEOUT' || pollData.errorCode === 'STITCH_JOB_TIMEOUT') {
                      userMsg = 'O serviço de design demorou mais que o esperado durante a criação da direção visual.';
                    }
@@ -266,25 +273,23 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
              }, 2000);
            });
          }
+         // Immediate terminal responses and polled responses share the same checkpoint.
+         if (currentStatus === 'FAILED') {
+           throw new Error('Não foi possível preparar o design para finalizar o site.');
+         }
+         setPartialDesign(currentStatus === 'PARTIAL');
+         checkpointRef.current = {
+           generationRequestId: finalGenerationRequestId!,
+           designProductionId: finalDesignProductionId!,
+           productionStatus: currentStatus,
+           intentKey: currentIntentKey,
+         };
          } // Closes the `else` block
       }
 
       setPhase('site-generation');
-      setProductionStatus('SAVING_PROJECT');
-
-      const project = crm.addProject({
-        leadId: selectedLead.id,
-        clientName: selectedLead.name,
-        title: "Site — " + selectedLead.name,
-        category: selectedLead.category,
-        type: draft.prefs.siteType === "institutional" ? "Site Institucional" : "Landing Page",
-        status: "rascunho",
-        previewUrl: "",
-        slug: selectedLead.id,
-        siteContext: context,
-        generationStatus: "generating",
-        contentReviewed: false,
-      });
+      setProductionStatus('GENERATING_CONTENT');
+      setProductionStage('');
 
       const result = draft.generationMode === 'standard' 
         ? await generateStandardAiBlueprint(
@@ -304,14 +309,26 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
 
       const resolvedDesign = 'design' in result ? resolvedDesignSchema.parse(result.design) : undefined;
       const mediaPlan = deriveDefaultMediaPlan({
-        ...project,
+        category: selectedLead.category,
         siteBlueprint: result.blueprint,
         siteDesign: resolvedDesign,
         siteContext: context,
       });
       
-      crm.updateProject({
-        ...project,
+      // Persist only after generation and contract validation succeed. A failed
+      // downstream request can then retry the same Stitch job without an orphan.
+      setProductionStatus('SAVING_PROJECT');
+      const project = crm.addProject({
+        leadId: selectedLead.id,
+        clientName: selectedLead.name,
+        title: "Site — " + selectedLead.name,
+        category: selectedLead.category,
+        type: draft.prefs.siteType === "institutional" ? "Site Institucional" : "Landing Page",
+        status: "rascunho",
+        previewUrl: "",
+        slug: selectedLead.id,
+        siteContext: context,
+        contentReviewed: false,
         siteBlueprint: result.blueprint,
         siteDesign: resolvedDesign,
         siteMediaPlan: mediaPlan,
@@ -319,6 +336,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         generationStatus: "generated",
       });
 
+      setFallbackUsed(result.generation.fallbackUsed === true);
       setGeneratedProjectId(project.id);
       setPhase('completed');
       
@@ -334,7 +352,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
       
       toast(result.generation.fallbackUsed
         ? "A IA não estava disponível. Site criado com fallback; você pode regenerá-lo com IA depois."
-        : "Site gerado com sucesso.");
+        : "Site criado para revisão.");
         
     } catch (e: any) {
       if (pollInterval) clearInterval(pollInterval);
@@ -378,10 +396,10 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
   const isDecisionPhase = phase === 'idle';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="flex justify-between items-center mb-6 shrink-0">
         <h2 id="site-generator-title" className="text-2xl font-bold text-white tracking-tight">
-          {isDecisionPhase ? 'Gerar Site' : (phase === 'failed' ? 'Não foi possível finalizar o site' : (phase === 'completed' ? 'Site gerado com sucesso' : 'Produção em andamento'))}
+          {isDecisionPhase ? 'Gerar Site' : (phase === 'failed' ? 'Não foi possível finalizar o site' : (phase === 'completed' ? (fallbackUsed ? 'Rascunho salvo sem IA' : 'Site criado para revisão') : 'Produção em andamento'))}
         </h2>
         <button 
           aria-label="Fechar gerador" 
@@ -392,7 +410,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto pr-2 pb-4">
+      <div className="flex-1 min-h-0 overflow-y-auto pr-2 pb-4">
         {isDecisionPhase && <StepperIndicator currentStep={currentStep} />}
         
         {isDecisionPhase && currentStep === 'lead' && (
@@ -420,6 +438,9 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
             phase={phase} 
             error={errorDetails} 
             projectId={generatedProjectId}
+            fallbackUsed={fallbackUsed}
+            partialDesign={partialDesign}
+            mediaPending={Boolean(crm.projects.find(p => p.id === generatedProjectId)?.siteMediaPlan?.items.length)}
             onOpenEditor={handleOpenEditor}
             onRetry={handleRetry}
             onReviewConfig={handleReviewConfig}

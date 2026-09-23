@@ -15,4 +15,5 @@ scratch/
 .vercel
 .stitch/runtime/
 .stitch-test/
+.playwright-mcp/
 .agents/mcp_config.json

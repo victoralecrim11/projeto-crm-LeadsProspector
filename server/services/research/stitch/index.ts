@@ -67,7 +67,7 @@ export async function explorePremium(
     }
     
     // 3. Explore via Provider (reads the artifact)
-    const artifact = await p.explore(projectId, requestId, strategyId);
+    const artifact = await p.readArtifact(projectId, requestId, strategyId);
     if (!artifact) {
       return { status: 'STITCH_ARTIFACT_INVALID', variants: [], candidates: [], strategy, requiresSelection: false };
     }

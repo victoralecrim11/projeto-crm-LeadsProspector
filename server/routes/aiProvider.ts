@@ -113,7 +113,7 @@ class AiProviderError extends Error {
 
 async function fetchJson(url: string, init: RequestInit) {
   try {
-    return await fetch(url, { ...init, signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
+    return await fetch(url, { ...init, signal: init.signal ?? AbortSignal.timeout(REQUEST_TIMEOUT_MS) });
   } catch (error) {
     if ((error as { name?: string }).name === "TimeoutError")
       throw new AiProviderError(504, "O provedor demorou demais para responder. Tente novamente.");
@@ -164,16 +164,48 @@ async function generateOpenAiCompatible(request: ProviderRequest & { provider: O
 }
 
 async function generateGemini(request: ProviderRequest) {
-  const models = request.model ? [request.model] : ["gemini-2.0-flash", "gemini-1.5-flash"];
+  // Keep discovery and bounded generation attempts inside the browser's 35s budget.
+  const signal = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+  const geminiFetch = (url: string, init: RequestInit) => fetchJson(url, { ...init, signal });
+  const models: string[] = [];
+  if (request.model) {
+    const model = request.model.replace(/^models\//, '');
+    if (!/^gemini-[a-zA-Z0-9._-]+$/.test(model)) throw new AiProviderError(400, 'O identificador do modelo Gemini é inválido.');
+    models.push(model);
+  } else {
+    let token: string | undefined;
+    const seenTokens = new Set<string>();
+    for (let page = 0; page < 10; page++) {
+      const url = new URL('https://generativelanguage.googleapis.com/v1beta/models');
+      url.searchParams.set('pageSize', '1000');
+      if (token) url.searchParams.set('pageToken', token);
+      const response = await geminiFetch(url.toString(), { headers: { 'x-goog-api-key': request.apiKey } });
+      if (!response.ok) throw new AiProviderError(response.status, apiErrorMessage(response.status, 'Não foi possível consultar os modelos disponíveis do Gemini.'));
+      const catalog = await response.json() as { models?: Array<{ name?: string; supportedGenerationMethods?: string[] }>; nextPageToken?: string };
+      for (const entry of catalog.models ?? []) {
+        const name = entry.name?.replace(/^models\//, '') ?? '';
+        if (/^gemini-[a-zA-Z0-9._-]+$/.test(name) && entry.supportedGenerationMethods?.includes('generateContent') &&
+          !/image|audio|tts|live|robotics|computer|embedding|preview|exp|latest|transcribe/i.test(name)) models.push(name);
+      }
+      token = catalog.nextPageToken;
+      if (!token) break;
+      if (seenTokens.has(token)) throw new AiProviderError(502, 'O catálogo Gemini retornou uma paginação inválida.');
+      seenTokens.add(token);
+    }
+    // Prefer stable Flash models for the connection test and short CRM text.
+    const unique = [...new Set(models)].sort((a, b) => Number(b.includes('flash')) - Number(a.includes('flash')) || b.localeCompare(a, 'en', { numeric: true }));
+    models.splice(0, models.length, ...unique);
+    if (!models.length) throw new AiProviderError(503, 'Nenhum modelo Gemini estável compatível com geração de texto está disponível para esta chave.');
+  }
   let lastError: AiProviderError | undefined;
   for (const model of models.slice(0, MAX_RETRIES_PER_PROVIDER)) {
-    const response = await fetchJson(
+    const response = await geminiFetch(
       `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
       {
         method: "POST",
         headers: { "content-type": "application/json", "x-goog-api-key": request.apiKey },
         body: JSON.stringify({
-          system_instruction: { parts: [{ text: request.systemPrompt }] },
+          systemInstruction: { parts: [{ text: request.systemPrompt }] },
           contents: [{ role: "user", parts: [{ text: request.userPrompt }] }],
         }),
       },
@@ -184,8 +216,10 @@ async function generateGemini(request: ProviderRequest) {
       if (content) return { content, model };
       throw new AiProviderError(502, "O Gemini respondeu sem texto utilizável.");
     }
-    const detail = await readError(response);
-    lastError = new AiProviderError(response.status, apiErrorMessage(response.status, detail));
+    lastError = new AiProviderError(response.status, apiErrorMessage(response.status,
+      response.status === 404
+        ? 'O modelo Gemini não está disponível para esta chave. Deixe o campo Modelo em branco para seleção automática ou escolha um modelo disponível.'
+        : 'O Gemini não conseguiu concluir a solicitação. Tente novamente.'));
     if ([429, 503, 504].includes(response.status)) {
       try { setCooldownFromRetryAfter(response, request.provider, model); } catch {}
     }

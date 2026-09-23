@@ -1,3 +1,4 @@
+import { applySiteUserOverrides } from "./overridesResolver";
 import JSZip from "jszip";
 import { renderSiteDocument } from "./renderer/SiteRenderer";
 import { contextSchema } from "./types";
@@ -10,7 +11,7 @@ import { IndexedDbMediaAssetStore } from './media/assetStore';
 export async function createSiteZip(project: Project, assetStore?: MediaAssetStore) {
   if (!project.siteBlueprint || !project.siteContext)
     throw new Error("Este projeto ainda não tem site gerado.");
-  const blueprint = normalizeForRender(project.siteBlueprint);
+  const blueprint = normalizeForRender(applySiteUserOverrides(project.siteBlueprint, project.siteOverrides));
   const context = contextSchema.parse(project.siteContext);
   if (!project.contentReviewed)
     throw new Error(
@@ -24,10 +25,16 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
   const design = project.siteDesign;
 
   const assetUrls: Record<string, string> = {};
+  if (project.siteMediaManifest?.entries.length && project.siteMediaManifest.projectId !== project.id) {
+    throw new Error('MEDIA_ACQUIRE_FAILED: manifesto de outro projeto.');
+  }
+  const manifest = project.siteMediaManifest ? { ...project.siteMediaManifest,
+    entries: project.siteMediaManifest.entries.filter(e => ['reviewed', 'exportable'].includes(e.reviewStatus)) } : undefined;
 
   if (project.siteMediaManifest && project.siteMediaManifest.entries.length > 0) {
     for (const entry of project.siteMediaManifest.entries) {
       if (['reviewed', 'exportable'].includes(entry.reviewStatus)) {
+        if (!assetStore) throw new Error("MEDIA_ASSET_MISSING: imagem aprovada indisponível para exportação.");
         if (assetStore) {
           let buffer: Uint8Array | null = null;
           if (assetStore.getBuffer) {
@@ -41,6 +48,7 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
             }
           }
 
+          if (!buffer) throw new Error("MEDIA_ASSET_MISSING: imagem aprovada indisponível para exportação.");
           if (buffer) {
             zip.file(`assets/${entry.assetPath}`, buffer);
             assetUrls[entry.assetId] = `./assets/${entry.assetPath}`;
@@ -48,10 +56,10 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
         }
       }
     }
-    zip.file("media/media-manifest.json", JSON.stringify(project.siteMediaManifest, null, 2));
+    zip.file("media/media-manifest.json", JSON.stringify(manifest, null, 2));
   }
 
-  zip.file("index.html", renderSiteDocument(blueprint, context, design, project.siteMediaManifest, assetUrls));
+  zip.file("index.html", renderSiteDocument(blueprint, context, design, manifest, assetUrls));
   if (design) {
     zip.file('DESIGN.md', design.designMarkdown);
     zip.file('design.json', JSON.stringify(design, null, 2));

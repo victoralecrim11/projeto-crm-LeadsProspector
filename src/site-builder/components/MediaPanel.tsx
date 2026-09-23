@@ -63,7 +63,7 @@ export function MediaPanel({
 
   if (items.length === 0) {
     return (
-      <div className="flex flex-col gap-3 p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-slate-100">
+      <div className="adv-media-panel flex w-full min-w-0 flex-col gap-3 p-4 bg-slate-900/50 rounded-xl border border-slate-800 text-slate-100">
         <div className="flex items-center gap-2">
           <ImageIcon className="w-5 h-5 text-slate-500" />
           <h3 className="font-semibold text-base text-slate-400">Mídia do Site</h3>
@@ -76,14 +76,14 @@ export function MediaPanel({
   }
 
   return (
-    <div className="flex max-w-full flex-col gap-6 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-slate-100">
+    <div className="adv-media-panel flex w-full min-w-0 max-w-full flex-col gap-6 overflow-hidden rounded-xl border border-slate-800 bg-slate-900/50 p-4 text-slate-100">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
         <div className="flex items-center gap-2">
           <ImageIcon className="w-5 h-5 flex-shrink-0 text-indigo-400" />
-          <h3 className="font-semibold text-base">Banco de Imagens Licenciadas</h3>
+          <h3 className="font-semibold text-base">Imagens do site</h3>
         </div>
         <span className="text-xs px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-300 border border-indigo-500/20 flex items-center gap-1 whitespace-nowrap shrink-0">
-          <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Pexels / Pixabay
+          <ShieldCheck className="w-3.5 h-3.5 shrink-0" /> Banco de imagens / IA
         </span>
       </div>
 
@@ -104,7 +104,7 @@ export function MediaPanel({
         salvas no seu navegador e incluídas no pacote de exportação com créditos automáticos.
       </p>
 
-      <div className="flex flex-col gap-5">
+      <div className="flex w-full min-w-0 flex-col gap-5">
         {items.map((item) => {
           const entry = manifest.entries.find((e) => e.id === item.id);
           const candidates = candidatesByItem[item.id] || [];
@@ -115,9 +115,9 @@ export function MediaPanel({
           return (
             <div
               key={item.id}
-              className="flex min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-slate-700/60 bg-slate-800/40 p-4"
+              className="flex w-full min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-lg border border-slate-700/60 bg-slate-800/40 p-3"
             >
-              <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div className="flex min-w-0 flex-col items-start gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="text-xs uppercase tracking-wider font-semibold px-2 py-0.5 rounded bg-slate-700 text-slate-300">
@@ -130,12 +130,12 @@ export function MediaPanel({
                       </span>
                     )}
                   </div>
-                  <p className="mt-1 break-words text-sm font-medium leading-relaxed text-slate-200">{item.purpose}</p>
+                  <p className="adv-media-purpose mt-1 break-words text-xs font-medium leading-relaxed text-slate-200">{item.purpose}</p>
                 </div>
 
                 {entry && (
                   <span
-                    className={`text-xs px-2 py-0.5 rounded-full font-medium whitespace-nowrap self-start ${
+                    className={`max-w-full text-xs px-2 py-0.5 rounded-full font-medium whitespace-normal break-words self-start ${
                       entry.reviewStatus === 'exportable'
                         ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/30'
                         : 'bg-amber-500/10 text-amber-300 border border-amber-500/30'
@@ -152,11 +152,11 @@ export function MediaPanel({
 
               {/* Selected image */}
               {entry && previewUrl ? (
-                <div className="flex min-w-0 max-w-full flex-col gap-4 overflow-hidden rounded-md border border-slate-800 bg-slate-900/60 p-3 md:flex-row md:items-start">
+                <div className="flex w-full min-w-0 max-w-full flex-col gap-3 overflow-hidden rounded-md border border-slate-800 bg-slate-900/60 p-3">
                   <img
                     src={previewUrl}
                     alt={entry.alt}
-                    className="h-28 w-full max-w-full shrink-0 rounded border border-slate-700 object-cover shadow-sm md:h-24 md:w-32 md:max-w-none"
+                    className="h-36 w-full max-w-full rounded border border-slate-700 object-cover shadow-sm"
                   />
                   <div className="flex min-w-0 max-w-full flex-1 flex-col gap-1 text-xs">
                     <div className="flex flex-wrap items-center gap-1.5 text-slate-300">

@@ -52,7 +52,7 @@ class AiImageProviderRegistry {
     const policy: ProviderPolicy = { zeroCostOnly };
     
     const providerId = request.provider && request.provider !== 'all' ? request.provider : null;
-    let provider = providerId ? this.providers.get(providerId) : null;
+    let provider = providerId ? this.get(providerId) : null;
 
     if (provider) {
       // If manually selected but ineligible under current policy, block it!

@@ -1,3 +1,6 @@
+import { applySiteUserOverrides } from "../site-builder/overridesResolver";
+import { useMediaAssetUrls } from "../site-builder/media/useMediaAssetUrls";
+import { GenerationFallbackNotice, StitchAdaptationNotice } from '../site-builder/components/GenerationFallbackNotice';
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCrm } from "../hooks/useCrm";
@@ -22,6 +25,8 @@ export const RedesenhoView: React.FC = () => {
   const project = crm.projects.find(
     (p) => p.leadId === id && p.siteBlueprint && p.siteContext,
   );
+  const mediaManifest = project?.siteMediaManifest?.projectId === project?.id ? project?.siteMediaManifest : undefined;
+  const assetUrls = useMediaAssetUrls(mediaManifest);
   const safeUrl =
     lead?.websiteUrl && /^https?:\/\//i.test(lead.websiteUrl)
       ? lead.websiteUrl
@@ -139,11 +144,15 @@ export const RedesenhoView: React.FC = () => {
               <span className="site-eyebrow">02 · NOVA EXPERIÊNCIA</span>
               <h3>Prévia do site</h3>
             </div>
+            <GenerationFallbackNotice generation={project?.aiGeneration} />
+              <StitchAdaptationNotice design={project?.siteDesign} />
             {project?.siteBlueprint && project.siteContext ? (
               <SitePreview
-                blueprint={project.siteBlueprint}
+                blueprint={applySiteUserOverrides(project.siteBlueprint, project.siteOverrides)}
                 context={project.siteContext}
                 design={project.siteDesign}
+                mediaManifest={mediaManifest}
+                assetUrls={assetUrls}
               />
             ) : (
               <div className="site-preview-empty">

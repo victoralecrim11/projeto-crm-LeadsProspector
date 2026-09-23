@@ -1,3 +1,4 @@
+import { stitchAppearanceSchema } from './stitchAppearance.js';
 import { z } from 'zod';
 import { businessContextSchema, designSpecificationSchema, referenceBriefSchema } from './index.js';
 import { contextSchema, sectionIds } from '../types.js';
@@ -155,6 +156,7 @@ export const designCandidateSchema = z.object({
   responsivePairId: z.string().optional(),
   projectUrl: z.string().url().optional(),
   strategyId: z.string().max(160),
+  appearance: stitchAppearanceSchema.optional(),
   layoutPatterns: z.array(text),
   heroPattern: text,
   aboutPattern: text,
@@ -221,14 +223,15 @@ export const resolvedDesignSchema = z.object({
   responsiveBehavior: text, preservedBrandElements: z.array(text),
   designMarkdown: z.string().max(24000),
   trace: z.array(z.object({ decision: text, origin: text }).strict()).max(30),
-  stitch: z.object({ 
+  stitch: z.object({
+    appearance: z.object({ mobile: stitchAppearanceSchema, desktop: stitchAppearanceSchema.optional() }).strict().optional(),
     projectUrl: z.string().url().refine(v => new URL(v).origin === 'https://stitch.withgoogle.com').optional(),
     viewportAnchors: z.object({
       mobile: designArtifactReferenceSchema.optional(),
       desktop: designArtifactReferenceSchema.optional(),
     }).optional(),
-    alternatives: z.array(text).min(1).max(3), 
-    selected: text, 
+    alternatives: z.array(text).min(1).max(3),
+    selected: text,
     review: text,
     provider: text.optional(),
     projectId: text.optional(),

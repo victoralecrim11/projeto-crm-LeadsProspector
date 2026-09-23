@@ -62,12 +62,13 @@ test('28. terminal production expira após TTL', async () => {
   p.status = 'PAIRED';
   p.terminalAt = Date.now() - (61 * 60 * 1000); // Expirado (simulando 61min)
   stitchDesignProductionService['cleanupExpired']();
-  const getP = stitchDesignProductionService.getProduction('req-5');
+  await stitchDesignProductionService['persistProduction'](p);
+  const getP = await stitchDesignProductionService.getProduction('req-5');
   assert.equal(getP, undefined);
 });
 
-test('29. unknown production retorna not found', () => {
-  const getP = stitchDesignProductionService.getProduction('unknown-req');
+test('29. unknown production retorna not found', async () => {
+  const getP = await stitchDesignProductionService.getProduction('unknown-req');
   assert.equal(getP, undefined);
 });
 

@@ -1,3 +1,4 @@
+import { readGeneratedPreview } from '../services/media/generatedMediaStore.js';
 import crypto from 'node:crypto';
 import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
@@ -14,7 +15,7 @@ const searchBodySchema = z.object({
   niche: z.string().min(1).max(120),
   subNiche: z.string().max(120).optional(),
   section: z.string().min(1).max(60),
-  purpose: z.string().min(1).max(300),
+  purpose: z.string().min(1).max(1600),
   aspectRatio: z.enum(['1:1', '4:3', '3:4', '16:9']),
   provider: z.enum(['auto', 'pexels', 'pixabay']).optional(),
   imageryDirection: z.string().max(600).optional(),
@@ -28,6 +29,17 @@ const acquireBodySchema = z.object({
 export function mediaRouter() {
   const router = Router();
   const fallbackChain = new MediaFallbackChain();
+
+  // Possession of this unguessable, expiring token grants preview access only.
+  router.get('/generated/:token', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('X-Content-Type-Options', 'nosniff');
+    res.setHeader('Cross-Origin-Resource-Policy', 'same-origin');
+    try {
+      const { asset } = readGeneratedPreview(req.params.token);
+      return res.type(asset.mimeType).send(asset.binary);
+    } catch { return res.status(404).json({ code: 'MEDIA_ASSET_MISSING', error: 'Imagem temporária indisponível.' }); }
+  });
 
   router.use((req: Request, res: Response, next) => {
     res.setHeader('Cache-Control', 'no-store');
@@ -73,7 +85,7 @@ export function mediaRouter() {
   router.get('/providers', async (req: Request, res: Response) => {
     try {
       const providers = await fallbackChain.getProvidersStatus();
-      return res.json({ providers });
+      return res.json({ providers, imageGeneration: { configured: aiImageProviderRegistry.get('comfyui').isConfigured(), provider: 'comfyui' } });
     } catch (err) {
       return res.status(500).json({ error: 'Falha ao buscar provedores.' });
     }
@@ -102,7 +114,7 @@ export function mediaRouter() {
         error: 'Parâmetros de busca inválidos.',
         code: 'MEDIA_PROVIDER_INVALID_RESPONSE',
         retryable: false,
-        details: parsed.error.issues.map((i) => i.message),
+
         requestId,
       });
     }
@@ -138,7 +150,7 @@ export function mediaRouter() {
         error: 'Candidato inválido para aquisição.',
         code: 'MEDIA_ACQUIRE_FAILED',
         retryable: false,
-        details: parsed.error.issues.map((i) => i.message),
+
         requestId,
       });
     }
@@ -175,7 +187,7 @@ export function mediaRouter() {
     niche: z.string().min(1).max(120),
     subNiche: z.string().max(120).optional(),
     section: z.string().min(1).max(60),
-    purpose: z.string().min(1).max(300),
+    purpose: z.string().min(1).max(1600),
     aspectRatio: z.enum(['1:1', '4:3', '3:4', '16:9']),
     provider: z.string().optional(),
     imageryDirection: z.string().max(600).optional(),
@@ -185,13 +197,13 @@ export function mediaRouter() {
   router.post('/generate', async (req: Request, res: Response) => {
     const requestId = (req as import('express').Request & { requestId?: string }).requestId || `media_gen_${crypto.randomUUID()}`;
     const parsed = generateBodySchema.safeParse(req.body);
-    
+
     if (!parsed.success) {
       return res.status(400).json({
         error: 'Parâmetros de geração inválidos.',
         code: 'MEDIA_PROVIDER_INVALID_RESPONSE',
         retryable: false,
-        details: parsed.error.issues.map((i) => i.message),
+
         requestId,
       });
     }
@@ -203,7 +215,7 @@ export function mediaRouter() {
       };
 
       const result = await aiImageProviderRegistry.generate(generateRequest);
-      return res.json(result);
+      return res.json(mediaCandidateSchema.parse(result));
     } catch (err: unknown) {
       if (err instanceof MediaProviderError) {
         return res.status(err.statusCode ?? 500).json({

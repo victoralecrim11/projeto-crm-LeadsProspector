@@ -29,10 +29,10 @@ export const mediaCandidateSchema = z.object({
   version: z.literal(1),
   candidateId: z.string().min(1).max(120),
   requestId: z.string().min(1).max(120),
-  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen']),
+  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen', 'comfyui']),
   providerAssetId: z.string().min(1).max(120),
   sourceType: z.enum(['licensed', 'generated']),
-  previewUrl: httpsUrl,
+  previewUrl: z.union([httpsUrl, z.string().regex(/^\/api\/ai\/media\/generated\/[a-f0-9]{64}$/)]),
   sourcePageUrl: httpsUrl.optional(),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -47,13 +47,13 @@ export const mediaCandidateSchema = z.object({
   retrievedAt: z.string().datetime(),
   confidence: z.number().min(0).max(1),
   metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean()])).default({}),
-}).strict();
+}).strict().refine(c => !c.previewUrl.startsWith('/') || (c.sourceType === 'generated' && c.provider === 'comfyui'), 'Referência de geração inválida.');
 export type MediaCandidate = z.infer<typeof mediaCandidateSchema>;
 
 export const acquiredMediaAssetSchema = z.object({
   candidateId: z.string().min(1).max(120),
   requestId: z.string().min(1).max(120),
-  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen']),
+  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen', 'comfyui']),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
   width: z.number().int().positive(),
   height: z.number().int().positive(),
@@ -67,7 +67,7 @@ export type AcquiredMediaAsset = z.infer<typeof acquiredMediaAssetSchema>;
 export const storedMediaAssetSchema = z.object({
   assetId: z.string().min(1).max(120),
   requestId: z.string().min(1).max(120),
-  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen']),
+  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen', 'comfyui']),
   storageKey: z.string().min(1).max(120),
   mimeType: z.enum(['image/jpeg', 'image/png', 'image/webp']),
   width: z.number().int().positive(),
@@ -92,7 +92,7 @@ export const mediaManifestEntrySchema = z.object({
   requestId: z.string().min(1).max(120),
   section: z.enum(sectionIds),
   sourceType: z.enum(['licensed', 'generated']),
-  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen']),
+  provider: z.enum(['pexels', 'pixabay', 'dall-e', 'imagen', 'comfyui']),
   providerAssetId: z.string().min(1).max(120),
   sourcePageUrl: httpsUrl.optional(),
   licenseLabel: z.string().trim().min(1).max(120).optional(),

@@ -16,7 +16,16 @@ export type SiteAiErrorCode =
   | 'SITE_AI_INTERNAL_ERROR'
   | 'SITE_DESIGN_ARTIFACT_UNAVAILABLE'
   | 'SITE_DESIGN_ARTIFACT_EMPTY'
-  | 'SITE_DESIGN_NO_USABLE_ALTERNATIVES';
+  | 'SITE_DESIGN_NO_USABLE_ALTERNATIVES'
+  | 'SITE_DESIGN_JOB_NOT_FOUND'
+  | 'SITE_DESIGN_JOB_INVALID'
+  | 'SITE_DESIGN_CONTRACT_INVALID'
+  | 'SITE_DESIGN_NOT_READY'
+  | 'SITE_DESIGN_REF_MISSING'
+  | 'SITE_DESIGN_STRATEGY_MISMATCH'
+  | 'SITE_DESIGN_ARTIFACT_INVALID'
+  | 'SITE_DESIGN_ARTIFACT_STALE'
+  | 'SITE_DESIGN_ARTIFACT_MISMATCH';
 
 export class SiteAiError extends Error {
   constructor(
@@ -142,6 +151,11 @@ export async function discoverModels(
       if (response.ok) {
         const data = await response.json();
         for (const m of data.data ?? []) {
+          // The catalog also includes speech and moderation models. Only text
+          // generation families supported by this adapter can create blueprints.
+          if (typeof m.id !== 'string' || m.active === false ||
+            !/^(?:openai\/gpt-oss-(?:20b|120b)$|qwen\/qwen|(?:meta-llama\/)?llama-|allam-)/i.test(m.id) ||
+            /guard|whisper|orpheus|audio|speech|tts|embedding/i.test(m.id)) continue;
           models.push({
             id: "groq:" + m.id,
             provider: "groq",

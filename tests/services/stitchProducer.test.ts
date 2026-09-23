@@ -322,9 +322,18 @@ async function e2eNicheTest(niche: string, subNiche: string, projectId: string, 
   assert.ok(zodResult.success, `Artifact Zod failed for ${niche}: ${JSON.stringify(zodResult.error?.issues)}`);
 
   // 4. Consume with REAL ArtifactMcpProvider (same-artifact)
-  const provider = new ArtifactMcpProvider(TEST_BASE);
+  const provider = new ArtifactMcpProvider(path.join(TEST_BASE, '.stitch', 'runtime'));
+  const firstRead = await provider.readArtifact(projectId, requestId, strategy.strategyId);
+  const freshProvider = new ArtifactMcpProvider(path.join(TEST_BASE, '.stitch', 'runtime'));
+  const secondRead = await freshProvider.readArtifact(projectId, requestId, strategy.strategyId);
+  assert.deepEqual(firstRead, zodResult.data);
+  assert.deepEqual(secondRead, firstRead);
+  assert.equal(await fs.readFile(artifactPath, 'utf-8'), content);
   const artifact = await provider.consumeArtifact(projectId, requestId, strategy.strategyId);
   assert.ok(artifact, 'ArtifactMcpProvider must return the artifact');
+  assert.deepEqual(artifact, firstRead);
+  await assert.rejects(fs.access(artifactPath), { code: 'ENOENT' });
+  assert.equal(await provider.consumeArtifact(projectId, requestId, strategy.strategyId), null);
   
   assert.equal(artifact.projectId, projectId);
   assert.equal(artifact.requestId, requestId);

@@ -57,8 +57,9 @@ test("media panel usa layout responsivo sem largura fixa em telas menores", () =
   assert.match(html, /max-w-full/);
   assert.match(html, /overflow-hidden/);
   assert.match(html, /flex-wrap/);
-  assert.match(html, /md:flex-row/);
   assert.match(html, /break-words/);
-  assert.match(html, /w-full shrink-0/);
-  assert.match(html, /md:w-32/);
+  assert.match(html, /flex min-w-0 flex-col items-start gap-2/);
+  assert.match(html, /flex w-full min-w-0 max-w-full flex-col/);
+  assert.match(html, /h-36 w-full max-w-full/);
+  assert.doesNotMatch(html, /md:flex-row|md:w-32/);
 });

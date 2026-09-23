@@ -1,3 +1,4 @@
+import { applyStitchVisualEvidence } from './stitchVisualEvidence.js';
 import { blueprintSchema, type GeneratedSiteBlueprint } from './types.js';
 import { contactAvailable } from './context.js';
 import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign, type DesignResearchSnapshot, type DesignCandidate } from './contracts/research.js';
@@ -32,7 +33,7 @@ export function designMarkdown(d: ResolvedDesign) {
     'Visual Principles': d.referenceBrief.market.patterns.join('\n- '),
     'Brand Elements to Preserve': d.preservedBrandElements.join('\n'),
     Colors: Object.entries(t.color).map(([k,v]) => `${k}: ${v}`).join('\n'),
-    Typography: t.typography === 'editorial' ? 'Georgia nos títulos; Segoe UI/system-ui no corpo.' : 'Segoe UI/system-ui; títulos claros e leitura confortável.',
+    Typography: d.stitch?.appearance?.mobile.headingFont ? `${d.stitch.appearance.mobile.headingFont} nos títulos; ${d.stitch.appearance.mobile.bodyFont || 'fonte de sistema'} no corpo (Google Fonts quando disponível).` : t.typography === 'editorial' ? 'Georgia nos títulos; Segoe UI/system-ui no corpo.' : 'Segoe UI/system-ui; títulos claros e leitura confortável.',
     Spacing: `Seções ${t.spacing.section}px; compacto ${t.spacing.sectionCompact}px.`,
     Radius: `Cards ${t.radius.card}px; botões ${t.radius.cta}px.`, Shadows: 'Sombra discreta nos controles; sem profundidade decorativa excessiva.',
     Layout: d.composition.join(' → '), Grid: 'Contêiner fluido; máximo 1200px; empilhar abaixo de 800px.',
@@ -52,7 +53,7 @@ export function buildDesignSystemContract(d: ResolvedDesign): DesignSystemContra
     productContext: { niche: s.referenceBrief.business.derivedNiche, businessType: s.referenceBrief.business.businessType, goal: s.conversionStrategy },
     visualStyle: { family: s.specification.family.id, variant: s.variant, principles: s.referenceBrief.market.patterns.slice(0, 12) },
     color: tokens.color,
-    typography: { strategy: tokens.typography, headingFamily: tokens.typography === 'editorial' ? 'playfair-display' : 'manrope', bodyFamily: 'nunito-sans', headingFallback: 'Georgia, serif', bodyFallback: 'system-ui, sans-serif', source: 'system', typographyProfile: tokens.typographyProfile },
+    typography: { strategy: tokens.typography, headingFamily: d.stitch?.appearance?.mobile.headingFont || (tokens.typography === 'editorial' ? 'playfair-display' : 'manrope'), bodyFamily: d.stitch?.appearance?.mobile.bodyFont || 'nunito-sans', headingFallback: 'Georgia, serif', bodyFallback: 'system-ui, sans-serif', source: d.stitch?.appearance?.mobile.headingFont ? 'google-font' : 'system', typographyProfile: tokens.typographyProfile },
     spacing: tokens.spacing, radius: tokens.radius,
     shadow: { level: tokens.radius.card > 8 ? 'soft' : 'subtle' },
     container: { maxWidth: 1200, sectionGap: tokens.spacing.section },
@@ -106,13 +107,16 @@ import type { ResponsiveDesignResolution } from './responsiveResolution.js';
 export function resolvePremiumSelectionResponsive(
   base: ResolvedDesign,
   evidence: NonNullable<ResolvedDesign['stitch']>,
-  resolution: ResponsiveDesignResolution
+  resolution: ResponsiveDesignResolution,
+  now = new Date()
 ): ResolvedDesign {
   const d = resolvedDesignSchema.parse({ ...base, mode: 'premium', stitch: evidence });
   d.variant = evidence.selected;
   
   const candidate = resolution.effectiveCandidate;
   const companion = resolution.desktopCompanion;
+  applyStitchVisualEvidence(d, candidate);
+  if (d.stitch?.appearance && companion?.appearance) d.stitch.appearance.desktop = companion.appearance;
   
   let originStr = `Responsive Resolution: ${resolution.status}. Mobile Winner: ${candidate.candidateId}`;
   if (companion) originStr += ` + Desktop Companion: ${companion.candidateId}`;
@@ -121,7 +125,7 @@ export function resolvePremiumSelectionResponsive(
     d.composition = candidate.sectionOrder;
   }
 
-  d.resolution = { status: 'resolved', resolvedAt: new Date().toISOString(), reason: evidence.review };
+  d.resolution = { status: 'resolved', resolvedAt: now.toISOString(), reason: evidence.review };
   d.trace.push({ decision: 'Direção visual Premium Responsiva', origin: originStr });
   
   // NOTE: This does NOT mutate base. It returns a new ResolvedDesign matching the schema.

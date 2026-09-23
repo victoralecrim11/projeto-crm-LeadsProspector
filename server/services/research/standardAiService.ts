@@ -78,96 +78,48 @@ export async function generateStandardAiSite(
   const business = businessFromSource(source);
 
   // 1. Resolve site generation design using Stitch/Fallback
-  
+
   // Validation for Intelligent Stitch Generation (v1.3/1.4)
   const isFreshIntelligent = Boolean(dependencies.generationRequestId || dependencies.designProductionId);
-  let artifactReference: import('../../../src/site-builder/contracts/research.js').DesignArtifactReference | undefined;
-  
+
+  let prepared;
   if (isFreshIntelligent) {
     if (!dependencies.generationRequestId || !dependencies.designProductionId) {
       throw new SiteAiError('Mismatched request identities.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
     }
-    const { stitchDesignProductionService } = await import('./stitchProductionService.js');
-    const result = await stitchDesignProductionService.loadConsumableDesignProduction(dependencies.generationRequestId);
-    const production = result.production;
-    
-    if (!production) {
-      throw new SiteAiError('A sessão de criação do design expirou. Gere o design novamente.', 404, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
-    }
-    
-    if (
-      production.designProductionId !== dependencies.designProductionId ||
-      production.leadId !== source.leadId
-    ) {
-      throw new SiteAiError('Cross-lead protection failed.', 403, false, 'SITE_AI_PROVIDER_AUTH');
-    }
-    
-    if (production.status !== 'PAIRED' && production.status !== 'PARTIAL') {
-      throw new SiteAiError(`Design status is ${production.status}, expected PAIRED or PARTIAL.`, 409, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
-    }
-    
-    if (production.status === 'PARTIAL' && !production.mobileReference) {
-      throw new SiteAiError('PARTIAL requires a valid mobile reference.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
-    }
-    
-    artifactReference = production.mobileReference;
-    // Desktop reference will be handled later by responsive resolver if available on final design
+    const { prepareStandardAiDesignContext } = await import('./stitchConsumerPreparation.js');
+    prepared = await prepareStandardAiDesignContext({
+      generationRequestId: dependencies.generationRequestId,
+      designProductionId: dependencies.designProductionId,
+      runtimeContext: {
+        source,
+        current,
+        overrides,
+      },
+    });
   }
-  
-  const { 
-    resolvedDesign: design, 
-    designSource, 
-    selectedCandidateId, 
-    artifactIdentity, 
-    fallbackReason 
-  } = await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides, artifactReference, isFreshIntelligent));
-  
-  let anchors: { mobile?: any, desktop?: any } | undefined = undefined;
 
-  if (isFreshIntelligent && dependencies.generationRequestId) {
-    const { stitchDesignProductionService } = await import('./stitchProductionService.js');
-    const result = await stitchDesignProductionService.loadConsumableDesignProduction(dependencies.generationRequestId);
-    const production = result.production;
-    if (production) {
-      if (production.status === 'PAIRED' || production.status === 'PARTIAL') {
-         if (!production.mobileReference) {
-           throw new SiteAiError('Valid mobile reference is required for PAIRED/PARTIAL states.', 400, false, 'SITE_AI_PROVIDER_INVALID_REQUEST');
-         }
-         anchors = {
-           mobile: production.mobileReference,
-           desktop: production.desktopReference
-         };
-      }
+  const {
+    resolvedDesign: design,
+    designSource,
+    selectedCandidateId,
+    artifactIdentity,
+    fallbackReason,
+  } = isFreshIntelligent && prepared
+    ? {
+      resolvedDesign: prepared.finalDesign,
+      designSource: prepared.designSource,
+      selectedCandidateId: undefined,
+      artifactIdentity: undefined,
+      fallbackReason: prepared.fallbackReason,
     }
-  }
+    : await import('./siteGenerationDesignResolver.js').then(m => m.resolveSiteGenerationDesign(source, current, overrides, undefined, isFreshIntelligent));
 
   let finalDesign = design;
-  if (anchors?.mobile) {
-    const { resolveRuntimeResponsiveDesign } = await import('./siteGenerationResponsiveResolver.js');
-    try {
-      const resp = await resolveRuntimeResponsiveDesign(finalDesign, anchors);
-      finalDesign = resp.resolvedDesign;
-      
-      // 32. TRACE PAYLOAD: Imediatamente antes de blueprintSchema/standard-ai parse
-      if (isFreshIntelligent && process.env.NODE_ENV === 'development') {
-        console.log(`[ResponsiveDesignTrace] Payload validation. GenerationRequestId: ${dependencies.generationRequestId}, payloadAlternativeCount: ${finalDesign.stitch?.alternatives?.length}`);
-      }
-    } catch (e: any) {
-      console.error('[SiteAI] Failed to resolve responsive design:', e);
-      if (isFreshIntelligent) {
-        const errorMsg = e.message || String(e);
-        if (errorMsg.includes('SITE_DESIGN_NO_USABLE_ALTERNATIVES')) {
-           throw new SiteAiError('O design visual foi criado, mas nenhum candidato utilizável foi encontrado. Tente gerar um novo design.', 422, false, 'SITE_DESIGN_NO_USABLE_ALTERNATIVES', undefined, errorMsg);
-        }
-        if (errorMsg.includes('SITE_DESIGN_ARTIFACT_STALE')) {
-           throw new SiteAiError('O design visual expirou ou tornou-se inválido. Tente gerar novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
-        }
-        if (errorMsg.includes('SITE_DESIGN_ARTIFACT_INVALID') || errorMsg.includes('SITE_DESIGN_ARTIFACT_MISMATCH')) {
-           throw new SiteAiError('O design visual possui um formato inválido ou corrompido. Tente gerar novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
-        }
-        throw new SiteAiError('O design visual foi criado, mas não foi possível recuperar os artefatos necessários para finalizar o site. Tente novamente.', 422, false, 'SITE_DESIGN_ARTIFACT_UNAVAILABLE', undefined, errorMsg);
-      }
-      // legacy fallback to original design if resolution fails
+  if (isFreshIntelligent && prepared) {
+    // 32. TRACE PAYLOAD: Imediatamente antes de blueprintSchema/standard-ai parse
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[ResponsiveDesignTrace] Payload validation. GenerationRequestId: ${dependencies.generationRequestId}, payloadAlternativeCount: ${prepared.alternatives.length}`);
     }
   }
 

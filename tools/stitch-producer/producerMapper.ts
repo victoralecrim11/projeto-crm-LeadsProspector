@@ -38,17 +38,18 @@ function mapRawVariant(
     responsivePairId,
     projectUrl: raw.projectUrl && isValidUrl(raw.projectUrl) ? raw.projectUrl : undefined,
     strategyId: strategy.strategyId,
-    layoutPatterns: sanitizeStringArray(raw.layoutPatterns) || [strategy.compositionDirection],
+    appearance: raw.appearance,
+    layoutPatterns: sanitizeStringArray(raw.layoutPatterns),
     heroPattern: sanitizeText(raw.heroPattern) || 'split',
     aboutPattern: sanitizeText(raw.aboutPattern) || 'standard',
     servicePattern: sanitizeText(raw.servicePattern) || 'grid',
     sectionOrder: mapSectionOrder(raw.sectionOrder, strategy),
-    typographySignals: sanitizeStringArray(raw.typographySignals) || [strategy.typographyDirection],
+    typographySignals: sanitizeStringArray(raw.typographySignals),
     colorSignals: sanitizeStringArray(raw.colorSignals) || [],
     spacingSignals: sanitizeStringArray(raw.spacingSignals) || [],
     imageryDirection: sanitizeText(raw.imageryDirection) || strategy.imageryDirection,
     motionSignals: sanitizeStringArray(raw.motionSignals) || [strategy.motionLevel],
-    responsiveSignals: sanitizeStringArray(raw.responsiveSignals) || ['mobile-first'],
+    responsiveSignals: sanitizeStringArray(raw.responsiveSignals),
     screenshotReference: raw.screenshotUrl && isValidUrl(raw.screenshotUrl) ? raw.screenshotUrl : undefined,
     // htmlReference is intentionally omitted — raw HTML from Stitch must not enter CRM domain directly
     scores: {
@@ -102,14 +103,9 @@ export function mapStitchRawToArtifact(
 const VALID_SECTION_IDS = new Set(['hero', 'about', 'services', 'contact', 'location']);
 
 function mapSectionOrder(raw: string[] | undefined, strategy: DesignStrategy): DesignCandidate['sectionOrder'] {
-  if (!raw || raw.length !== 5) {
-    return [...strategy.sectionPriorities];
-  }
-  const filtered = raw.filter(s => VALID_SECTION_IDS.has(s)) as DesignCandidate['sectionOrder'];
-  if (filtered.length !== 5 || new Set(filtered).size !== 5) {
-    return [...strategy.sectionPriorities];
-  }
-  return filtered;
+  const observed = (raw ?? []).filter(s => VALID_SECTION_IDS.has(s)) as DesignCandidate['sectionOrder'];
+  // Unsupported/absent sections keep strategy order; only observed IDs alter their order.
+  return [...new Set([...observed, ...strategy.sectionPriorities])];
 }
 
 /** SECONDARY PII BARRIER: truncate and strip suspicious patterns from text. */

@@ -18,11 +18,8 @@ export function validateAnchorCoherence(mobile: DesignCandidate, desktop: Design
     return { status: 'INVALID', reason: 'responsivePairId mismatch' };
   }
 
-  // 2. Structural Signals
-  if (mobile.heroPattern !== desktop.heroPattern) {
-    return { status: 'INVALID', reason: `heroPattern mismatch: ${mobile.heroPattern} vs ${desktop.heroPattern}` };
-  }
-  
+  // 2. Stable semantic signals. Hero/layout/spacing/size signals are allowed to
+  // differ because they describe the viewport-specific responsive adaptation.
   if (mobile.aboutPattern !== desktop.aboutPattern) {
     return { status: 'INVALID', reason: `aboutPattern mismatch: ${mobile.aboutPattern} vs ${desktop.aboutPattern}` };
   }
@@ -31,18 +28,22 @@ export function validateAnchorCoherence(mobile: DesignCandidate, desktop: Design
     return { status: 'INVALID', reason: `servicePattern mismatch: ${mobile.servicePattern} vs ${desktop.servicePattern}` };
   }
 
-  const layoutMismatch = mobile.layoutPatterns.some((pattern, index) => pattern !== desktop.layoutPatterns[index]);
-  if (layoutMismatch || mobile.layoutPatterns.length !== desktop.layoutPatterns.length) {
-    return { status: 'INVALID', reason: 'layoutPatterns mismatch' };
-  }
-
-  const typoMismatch = mobile.typographySignals.some((signal, index) => signal !== desktop.typographySignals[index]);
-  if (typoMismatch || mobile.typographySignals.length !== desktop.typographySignals.length) {
-    return { status: 'INVALID', reason: 'typographySignals mismatch' };
-  }
-
   if (mobile.imageryDirection !== desktop.imageryDirection) {
     return { status: 'INVALID', reason: 'imageryDirection mismatch' };
+  }
+
+  const normalizeFont = (value?: string) => value?.trim().toLowerCase();
+  const mobileHeading = normalizeFont(mobile.appearance?.headingFont);
+  const desktopHeading = normalizeFont(desktop.appearance?.headingFont);
+  const mobileBody = normalizeFont(mobile.appearance?.bodyFont);
+  const desktopBody = normalizeFont(desktop.appearance?.bodyFont);
+
+  if (mobileHeading && desktopHeading && mobileHeading !== desktopHeading) {
+    return { status: 'INVALID', reason: 'heading font mismatch' };
+  }
+
+  if (mobileBody && desktopBody && mobileBody !== desktopBody) {
+    return { status: 'INVALID', reason: 'body font mismatch' };
   }
   
   const orderMismatch = mobile.sectionOrder.some((section, index) => section !== desktop.sectionOrder[index]);

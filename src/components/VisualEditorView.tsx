@@ -1,6 +1,8 @@
+import { GenerationFallbackNotice, StitchAdaptationNotice } from '../site-builder/components/GenerationFallbackNotice';
 import React, { useEffect, useState, useCallback } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useCrm } from "../hooks/useCrm";
+import type { Project } from "../types";
 import "./editor/editor.css";
 import {
   blueprintSchema,
@@ -46,13 +48,22 @@ import type { EditorTarget, PreviewViewport } from "./editor/types";
 
 export const VisualEditorView: React.FC = () => {
   const crm = useCrm();
-  const [params, setParams] = useSearchParams();
+  const [params] = useSearchParams();
 
   const project = params.get("project")
     ? crm.projects.find((p) => p.id === params.get("project"))
     : crm.projects.find(
         (p) => p.leadId === crm.currentEditingLead?.id && p.siteBlueprint,
       ) || crm.projects.find((p) => p.siteBlueprint);
+
+  // Project identity owns all draft/history/media state. Remount before rendering
+  // another project so its context can never be paired with the previous draft.
+  return <ProjectEditor key={project?.id ?? 'no-project'} project={project} />;
+};
+
+const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
+  const crm = useCrm();
+  const [, setParams] = useSearchParams();
 
   const { snapshot, pushSnapshot, undo, redo, canUndo, canRedo } =
     useEditorHistory({
@@ -136,7 +147,7 @@ export const VisualEditorView: React.FC = () => {
     setAutoResolveStatus("resolving");
     setAutoResolveMessage("Buscando imagens licenciadas ilustrativas...");
     try {
-      const result = await autoResolveEligibleMedia(mediaPlan, mediaManager);
+      const result = await autoResolveEligibleMedia({ ...mediaPlan, items: mediaPlan.items.filter(item => !mediaManager.manifest.entries.some(e => e.id === item.id)) }, mediaManager);
       if (result.resolved > 0) {
         setAutoResolveMessage(
           `${result.resolved} imagem(ns) selecionada(s) automaticamente para revisão.`,
@@ -147,13 +158,13 @@ export const VisualEditorView: React.FC = () => {
         setAutoResolveStatus("idle");
       } else {
         setAutoResolveMessage(
-          "Provedores de mídia não configurados. O site continuará com o layout visual sem imagens.",
+          "Não foi possível selecionar imagens automaticamente. Busque ou gere imagens no painel de mídia.",
         );
         setAutoResolveStatus("not-configured");
       }
     } catch {
       setAutoResolveMessage(
-        "Provedores de mídia não configurados. O site continuará com o layout visual sem imagens.",
+        "Não foi possível selecionar imagens automaticamente. Busque ou gere imagens no painel de mídia.",
       );
       setAutoResolveStatus("not-configured");
     }
@@ -165,7 +176,7 @@ export const VisualEditorView: React.FC = () => {
       (item) =>
         item.sourcePreference === "licensed" &&
         isLicensedAutoResolveEligible(item) &&
-        !mediaManager.manifest.entries.some((e) => e.requestId === item.id),
+        !mediaManager.manifest.entries.some((e) => e.id === item.id),
     );
     if (hasUnresolved && autoResolveStatus === "idle") {
       void triggerAutoResolve();
@@ -517,6 +528,8 @@ export const VisualEditorView: React.FC = () => {
                   </button>
                 </details>
               )}
+              <GenerationFallbackNotice generation={project.aiGeneration} />
+              <StitchAdaptationNotice design={project?.siteDesign} />
               {busy && <p role="status">Processando…</p>}
               {!reviewed && (
                 <p className="rounded-xl p-3 bg-amber-950 text-amber-200 mb-3">
@@ -574,6 +587,7 @@ export const VisualEditorView: React.FC = () => {
                     loadingByItem={mediaManager.loadingByItem}
                     errorByItem={mediaManager.errorByItem}
                     searchMedia={mediaManager.searchMedia}
+                    generateMedia={mediaManager.generationConfigured ? mediaManager.generateMedia : undefined}
                     selectCandidate={async (item, candidate) => {
                       const assetId = await mediaManager.selectCandidate(item, candidate);
                       if (assetId) {

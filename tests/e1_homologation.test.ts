@@ -46,7 +46,7 @@ test('E.1 Homologation: Responsive Pair / Stitch Live', async () => {
   };
 
   // 5. Artifact Reading via Provider
-  const provider = new ArtifactMcpProvider(TEST_BASE);
+  const provider = new ArtifactMcpProvider(path.join(TEST_BASE, '.stitch', 'runtime'));
   const result = await resolveRuntimeResponsiveDesign(mockDesign, mockDesign.stitch!.viewportAnchors!, provider);
 
   // Assertions

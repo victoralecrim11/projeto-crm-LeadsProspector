@@ -1,3 +1,4 @@
+import { extractStitchScreen, readStitchVisuals } from './stitchScreenAdapter.js';
 import { StitchToolClient } from '@google/stitch-sdk';
 import type { 
   StitchMcpClient, 
@@ -39,6 +40,10 @@ export class RealStitchMcpClient implements StitchMcpClient {
       Composition: ${request.compositionDirection}.
       Typography: ${request.typographyDirection}.
       Imagery: ${request.imageryDirection}.
+      Device: ${request.deviceType}. Density: ${request.informationDensity}.
+      Hero patterns: ${request.heroPatterns.join(', ')}. About patterns: ${request.aboutPatterns.join(', ')}. Services: ${request.servicePatterns.join(', ')}.
+      Performance budget: ${request.performanceBudget}. Accessibility: ${request.accessibilityConstraints.join('; ')}.
+      ${request.referenceScreenId ? `Adapt the existing mobile screen ${request.referenceScreenId} in this project to desktop. Preserve its visual identity, palette, fonts and hierarchy.` : ''}
       Priority Sections: ${request.sectionPriorities?.join(', ')}.
       Safety Instruction: ${request.safetyInstruction}`;
 
@@ -74,23 +79,10 @@ export class RealStitchMcpClient implements StitchMcpClient {
                   prompt: promptString + (variantIndex > 0 ? ` Variant ${variantIndex + 1}.` : '')
               });
               
-              let design = null;
-              if (screenResult.outputComponents && Array.isArray(screenResult.outputComponents)) {
-                 const designComp = screenResult.outputComponents.find((c: any) => c.design);
-                 if (designComp) design = designComp.design;
-              }
-              if (!design) design = screenResult;
-
-              const screenId = design.name?.replace(`projects/${projectId}/screens/`, '') || design.screenId || `generated-${variantIndex}`;
-
-              results.push({
-                id: screenId,
-                screenId: screenId,
-                projectId: projectId,
-                screenshotUrl: design.screenshotUri || '',
-                htmlSnippet: design.html || '',
-                raw: design
-              });
+              const variant = extractStitchScreen(screenResult, projectId!, request.deviceType);
+              Object.assign(variant, await readStitchVisuals(variant.htmlDownloadUrl));
+              delete variant.htmlDownloadUrl;
+              results[variantIndex] = variant;
               success = true;
             } catch (err: any) {
               lastError = err;
@@ -126,7 +118,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
         await Promise.all(batchPromises);
       }
 
-      variants.push(...results);
+      variants.push(...results.filter(Boolean));
       
       if (variants.length === 0) {
          return { status: 'error', variants: [], errorMessage: 'Zero variants generated successfully.' };

@@ -1,3 +1,4 @@
+import { stitchAppearanceSchema, type StitchAppearance } from '../contracts/stitchAppearance';
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import type { GeneratedSiteBlueprint, LeadSiteContext } from "../types";
@@ -13,7 +14,7 @@ export const mediaStyles = `
 .hero-full-bleed.has-media{position:relative;overflow:hidden}
 .hero-bg-media{position:absolute;inset:0;z-index:0;opacity:.22;pointer-events:none}
 .hero-bg-media img{width:100%;height:100%;object-fit:cover}
-.hero-full-bleed>*{position:relative;z-index:1}
+.hero-full-bleed>:not(.hero-bg-media){position:relative;z-index:1}
 .hero-split-media{width:100%;max-height:280px;overflow:hidden;border-radius:var(--radius,8px)}
 .hero-split-media img{width:100%;height:100%;max-height:280px;object-fit:cover;border-radius:inherit}
 .hero-minimal-media{width:100%;max-height:360px;overflow:hidden;border-radius:var(--radius,8px);margin-bottom:16px}
@@ -27,6 +28,10 @@ export const mediaStyles = `
 .media-credits-link{color:inherit;text-decoration:underline}
 `;
 
+const stitchResponsiveCss = `
+.stitch-desktop-layout{display:none}
+@media(min-width:801px){.stitch-mobile-layout{display:none}.stitch-desktop-layout{display:block}}
+`;
 export const siteCss = baseStyles + variantStyles + presentationStyles;
 
 const SECTION_LABELS: Record<string, string> = {
@@ -83,12 +88,14 @@ export function SiteRenderer({
         "--on-accent": foregroundFor(b.brand.accentColor),
         ...(tokens
           ? {
+              ...(presentation.theme === design?.specification.presentation.theme ? {
               '--background': tokens.color.background,
               '--surface': tokens.color.surface,
               '--raised': tokens.color.surfaceElevated,
               '--text': tokens.color.text,
               '--muted': tokens.color.textMuted,
               '--border': tokens.color.border,
+              } : {}),
               '--radius': `${tokens.radius.card}px`,
               '--space-section': `${tokens.spacing.section}px`,
               '--compact-section': `${tokens.spacing.sectionCompact}px`,
@@ -106,6 +113,9 @@ export function SiteRenderer({
           .filter((section) => b.sections[section])
           .map((section) => {
             const Component = resolveSection(section, b.visual[section]);
+            const desktopHero = section === 'hero' ? design?.stitch?.appearance?.desktop?.heroLayout : undefined;
+            const useDesktopHero = desktopHero && desktopHero !== b.visual.hero && b.visual.hero === design?.specification.visual.hero;
+            const DesktopHero = useDesktopHero ? resolveSection('hero', desktopHero) : undefined;
             const editorAttrs = editorMode
               ? {
                   'data-editor-section-id': section,
@@ -120,7 +130,10 @@ export function SiteRenderer({
                 key={section}
                 {...editorAttrs}
               >
-                <Component {...props} />
+                {DesktopHero ? <>
+                  <div className="stitch-mobile-layout"><Component {...props} /></div>
+                  <div className="stitch-desktop-layout"><DesktopHero {...props} /></div>
+                </> : <Component {...props} />}
               </section>
             );
           })}
@@ -140,6 +153,9 @@ export function renderSiteDocument(
   editorMode?: boolean,
 ) {
   const blueprint = constrainBlueprint(normalizeForRender(input), context);
+  const typographyOverridden = resolvePresentation(blueprint).typography !== design?.specification.presentation.typography;
+  const appearanceCss = (appearance: StitchAppearance) => stitchAppearanceCss(typographyOverridden
+    ? { ...appearance, headingFont: undefined, bodyFont: undefined } : appearance);
   return (
     "<!doctype html>" +
     renderToStaticMarkup(
@@ -150,10 +166,13 @@ export function renderSiteDocument(
           <meta name="description" content={blueprint.seo.description} />
           <title>{blueprint.seo.title}</title>
           <style>{siteCss}</style>
+          {design?.stitch?.appearance?.desktop && <style>{stitchResponsiveCss}</style>}
+          {!typographyOverridden && stitchFontUrl(design) && <link rel="stylesheet" href={stitchFontUrl(design)} />}
           {design && (
             <style>{`.site-root[data-family] .cta{border-radius:var(--cta-radius)}@media(max-width:800px){.site-root[data-family] .section-inner{padding-block:var(--compact-section)}}`}</style>
           )}
           {mediaManifest && <style>{mediaStyles}</style>}
+          {design?.stitch?.appearance && <style>{appearanceCss(design.stitch.appearance.mobile) + (design.stitch.appearance.desktop ? `@media(min-width:801px){${appearanceCss(design.stitch.appearance.desktop)}}` : '')}</style>}
         </head>
         <body>
           <SiteRenderer
@@ -168,4 +187,22 @@ export function renderSiteDocument(
       </html>,
     )
   );
+}
+
+function stitchFontUrl(design?: ResolvedDesign) {
+  const appearance = design?.stitch?.appearance;
+  if (!appearance) return undefined;
+  const fonts = [appearance.mobile, appearance.desktop].filter(Boolean).flatMap(a => {
+    const safe = stitchAppearanceSchema.parse(a);
+    return [safe.headingFont, safe.bodyFont].filter((f): f is string => Boolean(f));
+  });
+  return fonts.length ? 'https://fonts.googleapis.com/css2?' + [...new Set(fonts)].map(f => 'family=' + encodeURIComponent(f) + ':wght@400;500;600;700').join('&') + '&display=swap' : undefined;
+}
+export function stitchAppearanceCss(input: StitchAppearance) {
+  const a = stitchAppearanceSchema.parse(input);
+  const properties = [a.headingFont ? `--font-display:'${a.headingFont}',serif` : '', a.bodyFont ? `--font-body:'${a.bodyFont}',sans-serif` : ''].filter(Boolean).join(';');
+  return `.site-root[data-family]{${properties}}`
+    + (a.radius !== undefined ? `.site-root[data-family] .cta,.site-root[data-family] article{border-radius:${a.radius}px}` : '')
+    + (a.heroSize ? `.site-root[data-family] .hero h1{font-size:clamp(24px,${a.heroSize}px,${a.heroSize}px)}` : '')
+    + (a.sectionSpace !== undefined ? `.site-root[data-family] .section-inner{padding-block:${a.sectionSpace}px}` : '');
 }

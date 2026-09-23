@@ -159,6 +159,7 @@ export function MediaPicker({
               </div>
 
               {/* Error and Loading States */}
+              {!generateMedia && <p role="status" className="text-sm text-amber-300">Geração de imagens indisponível. Configure o serviço de imagens no servidor.</p>}
               {error && <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400">{error}</div>}
               
               {!loading && candidates.length === 0 && !error && (
@@ -212,7 +213,7 @@ export function MediaPicker({
 
                   <button
                     onClick={() => generateMedia?.(item, aiProvider === 'all' ? undefined : aiProvider)}
-                    disabled={loading}
+                    disabled={loading || !generateMedia}
                     className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-500 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} 
@@ -221,6 +222,7 @@ export function MediaPicker({
                 </div>
               </div>
 
+              {!generateMedia && <p role="status" className="text-sm text-amber-300">Geração de imagens indisponível. Configure o serviço de imagens no servidor.</p>}
               {error && <div className="rounded-lg bg-amber-500/10 border border-amber-500/20 p-3 text-sm text-amber-400 mt-2">{error}</div>}
 
               {/* Grid of Generated Candidates */}

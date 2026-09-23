@@ -128,7 +128,7 @@ export function buildMediaPlan({
  * Derives a default MediaPlan for legacy projects that don't have one.
  * Does NOT modify the project's blueprint.
  */
-export function deriveDefaultMediaPlan(project: Project): MediaPlan | undefined {
+export function deriveDefaultMediaPlan(project: Pick<Project, 'category' | 'siteBlueprint' | 'siteContext' | 'siteDesign'>): MediaPlan | undefined {
   if (!project.siteBlueprint || !project.siteContext) return undefined;
 
   const niche = project.category?.toLowerCase() || 'business';

@@ -88,6 +88,29 @@ GEMINI_API_KEY=sua_chave_do_google_ai_studio
 
 As chaves cadastradas pela interface são persistidas no armazenamento local do navegador. Esse armazenamento não equivale a um cofre criptografado; evite usar chaves sensíveis em computadores compartilhados e aplique restrições de uso no provedor.
 
+### Provedores de imagens
+
+Consulte também a [configuração detalhada na raiz](../README.md#provedores-de-imagens), incluindo a diferença entre Comfy Desktop local e Comfy Cloud e a validação da IA de conteúdo.
+
+O backend carrega `.env.local` antes de `.env`. Use `.env.local` para credenciais reais; esse arquivo já é ignorado pelo Git.
+
+```env
+# Fotografias licenciadas para hero, sobre e outros slots elegíveis
+PEXELS_API_KEY=sua_chave_pexels
+PIXABAY_API_KEY=sua_chave_pixabay
+
+# Geração local opcional
+AI_IMAGE_ZERO_COST_ONLY=true
+COMFYUI_BASE_URL=http://127.0.0.1:8188
+COMFYUI_CHECKPOINT=nome-exato-do-checkpoint.safetensors
+```
+
+Pexels e Pixabay alimentam a busca e a seleção automática de fotografias licenciadas. Consulte as documentações oficiais da [Pexels](https://www.pexels.com/api/documentation/) e da [Pixabay](https://pixabay.com/api/docs/) para criar as chaves. Não adicione o prefixo `VITE_`: as credenciais são lidas somente pelo servidor.
+
+O ComfyUI é opcional e é o adaptador atualmente registrado para geração de imagens. Inicie uma instalação existente, confirme que `http://127.0.0.1:8188/system_stats` responde e copie para `COMFYUI_CHECKPOINT` o nome exato do checkpoint instalado. Consulte o [projeto oficial](https://github.com/Comfy-Org/ComfyUI). O Prospector não baixa modelos automaticamente.
+
+Depois de salvar o arquivo, reinicie `npm run dev` e abra **Configurações CRM → Provedores de mídia**. A busca automática seleciona imagens para revisão; a aprovação no Editor Visual continua obrigatória antes da exportação.
+
 ### Tiles do mapa
 
 Por padrão, o mapa usa os tiles públicos do OpenStreetMap. Uma fonte compatível pode ser definida com:

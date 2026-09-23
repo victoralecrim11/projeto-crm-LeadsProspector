@@ -15,6 +15,7 @@ import { probeStitch, ArtifactMcpProvider } from './stitch/index.js';
 import { rankCandidates } from './stitch/stitchCandidateRanker.js';
 import { globalDesignResearchCache } from './snapshotCache.js';
 import { businessFromSource } from '../../../src/site-builder/leadSource.js';
+import { SiteAiError, type SiteAiErrorCode } from '../ai/modelRegistry.js';
 
 export interface SiteGenerationDesignResult {
   strategy: DesignStrategy;
@@ -52,33 +53,49 @@ export async function resolveSiteGenerationDesign(
   current: CurrentBusinessReference,
   overrides?: { primary: string; accent: string },
   artifactReference?: DesignArtifactReference,
-  isFreshIntelligent: boolean = false
+  isFreshIntelligent: boolean = false,
+  artifactContext?: import('./stitchConsumerPreparation.js').ArtifactResolutionContext
 ): Promise<SiteGenerationDesignResult> {
+  if (artifactContext) artifactReference = artifactContext.mobileReference;
+  const now = artifactContext ? new Date(artifactContext.createdAt) : new Date();
   if (isFreshIntelligent && !artifactReference) {
     throw new Error('DESIGN_PRODUCTION_REQUIRED: Fresh intelligent generation cannot fallback to latest without a valid Design Production Reference.');
   }
 
   const { projectId, requestId } = resolveDesignArtifactIdentity(source, artifactReference);
-  
+
   if (!artifactReference && !isFreshIntelligent) {
     console.warn(`[SiteGenerationResolver] ARTIFACT_REFERENCE_MISSING: Falling back to 'latest' artifact for lead ${projectId}. This is allowed for LEGACY compatibility only.`);
   }
-  
+
   // 1. Resolve base strategy to get strategyId for lookup
-  // We use a dummy ResolvedDesign to derive the strategy, as we only need niche/subNiche/purpose.
-  // We can just call resolveStandardDesign without research to get the base strategy constraints.
-  const baseDesign = resolveStandardDesign(source, current, overrides, new Date());
+  // Derive runtime design constraints independently of the persisted lookup identity.
+  const baseDesign = resolveStandardDesign(source, current, overrides, now);
   const strategy = resolveDesignStrategy(baseDesign);
-  
+
+  // 1.5. Canonical Strategy Identity Enforcement
+  // If an artifact context was passed (e.g. from the persisted production job),
+  // it is the ULTIMATE AUTHORITY for the artifact lookup identity,
+  // bypassing whatever the runtime current/overrides just calculated.
+  const lookupStrategyId = artifactContext ? artifactContext.strategyId : strategy.strategyId;
+
   const { resolveStitchRuntimeRoot } = await import('./stitchProductionService.js');
-  const provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot().replace(/([\\/])\.stitch[\\/]runtime$/, ''));
-  
+  const provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot());
+
   let stitchStatus = 'STITCH_NOT_CONFIGURED';
   try {
-    const res = await provider.probe(projectId, requestId, strategy.strategyId);
+    const res = await provider.probe(projectId, requestId, lookupStrategyId);
     stitchStatus = res.status;
   } catch {
     stitchStatus = 'STITCH_FAILED';
+  }
+  if (artifactContext && stitchStatus !== 'STITCH_ARTIFACT_AVAILABLE') {
+    const codes: Record<string, SiteAiErrorCode> = {
+      STITCH_ARTIFACT_MISMATCH: 'SITE_DESIGN_ARTIFACT_MISMATCH',
+      STITCH_ARTIFACT_INVALID: 'SITE_DESIGN_ARTIFACT_INVALID',
+      STITCH_ARTIFACT_STALE: 'SITE_DESIGN_ARTIFACT_STALE',
+    };
+    throw new SiteAiError('Não foi possível validar os artefatos desta produção de design.', 422, false, codes[stitchStatus] ?? 'SITE_DESIGN_ARTIFACT_UNAVAILABLE');
   }
 
   let finalSnapshot: DesignResearchSnapshot | undefined = undefined;
@@ -90,10 +107,10 @@ export async function resolveSiteGenerationDesign(
 
   if (stitchStatus === 'STITCH_ARTIFACT_AVAILABLE') {
     try {
-      const artifact = await provider.readArtifact(projectId, requestId, strategy.strategyId);
+      const artifact = await provider.readArtifact(projectId, requestId, lookupStrategyId);
       
       if (artifact) {
-        if (artifact.strategyId !== strategy.strategyId) {
+        if (artifact.strategyId !== lookupStrategyId) {
           designSource = 'MISMATCH_STITCH';
           fallbackReason = 'strategy-mismatch';
         } else {
@@ -113,10 +130,10 @@ export async function resolveSiteGenerationDesign(
               niche: strategy.niche,
               subNiche: strategy.subNiche,
               status: 'fresh',
-              expiresAt: new Date(Date.now() + 86400000).toISOString(),
+              expiresAt: new Date(now.getTime() + 86400000).toISOString(),
               candidates: [
                 {
-                  id: safeCandidate.candidateId.toLowerCase().replace(/[^a-z0-9-]/g, '').substring(0, 80) || 'stitch-winner',
+                  id: ('stitch-' + safeCandidate.candidateId.toLowerCase().replace(/[^a-z0-9-]/g, '')).substring(0, 80),
                   label: 'Stitch Winner',
                   description: 'Candidate resolved by Stitch MCP',
                   variant: safeCandidate.heroPattern,
@@ -156,7 +173,7 @@ export async function resolveSiteGenerationDesign(
               avoid: [],
               confidence: 1,
               limitations: [],
-              researchedAt: new Date().toISOString()
+              researchedAt: now.toISOString()
             });
             
             stitchSectionOrder = safeCandidate.sectionOrder;
@@ -166,6 +183,7 @@ export async function resolveSiteGenerationDesign(
               services: safeCandidate.servicePattern
             };
           } else {
+            if (artifactContext) throw new SiteAiError('Nenhuma alternativa utilizável foi encontrada.', 422, false, 'SITE_DESIGN_NO_USABLE_ALTERNATIVES');
             designSource = 'INVALID_STITCH';
             fallbackReason = 'no-valid-candidates';
           }
@@ -175,6 +193,7 @@ export async function resolveSiteGenerationDesign(
         fallbackReason = 'artifact-unreadable';
       }
     } catch (e) {
+      if (e instanceof SiteAiError) throw e;
       console.error('[SiteGenerationResolver] INVALID_STITCH parse error:', e);
       designSource = 'INVALID_STITCH';
       fallbackReason = 'artifact-parse-error';
@@ -191,6 +210,9 @@ export async function resolveSiteGenerationDesign(
   }
 
   // If we couldn't use Stitch, fallback to existing behavior (B3 cache)
+  if (artifactContext && !finalSnapshot) {
+    throw new SiteAiError('Não foi possível validar os candidatos do design.', 422, false, 'SITE_DESIGN_ARTIFACT_INVALID');
+  }
   if (!finalSnapshot) {
     const business = businessFromSource(source);
     if (designSource === 'LEGACY') { // Only set B3_RESEARCH if we didn't just fail a Stitch check (for tracking)
@@ -211,12 +233,12 @@ export async function resolveSiteGenerationDesign(
   }
 
   // 2. Resolve the final design using the selected snapshot (Stitch Winner or Fallback)
-  const resolvedDesign = resolveStandardDesign(source, current, overrides, new Date(), finalSnapshot);
-  
+  const resolvedDesign = resolveStandardDesign(source, current, overrides, now, finalSnapshot);
+
   if (stitchSectionOrder && designSource === 'STITCH') {
     resolvedDesign.composition = [...stitchSectionOrder];
   }
-  
+
 function mapAboutVariant(pattern: string): any {
   if (pattern === 'story' || pattern === 'centered-story') return 'centered-story';
   return 'editorial-split'; // default for about
@@ -250,7 +272,7 @@ function mapHeroVariant(pattern: string): any {
     artifactIdentity: {
       projectId,
       requestId,
-      strategyId: strategy.strategyId
+      strategyId: lookupStrategyId
     },
     fallbackReason
   };

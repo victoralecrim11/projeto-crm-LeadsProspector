@@ -7,6 +7,9 @@ import { RealStitchMcpClient } from '../../../tools/stitch-producer/clients/real
 import { rankCandidates } from './stitch/stitchCandidateRanker.js';
 import { validateAnchorCoherence } from '../../../src/site-builder/anchorCoherence.js';
 import type { DesignArtifactReference, LeadSourceContext, DesignStrategy } from '../../../src/site-builder/contracts/research.js';
+import { z } from 'zod';
+import { leadSourceContextSchema, currentBusinessReferenceSchema, designArtifactReferenceSchema } from '../../../src/site-builder/contracts/research.js';
+import { SiteAiError } from '../ai/modelRegistry.js';
 
 export type ProductionStatus = 
   | 'PENDING'
@@ -32,6 +35,7 @@ export interface DesignProduction {
   generationRequestId: string;
   leadId: string;
   strategyId: string;
+  preparationInput?: { source: LeadSourceContext; current: import('../../../src/site-builder/contracts/research.js').CurrentBusinessReference };
   status: ProductionStatus;
   stage: ProductionStage;
   mobileReference?: DesignArtifactReference;
@@ -44,6 +48,18 @@ export interface DesignProduction {
   lastTransitionAt: number;
   terminalAt?: number;
 }
+
+export const designProductionSchema = z.object({
+  designProductionId: z.string().min(1), generationRequestId: z.string().min(1),
+  leadId: z.string().min(1), strategyId: z.string().min(1),
+  preparationInput: z.object({ source: leadSourceContextSchema, current: currentBusinessReferenceSchema }).strict().optional(),
+  status: z.enum(['PENDING', 'MOBILE_GENERATING', 'DESKTOP_GENERATING', 'PAIRED', 'PARTIAL', 'FAILED']),
+  stage: z.enum(['INITIALIZING', 'MCP_HEALTHCHECK', 'PROJECT_CREATING', 'MOBILE_GENERATING', 'MOBILE_RANKING', 'MOBILE_READY', 'DESKTOP_GENERATING', 'COHERENCE_VALIDATING', 'COMPLETED']),
+  mobileReference: designArtifactReferenceSchema.optional(), desktopReference: designArtifactReferenceSchema.optional(),
+  responsivePairId: z.string().optional(), errorCode: z.string().optional(),
+  providerStatus: z.enum(['AVAILABLE', 'DEGRADED', 'BLOCKED', 'UNKNOWN']).optional(),
+  createdAt: z.number().finite(), updatedAt: z.number().finite(), lastTransitionAt: z.number().finite(), terminalAt: z.number().finite().optional(),
+}).strict();
 
 import fs from 'fs/promises';
 import path from 'path';
@@ -66,7 +82,7 @@ const PRODUCTION_TTL_MS = 60 * 60 * 1000; // 60 minutes
 const POLLING_CLEANUP_INTERVAL = 10 * 60 * 1000; // 10 minutes
 const STITCH_JOB_TIMEOUT_MS = 600 * 1000; // 10 minutes max per background job (provides safe margin for Mobile + Desktop)
 
-class StitchDesignProductionServiceImpl {
+export class StitchDesignProductionServiceImpl {
   private store = new Map<string, DesignProduction>();
   private activeJobs = new Map<string, Promise<void>>();
   
@@ -75,17 +91,25 @@ class StitchDesignProductionServiceImpl {
   }
 
   private getJobPath(generationRequestId: string): string {
+    if (!/^[a-zA-Z0-9_-]+$/.test(generationRequestId)) throw new SiteAiError('Identificador de design inválido.', 400, false, 'SITE_DESIGN_JOB_INVALID');
     return path.join(resolveStitchRuntimeRoot(), 'jobs', `${generationRequestId}.json`);
   }
 
   private async persistProduction(production: DesignProduction) {
-    try {
+    const snapshot = designProductionSchema.parse(production);
       const jobPath = this.getJobPath(production.generationRequestId);
       await fs.mkdir(path.dirname(jobPath), { recursive: true });
-      await fs.writeFile(jobPath, JSON.stringify(production, null, 2), 'utf-8');
-    } catch (e) {
-      console.warn(`[StitchProduction] Failed to persist job ${production.generationRequestId}:`, e);
-    }
+      await fs.writeFile(`${jobPath}.tmp`, JSON.stringify(snapshot, null, 2), 'utf-8');
+      for (let attempt = 0; ; attempt++) {
+        try {
+          await fs.rename(`${jobPath}.tmp`, jobPath);
+          break;
+        } catch (error) {
+          // Windows readers/scanners can briefly hold the destination open.
+          if (attempt >= 4 || !['EPERM', 'EACCES', 'EBUSY'].includes((error as NodeJS.ErrnoException).code ?? '')) throw error;
+          await new Promise(resolve => setTimeout(resolve, 25 * (attempt + 1)));
+        }
+      }
   }
 
   public async getProduction(generationRequestId: string): Promise<DesignProduction | undefined> {
@@ -98,7 +122,8 @@ class StitchDesignProductionServiceImpl {
     try {
       const jobPath = this.getJobPath(generationRequestId);
       const content = await fs.readFile(jobPath, 'utf-8');
-      const loaded = JSON.parse(content) as DesignProduction;
+      const loaded = designProductionSchema.parse(JSON.parse(content));
+      if (Date.now() > (loaded.terminalAt ?? loaded.createdAt) + PRODUCTION_TTL_MS) return undefined;
       this.store.set(generationRequestId, loaded);
       return loaded;
     } catch {
@@ -106,17 +131,36 @@ class StitchDesignProductionServiceImpl {
     }
   }
 
-  public async loadConsumableDesignProduction(generationRequestId: string): Promise<{ production?: DesignProduction, consumability?: DesignConsumabilityResult }> {
-    const production = await this.getProduction(generationRequestId);
+  public async loadDesignProduction(
+    generationRequestId: string,
+    reloadFromDisk: boolean = false,
+  ): Promise<DesignProduction | undefined> {
+    if (reloadFromDisk) {
+      try {
+        const jobPath = this.getJobPath(generationRequestId);
+        const content = await fs.readFile(jobPath, 'utf-8');
+        const production = designProductionSchema.parse(JSON.parse(content));
+        return production;
+      } catch (error) {
+        if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined;
+        throw new SiteAiError('Não foi possível validar os dados do design.', 422, false, 'SITE_DESIGN_JOB_INVALID');
+      }
+    }
+
+    return this.getProduction(generationRequestId);
+  }
+
+  public async loadConsumableDesignProduction(generationRequestId: string, reloadFromDisk: boolean = false): Promise<{ production?: DesignProduction, consumability?: DesignConsumabilityResult }> {
+    const production = await this.loadDesignProduction(generationRequestId, reloadFromDisk);
     if (!production) return {};
-    
+
     // Resume validation parity check
     const parity = await this.validateConsumerParity(production);
     if (!parity.isConsumable && (production.status === 'PAIRED' || production.status === 'PARTIAL')) {
       console.warn(`[StitchProduction] Historical production ${generationRequestId} failed consumer parity check. Classifying as FAILED.`);
       await this.transition(production, { status: 'FAILED', errorCode: parity.errorCode || 'CONSUMER_PARITY_FAILED', stage: 'COMPLETED' });
     }
-    
+
     return { production, consumability: parity };
   }
 
@@ -124,30 +168,30 @@ class StitchDesignProductionServiceImpl {
     if (!production.mobileReference) {
       return { isConsumable: false, status: 'FAILED', errorCode: 'MISSING_MOBILE_REF' };
     }
-    
+
     try {
-      const provider = new ArtifactMcpProvider(resolveStitchRuntimeRoot().replace(/([\\/])\.stitch[\\/]runtime$/, ''));
-      // Dummy mock design just to pass into the resolver, we only care about the anchors being resolved
-      const dummyDesign = { specification: { family: { id: 'default' }, tokens: { color: { primary: '#000', accent: '#fff' } } } } as any;
-      
-      const anchors = {
-        mobile: production.mobileReference,
-        desktop: production.desktopReference
-      };
-      
-      const result = await resolveRuntimeResponsiveDesign(dummyDesign, anchors, provider);
-      
-      if (!result.resolvedDesign.stitch || result.resolvedDesign.stitch.alternatives.length === 0) {
-        return { isConsumable: false, status: 'FAILED', errorCode: 'NO_USABLE_ALTERNATIVES' };
-      }
-      
+      const { prepareStandardAiDesignContext } = await import('./stitchConsumerPreparation.js');
+
+      // Use the shared preparation path with allowPreTerminal: true.
+      // This is a "Real Consumer Replay" - if this fails, the production is not consumable.
+      const prepared = await prepareStandardAiDesignContext({
+        generationRequestId: production.generationRequestId,
+        designProductionId: production.designProductionId,
+        allowPreTerminal: true
+      });
+      if (process.env.NODE_ENV !== 'production') console.info('[DesignConsumerParity]', {
+        generationRequestId: production.generationRequestId,
+        consumerParity: true, persistedReplay: true, strategyIdentityValidated: true,
+        alternativesCount: prepared.alternatives.length,
+      });
+
       return {
         isConsumable: true,
-        status: result.resolution.status === 'PAIRED' ? 'PAIRED' : 'PARTIAL',
-        incoherenceReason: result.resolution.incoherenceReason
+        status: prepared.resolution.status === 'PAIRED' ? 'PAIRED' : 'PARTIAL',
       };
     } catch (e: any) {
-      return { isConsumable: false, status: 'FAILED', errorCode: e.message?.split(':')[0] || 'CONSUMER_RESOLUTION_FAILED' };
+      const errorCode = e.code || e.message?.split(':')[0] || 'CONSUMER_RESOLUTION_FAILED';
+      return { isConsumable: false, status: 'FAILED', errorCode };
     }
   }
 
@@ -173,6 +217,9 @@ class StitchDesignProductionServiceImpl {
   }
 
   private async transition(production: DesignProduction, updates: Partial<DesignProduction>) {
+    if (updates.strategyId && updates.strategyId !== production.strategyId) {
+      throw new SiteAiError('A identidade da produção de design não pode ser alterada.', 422, false, 'SITE_DESIGN_STRATEGY_MISMATCH');
+    }
     const prevStatus = production.status;
     const prevStage = production.stage;
     
@@ -228,6 +275,7 @@ class StitchDesignProductionServiceImpl {
       generationRequestId,
       leadId,
       strategyId: strategy.strategyId,
+      preparationInput: { source: baseDesign.referenceBrief.business.source, current: baseDesign.referenceBrief.currentBusiness },
       status: 'PENDING',
       stage: 'INITIALIZING',
       providerStatus: 'UNKNOWN',
@@ -427,11 +475,13 @@ class StitchDesignProductionServiceImpl {
             };
             
             // TERMINAL INVARIANT: PAIRED MUST IMPLY CONSUMABLE!
+            await this.persistProduction(production);
             const parity = await this.validateConsumerParity(production);
             if (parity.isConsumable) {
               await this.transition(production, { 
                 status: parity.status,
-                stage: 'COMPLETED'
+                stage: 'COMPLETED',
+                terminalAt: Date.now()
               });
             } else {
               console.warn(`[StitchProduction] Production failed consumer parity check. Classifying as FAILED. Reason:`, parity.errorCode);
@@ -461,14 +511,14 @@ class StitchDesignProductionServiceImpl {
           }
         } else {
           console.warn(`[DesignProduction] Coherence validation failed: ${coherence.reason}`);
-          this.transition(production, {
+          await this.transition(production, {
              status: 'PARTIAL',
              stage: 'COMPLETED',
              errorCode: 'COHERENCE_FAILED'
           });
         }
       } else {
-        this.transition(production, {
+        await this.transition(production, {
            status: 'PARTIAL',
            stage: 'COMPLETED',
            errorCode: desktopResult.status,
@@ -477,6 +527,11 @@ class StitchDesignProductionServiceImpl {
       }
       
       production.terminalAt = Date.now();
+      await this.persistProduction(production);
+      if (production.status === 'PARTIAL') {
+        const parity = await this.validateConsumerParity(production);
+        if (!parity.isConsumable) await this.transition(production, { status: 'FAILED', errorCode: parity.errorCode });
+      }
       console.log(`[DesignProduction] Job terminal generationRequestId=${production.generationRequestId} status=${production.status}`);
 
     } catch (e) {

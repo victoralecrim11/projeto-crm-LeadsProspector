@@ -4,6 +4,8 @@ import { aiImageProviderRegistry } from '../../server/services/media/aiImageProv
 import { buildAiImageIntent } from '../../server/services/media/aiImageIntentBuilder.js';
 import { type GeneratedMediaProvider, type GeneratedMediaRequest, type GeneratedMediaResult } from '../../server/services/media/aiImageProviderRegistry.types.js';
 import { ComfyUiProvider } from '../../server/services/media/providers/comfyui.js';
+import { mediaCandidateSchema } from '../../src/site-builder/contracts/media.js';
+import { acquireMediaAsset } from '../../server/services/media/mediaAcquisitionService.js';
 import { MediaProviderError } from '../../server/services/media/mediaProvider.js';
 
 class MockAiProvider implements GeneratedMediaProvider {
@@ -20,6 +22,7 @@ class MockAiProvider implements GeneratedMediaProvider {
 
   async generate(request: GeneratedMediaRequest): Promise<GeneratedMediaResult> {
     return {
+      version: 1, metadata: {},
       candidateId: 'mock-gen-123',
       requestId: request.requestId,
       provider: 'dall-e' as const,
@@ -167,24 +170,33 @@ test('AI Image Provider Registry', async (t) => {
   });
 });
 
-test('ComfyUI Real Generation Flow', async (t) => {
+test('ComfyUI adapter with controlled HTTP responses', async (t) => {
   const originalFetch = global.fetch;
 
   t.afterEach(() => {
     global.fetch = originalFetch;
-    process.env.COMFYUI_BASE_URL = '';
+    delete process.env.COMFYUI_BASE_URL;
+    delete process.env.COMFYUI_CHECKPOINT;
   });
 
   await t.test('Integration: full generation (pending -> output -> view URL)', async () => {
     process.env.COMFYUI_BASE_URL = 'http://comfyui.mock';
+    process.env.COMFYUI_CHECKPOINT = 'fixture.safetensors';
     let historyPollCount = 0;
 
     global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = input.toString();
+      if (url.includes('/object_info/')) return Response.json({ CheckpointLoaderSimple: { input: { required: { ckpt_name: [['fixture.safetensors']] } } } });
       if (url.endsWith('/system_stats')) {
         return new Response(JSON.stringify({ system: { os: 'mock' } }), { status: 200 });
       }
+      if (url.includes('/view?')) return new Response(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aB9sAAAAASUVORK5CYII=', 'base64'));
       if (url.endsWith('/prompt') && init?.method === 'POST') {
+        const graph = JSON.parse(String(init.body)).prompt;
+        assert.equal(graph['4'].inputs.ckpt_name, 'fixture.safetensors');
+        assert.deepEqual(graph['6'].inputs.clip, ['4', 1]);
+        assert.equal(graph['9'].class_type, 'SaveImage');
+        assert.equal(graph['5'].inputs.width, 1024);
         return new Response(JSON.stringify({ prompt_id: 'prompt-123' }), { status: 200 });
       }
       if (url.includes('/history/prompt-123')) {
@@ -217,15 +229,24 @@ test('ComfyUI Real Generation Flow', async (t) => {
     });
 
     assert.ok(result.candidateId.startsWith('comfyui_'));
-    assert.equal(result.previewUrl, 'http://comfyui.mock/view?filename=test.png&type=output');
+    assert.match(result.previewUrl, /^\/api\/ai\/media\/generated\/[a-f0-9]{64}$/);
+    const candidate = mediaCandidateSchema.parse(result);
+    const asset = await acquireMediaAsset(candidate);
+    assert.equal(asset.provider, 'comfyui');
+    assert.equal(asset.width, 1);
+    assert.equal(asset.mimeType, 'image/png');
+    assert.equal(candidate.confidence, 0);
+    await assert.rejects(acquireMediaAsset({ ...candidate, requestId: 'tampered' }), /divergente/);
     assert.equal(historyPollCount, 2);
   });
 
   await t.test('Integration: timeout control (prompt never finishes)', async () => {
     process.env.COMFYUI_BASE_URL = 'http://comfyui.mock';
+    process.env.COMFYUI_CHECKPOINT = 'fixture.safetensors';
 
     global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = input.toString();
+      if (url.includes('/object_info/')) return Response.json({ CheckpointLoaderSimple: { input: { required: { ckpt_name: [['fixture.safetensors']] } } } });
       if (url.endsWith('/system_stats')) return new Response('{}', { status: 200 });
       if (url.endsWith('/prompt')) return new Response(JSON.stringify({ prompt_id: 'prompt-456' }), { status: 200 });
       if (url.includes('/history/prompt-456')) {
@@ -255,7 +276,7 @@ test('ComfyUI Real Generation Flow', async (t) => {
       assert.fail('Should have thrown timeout error');
     } catch (e: any) {
       assert.equal(e.code, 'MEDIA_PROVIDER_TIMEOUT');
-      assert.ok(e.message.includes('timed out'));
+      assert.ok(e.message.includes('tempo limite'));
     } finally {
       global.setTimeout = originalSetTimeout;
     }
@@ -263,9 +284,11 @@ test('ComfyUI Real Generation Flow', async (t) => {
 
   await t.test('Integration: execution error (ComfyUI history empty output)', async () => {
     process.env.COMFYUI_BASE_URL = 'http://comfyui.mock';
+    process.env.COMFYUI_CHECKPOINT = 'fixture.safetensors';
 
     global.fetch = async (input: RequestInfo | URL, init?: RequestInit): Promise<Response> => {
       const url = input.toString();
+      if (url.includes('/object_info/')) return Response.json({ CheckpointLoaderSimple: { input: { required: { ckpt_name: [['fixture.safetensors']] } } } });
       if (url.endsWith('/system_stats')) return new Response('{}', { status: 200 });
       if (url.endsWith('/prompt')) return new Response(JSON.stringify({ prompt_id: 'prompt-err' }), { status: 200 });
       if (url.includes('/history/prompt-err')) {
@@ -290,7 +313,12 @@ test('ComfyUI Real Generation Flow', async (t) => {
       assert.fail('Should have thrown execution error');
     } catch (e: any) {
       assert.equal(e.code, 'MEDIA_PROVIDER_INVALID_RESPONSE');
-      assert.ok(e.message.includes('produced no outputs'));
+      assert.ok(e.message.includes('sem imagem'));
     }
   });
+});
+
+
+test('explicit unknown image provider is rejected instead of silently rerouted', async () => {
+  await assert.rejects(aiImageProviderRegistry.generate({ requestId: 'unknown', section: 'hero', niche: 'salon', purpose: 'Illustration', aspectRatio: '16:9', provider: 'unregistered-provider' }), (error: any) => error.code === 'MEDIA_PROVIDER_NOT_CONFIGURED');
 });

@@ -1,3 +1,4 @@
+import type { StitchAppearance } from '../../src/site-builder/contracts/stitchAppearance.js';
 /**
  * D.2 Producer Types — Stitch MCP Producer boundary types.
  * 
@@ -35,10 +36,12 @@ export interface StitchExplorationRequest {
   safetyInstruction: string;
   /** Existing Stitch project ID to reuse (for responsive companion). */
   targetProjectId?: string;
+  referenceScreenId?: string;
 }
 
 /** A single raw variant returned from Stitch MCP (format may vary). */
 export interface StitchRawVariant {
+  appearance?: StitchAppearance;
   id?: string;
   screenId?: string;
   projectId?: string;

@@ -9,11 +9,11 @@ export function rankCandidates(candidates: DesignCandidate[], strategy: DesignSt
   
   for (const c of candidates) {
     let nicheFit = 20;
-    let purposeFit = 20;
-    let researchFit = 15;
+    const purposeFit = 0; // No evaluated purpose evidence.
+    const researchFit = 0;
     let responsive = 15;
-    let accessibility = 10;
-    let performance = 10;
+    const accessibility = 0; // No accessibility audit was performed.
+    const performance = 0; // No measured runtime performance.
     let structuralDiversity = 10;
 
     // Evaluate Structural Diversity
@@ -30,7 +30,7 @@ export function rankCandidates(candidates: DesignCandidate[], strategy: DesignSt
       nicheFit -= 15; // Increased penalty so it outweighs diversity bonus
     }
     
-    // Evaluate Responsive (just a mock score logic for now, expecting 'mobile-first' signal)
+    // Declared responsive intent only; this is not a viewport audit.
     if (!c.responsiveSignals.includes('mobile-first')) {
       responsive -= 10;
     }

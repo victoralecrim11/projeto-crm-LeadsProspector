@@ -86,7 +86,7 @@ test('ArtifactMcpProvider Boundary validations', async (t) => {
 
   // 6. Stale Artifact
   validArtifact.requestId = requestId;
-  validArtifact.generatedAt = new Date(Date.now() - 10 * 60 * 1000).toISOString(); // 10 minutes old
+  validArtifact.generatedAt = new Date(Date.now() - 61 * 60 * 1000).toISOString(); // Exceeds the aligned 60-minute TTL
   await fs.writeFile(artifactPath, JSON.stringify(validArtifact));
   res = await provider.probe(projectId, requestId, strategyId);
   assert.equal(res.status, 'STITCH_ARTIFACT_STALE');
