@@ -210,3 +210,20 @@ NO.
 ## Ready for Next Phase
 
 NO. Nenhuma POST-E.3.10 ou feature nova iniciada.
+
+## Atualização de memória e publicação — 23/09/2026
+
+Este suplemento atualiza o estado do checkpoint acima após a execução real documentada em [STITCH-LIVE-VALIDATION-2026-09-23.md](STITCH-LIVE-VALIDATION-2026-09-23.md). O relato anterior de credenciais LLM ausentes era verdadeiro naquele checkpoint, mas foi superado: o standard-ai real usou Groq `qwen/qwen3.8-27b`, retornou HTTP 200, três alternativas e `fallbackUsed=false`, inclusive após reiniciar o backend.
+
+A homologação total continua **PARCIAL**. A produção Stitch real mais recente terminou `PARTIAL / COHERENCE_FAILED` porque as ordens de seção mobile e desktop divergiram; a rejeição foi preservada corretamente. Essa execução comprova o replay real consumível de PARTIAL com Groq, mas não comprova o gate final de produção `PAIRED` com LLM real nem fidelidade visual pixel a pixel. ComfyUI local também permanece `NOT_AVAILABLE`; Pexels e Pixabay foram validados em chamadas reais. Não declarar E.3.9 homologada ou congelada.
+
+Publicação do código solicitada pelo usuário:
+
+- Commit: `dec852b2c8da040364fee338aa6bf0cb78825d97` (`fix: estabiliza geração Stitch, mídia e editor visual`).
+- Parent: `a0323c714f9a6cadbcf214c79a8e6b68a06e4c90`.
+- Push: concluído para `origin/main`, sem force push.
+- Validação no commit: `npm test` — 323 PASS, 0 FAIL; `npm run lint` — PASS; `npm run build` — PASS para cliente e servidor; `git diff --check` — PASS.
+- `.env.local` continua ignorado e não foi publicado. Nenhuma credencial foi incluída.
+- A revisão atual corrige o teste responsivo obsoleto do painel de mídia: verifica agora o layout empilhado sem as classes largas antigas.
+
+O suplemento registra o histórico publicado; a decisão de manter a homologação pendente e os limites ao vivo continuam valendo.

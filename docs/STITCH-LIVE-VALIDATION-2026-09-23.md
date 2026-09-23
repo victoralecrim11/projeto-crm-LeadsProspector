@@ -101,3 +101,15 @@ Logs de comandos em `scratch/validation-20260923-tests.log` e `scratch/validatio
 **Status: PARCIAL. Homologação/freeze pendentes. Commit: NO. Working tree: DIRTY.**
 
 Fontes oficiais consultadas: [Groq Models](https://console.groq.com/docs/models), [Groq Structured Outputs](https://console.groq.com/docs/structured-outputs) e [Speech to Text](https://console.groq.com/docs/speech-to-text).
+
+## Atualização de memória após publicação — 23/09/2026
+
+O estado Git no início deste relatório era `a0323c714f9a6cadbcf214c79a8e6b68a06e4c90`; as linhas de commit/árvore suja acima descrevem aquele momento histórico. As alterações revisadas foram publicadas em `main`:
+
+- Código: `dec852b2c8da040364fee338aa6bf0cb78825d97` — `fix: estabiliza geração Stitch, mídia e editor visual`.
+- Parent: `a0323c714f9a6cadbcf214c79a8e6b68a06e4c90`.
+- Destino: `origin/main`; push concluído.
+- O teste completo final ficou em 323 PASS / 0 FAIL; lint e builds cliente/servidor passaram.
+- `.env.local` permanece local e ignorado pelo Git.
+
+A preparação standard-ai com Groq real e fallback desligado passou após restart. A produção Stitch mais recente segue PARTIAL por incoerência real na ordem de seções; a integridade não foi afrouxada para produzir PAIRED. Comparação visual integral e geração real pelo ComfyUI local continuam pendentes. Portanto este push registra código e documentação, não uma homologação ou freeze da fase.
