@@ -60,3 +60,13 @@ test('desktop booking section is recognized as contact in the semantic sequence'
     '<section id="localizacao"></section>';
   assert.deepEqual(extractStitchVisuals(html).sectionOrder, ['hero', 'services', 'about', 'contact', 'location']);
 });
+
+test('cartões técnicos e suaves do Stitch atravessam o contrato visual sem importar HTML bruto', () => {
+  const technical = extractStitchVisuals('<section id="services"><article class="border-2 shadow-[6px_6px_0_black]">R$ 85</article></section>');
+  const soft = extractStitchVisuals('<section id="servicos"><article class="rounded-2xl">Serviço</article></section>');
+  assert.equal(technical.appearance?.serviceCardStyle, 'technical');
+  assert.equal(soft.appearance?.serviceCardStyle, 'soft');
+  assert.match(stitchAppearanceCss(technical.appearance!), /box-shadow:6px 6px/);
+  assert.match(stitchAppearanceCss(soft.appearance!), /border-radius:18px/);
+  assert.doesNotMatch(stitchAppearanceCss(technical.appearance!), /<article/);
+});

@@ -1,4 +1,5 @@
 import { constrainBlueprint } from "../../../src/site-builder/context.js";
+import { addExampleServicePrices } from "../../../src/site-builder/exampleServicePrices.js";
 import type {
   GeneratedSiteBlueprint,
   GenerationMetadata,
@@ -96,7 +97,7 @@ export async function generateSite(
               : ""),
           credentials,
         );
-        let blueprint = constrainBlueprint(raw, input.context, true);
+        let blueprint = addExampleServicePrices(constrainBlueprint(raw, input.context, true), input.context.business.category);
         if (input.preferences.templateId !== "auto")
           blueprint.templateId = input.preferences.templateId;
         if (input.preferences.designBrief?.paletteMode !== "recommended") {

@@ -3,6 +3,7 @@ import { visualVariants } from "../../site-builder/types";
 import type { GeneratedSiteBlueprint } from "../../site-builder/types";
 import type { SiteUserOverrides } from "../../site-builder/contracts/overrides";
 import type { VisualVariants } from "../../site-builder/types";
+import { addExampleServicePrices } from "../../site-builder/exampleServicePrices";
 
 const SECTION_LABELS: Record<string, string> = {
   hero: "Abertura",
@@ -52,6 +53,7 @@ interface Props {
   draftBlueprint: GeneratedSiteBlueprint;
   overrides: SiteUserOverrides;
   busy: boolean;
+  businessCategory: string;
   onChangeBlueprint: (next: GeneratedSiteBlueprint, preserveReview?: boolean) => void;
   onChangeOverrides: (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => void;
 }
@@ -62,10 +64,15 @@ export const SectionInspector: React.FC<Props> = ({
   draftBlueprint,
   overrides,
   busy,
+  businessCategory,
   onChangeBlueprint,
   onChangeOverrides,
 }) => {
   const label = SECTION_LABELS[sectionId] ?? sectionId;
+  const blueprintWithExamplePrices = addExampleServicePrices(draftBlueprint, businessCategory);
+  const canAddExamplePrices = blueprintWithExamplePrices.services.some(
+    (service, index) => service.price !== draftBlueprint.services[index]?.price,
+  );
 
   // Variants for this section (only known sections have visual variants)
   const sectionVariants =
@@ -247,6 +254,11 @@ export const SectionInspector: React.FC<Props> = ({
           <p className="adv-inspector-subheading">
             Serviços ({effectiveBlueprint.services.length})
           </p>
+          {canAddExamplePrices && (
+            <button type="button" className="adv-add-service-btn" onClick={() => onChangeBlueprint(blueprintWithExamplePrices)}>
+              Inserir valores ilustrativos
+            </button>
+          )}
           <div className="adv-services-list">
             {effectiveBlueprint.services.map((s, i) => (
               <div key={i} className="adv-service-item">
@@ -276,6 +288,39 @@ export const SectionInspector: React.FC<Props> = ({
                       ),
                     }),
                   true,
+                )}
+                {field(
+                  "Valor (opcional)",
+                  `si-svc-price-${i}`,
+                  s.price ?? "",
+                  (v) =>
+                    onChangeBlueprint({
+                      ...draftBlueprint,
+                      services: draftBlueprint.services.map((service, index) =>
+                        index === i ? { ...service, price: v || undefined, priceKind: v ? service.priceKind : undefined } : service,
+                      ),
+                    }),
+                  false,
+                  40,
+                )}
+                {s.price && s.priceKind === "example" && (
+                  <>
+                    <p className="adv-inspector-hint adv-ai-warning">
+                      Valor ilustrativo. Confira a tabela real do negócio ou mantenha o rótulo de exemplo.
+                    </p>
+                    <button
+                      type="button"
+                      className="adv-confirm-service-btn"
+                      onClick={() => onChangeBlueprint({
+                        ...draftBlueprint,
+                        services: draftBlueprint.services.map((service, index) =>
+                          index === i ? { ...service, priceKind: "confirmed" } : service,
+                        ),
+                      }, true)}
+                    >
+                      Confirmar valor real
+                    </button>
+                  </>
                 )}
                 {s.source === "ai_suggestion" && (
                   <>

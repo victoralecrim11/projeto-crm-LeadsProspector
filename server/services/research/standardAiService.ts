@@ -1,6 +1,7 @@
 import crypto from 'node:crypto';
 import { z } from 'zod';
 import { constrainBlueprint } from '../../../src/site-builder/context.js';
+import { addExampleServicePrices } from '../../../src/site-builder/exampleServicePrices.js';
 import { blueprintSchema, type ModelSelection, type GeneratedSiteBlueprint, type GenerationMetadata } from '../../../src/site-builder/types.js';
 import { buildDesignSystemContract, blueprintFromDesign, resolveStandardDesign } from '../../../src/site-builder/designPipeline.js';
 import type { LeadSourceContext, ResolvedDesign, DesignResearchSnapshot } from '../../../src/site-builder/contracts/research.js';
@@ -65,7 +66,7 @@ function preserveDesign(raw: unknown, design: ResolvedDesign): GeneratedSiteBlue
   candidate.brand.accentColor = design.specification.tokens.color.accent;
   candidate.sectionOrder = design.composition;
   candidate.brand.tone = 'profissional';
-  return blueprintSchema.parse(candidate);
+  return blueprintSchema.parse(addExampleServicePrices(candidate, design.referenceBrief.business.lead.business.category));
 }
 
 export async function generateStandardAiSite(

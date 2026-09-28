@@ -36,6 +36,7 @@ test('serviço sugerido pode ser confirmado individualmente e o ZIP é exportáv
     draftBlueprint: suggestion,
     overrides: {},
     busy: false,
+    businessCategory: 'Barbearia',
     onChangeBlueprint: (next, preserveReview) => {
       confirmed = next;
       preservedReview = preserveReview === true;

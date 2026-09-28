@@ -9,6 +9,7 @@ import { presentationStyles, resolvePresentation, surfacePalettes } from "./pres
 import { resolvedDesignSchema, type ResolvedDesign } from '../contracts/research';
 import { mediaManifestSchema, type MediaManifest } from '../contracts/media';
 import { MediaCredits } from '../sections/shared';
+import { StitchServices, stitchServicesStyles } from '../sections/services/StitchServices';
 
 export const mediaStyles = `
 .hero-full-bleed.has-media{position:relative;overflow:hidden}
@@ -31,6 +32,20 @@ export const mediaStyles = `
 const stitchResponsiveCss = `
 .stitch-desktop-layout{display:none}
 @media(min-width:801px){.stitch-mobile-layout{display:none}.stitch-desktop-layout{display:block}}
+`;
+const stitchFinishStyles = `
+.site-root[data-family] .site-navigation{padding-block:16px;border-bottom:2px solid var(--border)}
+.site-root[data-family] .site-navigation .brand-name{font-family:var(--font-display);font-weight:800;letter-spacing:-.04em}
+.site-root[data-family] .hero h1{max-width:11ch;text-wrap:balance}
+.site-root[data-family] .hero-split-detail:has(.hero-split-media){position:relative;isolation:isolate;min-height:560px;color:#fff;background:var(--primary);overflow:hidden}
+.site-root[data-family] .hero-split-detail:has(.hero-split-media)::after{content:'';position:absolute;inset:0;z-index:1;pointer-events:none;background:linear-gradient(180deg,transparent 25%,#000b 100%)}
+.site-root[data-family] .hero-split-detail:has(.hero-split-media) .hero-split-media{position:absolute;inset:0;z-index:0;max-height:none;width:100%;height:100%;border-radius:0}
+.site-root[data-family] .hero-split-detail:has(.hero-split-media) .hero-split-media img{display:block;width:100%;height:100%;max-height:none;object-fit:cover;border-radius:0}
+.site-root[data-family] .hero-split-detail:has(.hero-split-media)>p,.site-root[data-family] .hero-split-detail:has(.hero-split-media)>.cta{position:relative;z-index:2}
+.site-root[data-family] .hero-full-bleed.has-media .hero-bg-media{opacity:.42}
+.site-root[data-family] .about{border-bottom:1px solid var(--border)}
+.site-root[data-family] .footer-editorial{border-top:2px solid var(--border)}
+@media(max-width:800px){.site-root[data-family] .hero-split-detail:has(.hero-split-media){min-height:420px}}
 `;
 export const siteCss = baseStyles + variantStyles + presentationStyles;
 
@@ -130,7 +145,7 @@ export function SiteRenderer({
                 key={section}
                 {...editorAttrs}
               >
-                {DesktopHero ? <>
+                {section === 'services' && design?.stitch ? <StitchServices {...props} /> : DesktopHero ? <>
                   <div className="stitch-mobile-layout"><Component {...props} /></div>
                   <div className="stitch-desktop-layout"><DesktopHero {...props} /></div>
                 </> : <Component {...props} />}
@@ -172,6 +187,8 @@ export function renderSiteDocument(
             <style>{`.site-root[data-family] .cta{border-radius:var(--cta-radius)}@media(max-width:800px){.site-root[data-family] .section-inner{padding-block:var(--compact-section)}}`}</style>
           )}
           {mediaManifest && <style>{mediaStyles}</style>}
+          {design?.stitch && <style>{stitchServicesStyles}</style>}
+          {design?.stitch && <style>{stitchFinishStyles}</style>}
           {design?.stitch?.appearance && <style>{appearanceCss(design.stitch.appearance.mobile) + (design.stitch.appearance.desktop ? `@media(min-width:801px){${appearanceCss(design.stitch.appearance.desktop)}}` : '')}</style>}
         </head>
         <body>
@@ -204,5 +221,25 @@ export function stitchAppearanceCss(input: StitchAppearance) {
   return `.site-root[data-family]{${properties}}`
     + (a.radius !== undefined ? `.site-root[data-family] .cta,.site-root[data-family] article{border-radius:${a.radius}px}` : '')
     + (a.heroSize ? `.site-root[data-family] .hero h1{font-size:clamp(24px,${a.heroSize}px,${a.heroSize}px)}` : '')
-    + (a.sectionSpace !== undefined ? `.site-root[data-family] .section-inner{padding-block:${a.sectionSpace}px}` : '');
+    + (a.sectionSpace !== undefined ? `.site-root[data-family] .section-inner{padding-block:${a.sectionSpace}px}` : '')
+    + (a.serviceCardStyle === 'technical' ? `
+.site-root[data-family] .hero h1{text-transform:uppercase;letter-spacing:-.055em}
+.site-root[data-family] .services-heading{border-bottom:2px solid var(--text)}
+.site-root[data-family] .services-heading h2{text-transform:uppercase;font-size:clamp(34px,4vw,58px);font-weight:900;line-height:1}
+.site-root[data-family] .service-columns article{background:var(--surface);border:2px solid var(--text);border-radius:0;box-shadow:6px 6px 0 var(--text);min-height:320px}
+.site-root[data-family] .service-card-index{color:var(--primary)}
+.site-root[data-family] .services article>.service-price{background:var(--accent);color:var(--on-accent);padding:4px 8px;font-size:16px;border:1px solid var(--text)}
+.site-root[data-family] .services article>.service-price small{color:var(--on-accent);font-size:9px}
+.site-root[data-family] .stitch-services .service-columns .service-description{border-top:1px solid var(--text);padding-top:18px;color:var(--text)}
+.site-root[data-family] .service-columns article:last-child:nth-child(n+3){background:var(--primary);color:var(--on-primary);box-shadow:6px 6px 0 var(--accent)}
+.site-root[data-family] .service-columns article:last-child:nth-child(n+3) .service-description{border-color:var(--on-primary);color:var(--on-primary)}
+.site-root[data-family] .service-columns article:last-child:nth-child(n+3) .service-card-index{color:var(--accent)}
+@media(max-width:600px){.site-root[data-family] .service-columns article{min-height:0;box-shadow:4px 4px 0 var(--text)}}` : '')
+    + (a.serviceCardStyle === 'soft' ? `
+.site-root[data-family] .service-columns article{background:var(--raised);border:1px solid var(--border);border-radius:18px;box-shadow:none;min-height:0}
+.site-root[data-family] .services-heading h2{text-transform:none;font-size:clamp(28px,3vw,40px);font-weight:700;line-height:1.2}
+.site-root[data-family] .services article>.service-price{color:var(--primary)}
+.site-root[data-family] .stitch-services .service-columns .service-description{border-top:0;padding-top:0;color:var(--muted)}
+.site-root[data-family] .service-columns article:last-child:nth-child(n+3){background:var(--raised);color:var(--text);box-shadow:none}
+.site-root[data-family] .service-columns article:last-child:nth-child(n+3) .service-card-index{color:var(--muted)}` : '');
 }

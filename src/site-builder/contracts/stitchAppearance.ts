@@ -9,6 +9,7 @@ export const stitchAppearanceSchema = z.object({
   sectionSpace: z.number().min(0).max(160).optional(),
   radius: z.number().min(0).max(64).optional(),
   heroLayout: z.enum(['split', 'full-bleed', 'minimal']).optional(),
+  serviceCardStyle: z.enum(['technical', 'soft']).optional(),
   imageryPresent: z.boolean(),
   limitations: z.array(z.string().max(180)).max(8),
 }).strict();

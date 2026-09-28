@@ -96,6 +96,10 @@ export function extractStitchVisuals(html: string): Partial<StitchRawVariant> {
   const bodyFont = font(families.body) ?? font(families['body-md']) ?? font(families.sans);
   const sections = [...html.matchAll(/<section\b[^>]*>([\s\S]*?)<\/section>/gi)];
   const hero = sections.find(s => /<h1\b/i.test(s[1]))?.[0] ?? '';
+  const servicesSection = sections.find(s => /\bid=["'](?:services|servicos)["']/i.test(s[0].split('>')[0]))?.[0] ?? '';
+  const serviceCardStyle = /(?:border-(?:2|4)|shadow-\[|font-(?:black|condensed))/.test(servicesSection)
+    ? 'technical' as const
+    : /rounded-(?:xl|2xl|3xl)/.test(servicesSection) ? 'soft' as const : undefined;
   const heroClass = /^<section\b[^>]*class=["']([^"']*)["']/i.exec(hero)?.[1] ?? '';
   // Map only layouts supported by the renderer. Unknown compositions remain explicitly unmeasured.
   const heroLayout = /(?:grid-cols-2|flex-row)/.test(hero) ? 'split' as const
@@ -110,7 +114,7 @@ export function extractStitchVisuals(html: string): Partial<StitchRawVariant> {
   });
   const appearance = stitchAppearanceSchema.parse({ version: 1, headingFont, bodyFont,
     heroSize: pixels(sizes[sizeKey ?? ''], 24, 120), sectionSpace: pixels(spacing[spaceKey ?? ''], 0, 160),
-    radius: pixels(radius.DEFAULT, 0, 64), heroLayout,
+    radius: pixels(radius.DEFAULT, 0, 64), heroLayout, serviceCardStyle,
     imageryPresent: /<img\b|background-image\s*:/i.test(html),
     limitations: ['Composição adaptada ao catálogo de seções; fidelidade visual requer revisão.', 'Imagens da referência não são assets licenciados do projeto.'],
   });

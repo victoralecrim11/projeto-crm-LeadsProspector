@@ -600,6 +600,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
                 draftBlueprint={draftBlueprint}
                 overrides={draftOverrides}
                 busy={busy}
+                businessCategory={project.category}
                 onChangeBlueprint={changeBlueprint}
                 onChangeOverrides={changeOverrides}
               />

@@ -11,6 +11,7 @@ export interface ContextualInspectorProps {
   draftBlueprint: GeneratedSiteBlueprint;
   overrides: SiteUserOverrides;
   busy: boolean;
+  businessCategory: string;
   onChangeBlueprint: (next: GeneratedSiteBlueprint, preserveReview?: boolean) => void;
   onChangeOverrides: (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => void;
 }
@@ -21,6 +22,7 @@ export const ContextualInspector: React.FC<ContextualInspectorProps> = ({
   draftBlueprint,
   overrides,
   busy,
+  businessCategory,
   onChangeBlueprint,
   onChangeOverrides,
 }) => {
@@ -57,6 +59,7 @@ export const ContextualInspector: React.FC<ContextualInspectorProps> = ({
         draftBlueprint={draftBlueprint}
         overrides={overrides}
         busy={busy}
+        businessCategory={businessCategory}
         onChangeBlueprint={onChangeBlueprint}
         onChangeOverrides={onChangeOverrides}
       />

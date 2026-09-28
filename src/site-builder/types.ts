@@ -88,6 +88,7 @@ export const legacyBlueprintSchema = z
             title: short.min(1),
             description: text,
             price: short.optional(),
+            priceKind: z.enum(["example", "confirmed"]).optional(),
             source: z.enum(["known", "ai_suggestion"]),
             assetId: z.string().optional(),
           })
