@@ -52,3 +52,11 @@ test('literal font, scale, spacing and layout evidence survives projection and C
   assert.equal(malicious.appearance?.headingFont, undefined);
   assert.throws(() => stitchAppearanceCss({ ...roundTrip, headingFont: "bad';url(evil)" }));
 });
+
+test('desktop booking section is recognized as contact in the semantic sequence', () => {
+  const html = '<section id="hero"><h1>Barbearia</h1></section>' +
+    '<section id="servicos"></section><section id="sobre"></section>' +
+    '<section id="agendamento"><h2>Agendamento Direto</h2></section>' +
+    '<section id="localizacao"></section>';
+  assert.deepEqual(extractStitchVisuals(html).sectionOrder, ['hero', 'services', 'about', 'contact', 'location']);
+});

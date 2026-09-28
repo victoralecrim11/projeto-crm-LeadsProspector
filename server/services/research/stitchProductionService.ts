@@ -42,6 +42,7 @@ export interface DesignProduction {
   desktopReference?: DesignArtifactReference;
   responsivePairId?: string;
   errorCode?: string;
+  incoherenceReason?: string;
   providerStatus?: 'AVAILABLE' | 'DEGRADED' | 'BLOCKED' | 'UNKNOWN';
   createdAt: number;
   updatedAt: number;
@@ -56,7 +57,7 @@ export const designProductionSchema = z.object({
   status: z.enum(['PENDING', 'MOBILE_GENERATING', 'DESKTOP_GENERATING', 'PAIRED', 'PARTIAL', 'FAILED']),
   stage: z.enum(['INITIALIZING', 'MCP_HEALTHCHECK', 'PROJECT_CREATING', 'MOBILE_GENERATING', 'MOBILE_RANKING', 'MOBILE_READY', 'DESKTOP_GENERATING', 'COHERENCE_VALIDATING', 'COMPLETED']),
   mobileReference: designArtifactReferenceSchema.optional(), desktopReference: designArtifactReferenceSchema.optional(),
-  responsivePairId: z.string().optional(), errorCode: z.string().optional(),
+  responsivePairId: z.string().optional(), errorCode: z.string().optional(), incoherenceReason: z.string().min(1).optional(),
   providerStatus: z.enum(['AVAILABLE', 'DEGRADED', 'BLOCKED', 'UNKNOWN']).optional(),
   createdAt: z.number().finite(), updatedAt: z.number().finite(), lastTransitionAt: z.number().finite(), terminalAt: z.number().finite().optional(),
 }).strict();
@@ -159,7 +160,16 @@ export class StitchDesignProductionServiceImpl {
     if (!parity.isConsumable && (production.status === 'PAIRED' || production.status === 'PARTIAL')) {
       console.warn(`[StitchProduction] Historical production ${generationRequestId} failed consumer parity check. Classifying as FAILED.`);
       await this.transition(production, { status: 'FAILED', errorCode: parity.errorCode || 'CONSUMER_PARITY_FAILED', stage: 'COMPLETED' });
+    } else if (production.status === 'PARTIAL' && production.errorCode === 'COHERENCE_FAILED' &&
+      production.desktopReference && parity.isConsumable && parity.status === 'PAIRED') {
+      // A revised coherence contract may validate a historical pair. Promote
+      // only after the shared consumer has replayed both persisted artifacts.
+      await this.transition(production, {
+        status: 'PAIRED', errorCode: undefined, incoherenceReason: undefined,
+      });
     }
+
+    this.store.set(generationRequestId, production);
 
     return { production, consumability: parity };
   }
@@ -181,7 +191,9 @@ export class StitchDesignProductionServiceImpl {
       });
       if (process.env.NODE_ENV !== 'production') console.info('[DesignConsumerParity]', {
         generationRequestId: production.generationRequestId,
-        consumerParity: true, persistedReplay: true, strategyIdentityValidated: true,
+        consumerPreparationPassed: true,
+        responsiveResolutionStatus: prepared.resolution.status,
+        persistedReplay: true, strategyIdentityValidated: true,
         alternativesCount: prepared.alternatives.length,
       });
 
@@ -445,6 +457,17 @@ export class StitchDesignProductionServiceImpl {
       await this.transition(production, { stage: 'COHERENCE_VALIDATING' });
       
       if (desktopResult.status === 'PRODUCED' && desktopResult.candidates.length > 0) {
+        // Preserve the generated desktop artifact even if it cannot be paired.
+        // The real consumer revalidates it from disk before using any of it.
+        production.desktopReference = {
+          projectId: production.leadId,
+          requestId: desktopRequestId,
+          strategyId: strategy.strategyId,
+          source: 'stitch',
+          createdAt: new Date().toISOString()
+        };
+        await this.persistProduction(production);
+
         const desktopWinner = rankCandidates(desktopResult.candidates, strategy)[0] || desktopResult.candidates[0];
         const coherence = validateAnchorCoherence(mobileWinner, desktopWinner);
         
@@ -466,14 +489,6 @@ export class StitchDesignProductionServiceImpl {
           const desktopReady = isSemanticallyReady(desktopReadable);
 
           if (mobileReady && desktopReady) {
-            production.desktopReference = {
-               projectId: production.leadId,
-               requestId: desktopRequestId,
-               strategyId: strategy.strategyId,
-               source: 'stitch',
-               createdAt: new Date().toISOString()
-            };
-            
             // TERMINAL INVARIANT: PAIRED MUST IMPLY CONSUMABLE!
             await this.persistProduction(production);
             const parity = await this.validateConsumerParity(production);
@@ -514,7 +529,8 @@ export class StitchDesignProductionServiceImpl {
           await this.transition(production, {
              status: 'PARTIAL',
              stage: 'COMPLETED',
-             errorCode: 'COHERENCE_FAILED'
+             errorCode: 'COHERENCE_FAILED',
+             incoherenceReason: coherence.reason
           });
         }
       } else {

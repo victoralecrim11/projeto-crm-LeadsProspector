@@ -225,3 +225,97 @@ test('POST-E.3.9 persisted real consumer replay and contract lock', async t => {
   assert.equal(await fs.readFile(mobilePath, 'utf8'), mobileBytes);
   assert.equal(await fs.readFile(desktopPath, 'utf8'), desktopBytes);
 });
+
+test('desktop artifact is persisted and consumer reports PARTIAL when responsive coherence fails', async t => {
+  const originalKey = process.env.STITCH_API_KEY;
+  process.env.STITCH_API_KEY = 'fixture-no-network';
+  const source = getMockResolvedDesign('barbershop').referenceBrief.business.source;
+  const generationRequestId = `partial-replay-${crypto.randomUUID()}`;
+  source.leadId = generationRequestId;
+  const originalExplore = RealStitchMcpClient.prototype.explore;
+  RealStitchMcpClient.prototype.explore = async function(request) {
+    const result = await new FixtureStitchMcpClient().explore(request);
+    if (request.deviceType === 'DESKTOP' && result.variants[0]) {
+      result.variants[0].aboutPattern = 'different-about-pattern';
+    }
+    return result;
+  };
+
+  const service = new StitchDesignProductionServiceImpl();
+  const root = resolveStitchRuntimeRoot();
+  const jobPath = path.join(root, 'jobs', `${generationRequestId}.json`);
+  const projectPath = path.join(root, generationRequestId);
+  t.after(async () => {
+    if (originalKey === undefined) delete process.env.STITCH_API_KEY;
+    else process.env.STITCH_API_KEY = originalKey;
+    RealStitchMcpClient.prototype.explore = originalExplore;
+    await fs.rm(projectPath, { recursive: true, force: true });
+    await fs.rm(jobPath, { force: true });
+  });
+
+  const production = await service.getOrCreateProduction(generationRequestId, source.leadId, source);
+  await service['activeJobs'].get(generationRequestId);
+  assert.equal(production.status, 'PARTIAL');
+  assert.equal(production.errorCode, 'COHERENCE_FAILED');
+  assert.match(production.incoherenceReason ?? '', /aboutPattern mismatch/);
+  assert.equal(production.desktopReference?.requestId, `${generationRequestId}-desk`);
+
+  const persisted = designProductionSchema.parse(JSON.parse(await fs.readFile(jobPath, 'utf8')));
+  assert.ok(persisted.desktopReference);
+  assert.match(persisted.incoherenceReason ?? '', /aboutPattern mismatch/);
+  const prepared = await prepareStandardAiDesignContext({
+    generationRequestId,
+    designProductionId: production.designProductionId,
+  });
+  assert.equal(prepared.resolution.status, 'PARTIAL');
+  assert.equal(prepared.finalDesign.stitch?.stitchStatus, 'PARTIAL');
+  assert.equal(prepared.anchors.desktop?.requestId, `${generationRequestId}-desk`);
+  const rechecked = await service.loadConsumableDesignProduction(generationRequestId);
+  assert.equal(rechecked.production?.status, 'PARTIAL');
+});
+
+test('historical section reorder is promoted only after persisted consumer replay', async t => {
+  const originalKey = process.env.STITCH_API_KEY;
+  process.env.STITCH_API_KEY = 'fixture-no-network';
+  const source = getMockResolvedDesign('barbershop').referenceBrief.business.source;
+  const generationRequestId = `reordered-replay-${crypto.randomUUID()}`;
+  source.leadId = generationRequestId;
+  const originalExplore = RealStitchMcpClient.prototype.explore;
+  RealStitchMcpClient.prototype.explore = async function(request) {
+    const result = await new FixtureStitchMcpClient().explore(request);
+    if (request.deviceType === 'DESKTOP' && result.variants[0]) {
+      result.variants[0].sectionOrder = ['hero', 'location', 'services', 'about', 'contact'];
+    }
+    return result;
+  };
+
+  const service = new StitchDesignProductionServiceImpl();
+  const root = resolveStitchRuntimeRoot();
+  const jobPath = path.join(root, 'jobs', `${generationRequestId}.json`);
+  const projectPath = path.join(root, generationRequestId);
+  t.after(async () => {
+    if (originalKey === undefined) delete process.env.STITCH_API_KEY;
+    else process.env.STITCH_API_KEY = originalKey;
+    RealStitchMcpClient.prototype.explore = originalExplore;
+    await fs.rm(projectPath, { recursive: true, force: true });
+    await fs.rm(jobPath, { force: true });
+  });
+
+  const production = await service.getOrCreateProduction(generationRequestId, source.leadId, source);
+  await service['activeJobs'].get(generationRequestId);
+  assert.equal(production.status, 'PAIRED');
+  const historical = { ...production, status: 'PARTIAL' as const, errorCode: 'COHERENCE_FAILED', incoherenceReason: 'sectionOrder mismatch' };
+  await fs.writeFile(jobPath, JSON.stringify(historical));
+  service['store'].clear();
+
+  const rechecked = await service.loadConsumableDesignProduction(generationRequestId);
+  assert.equal(rechecked.consumability?.status, 'PAIRED');
+  assert.equal(rechecked.production?.status, 'PAIRED');
+  assert.equal(rechecked.production?.errorCode, undefined);
+  assert.equal(rechecked.production?.incoherenceReason, undefined);
+  assert.equal(designProductionSchema.parse(JSON.parse(await fs.readFile(jobPath, 'utf8'))).status, 'PAIRED');
+  const prepared = await prepareStandardAiDesignContext({ generationRequestId, designProductionId: generationRequestId });
+  assert.equal(prepared.resolution.status, 'PAIRED');
+  assert.equal(prepared.finalDesign.stitch?.stitchStatus, 'PAIRED');
+  assert.deepEqual(prepared.finalDesign.composition, ['hero', 'services', 'about', 'contact', 'location']);
+});

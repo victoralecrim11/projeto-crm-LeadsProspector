@@ -18,6 +18,7 @@ import { buildExplorationRequest, detectPiiInRequest } from '../../tools/stitch-
 import { mapStitchRawToArtifact } from '../../tools/stitch-producer/producerMapper.js';
 import { writeArtifact, ArtifactValidationError } from '../../tools/stitch-producer/artifactWriter.js';
 import { produceArtifact } from '../../tools/stitch-producer/producerOrchestrator.js';
+import { buildStitchScreenPrompt, buildStitchScreenToolCall } from '../../tools/stitch-producer/clients/realStitchMcpClient.js';
 
 // D.1 Consumer imports (REAL, not mocked)
 import { ArtifactMcpProvider } from '../../server/services/research/stitch/providers/artifactMcpProvider.js';
@@ -73,6 +74,31 @@ test('D.2 Request Builder: PII sentinel check finds no PII', () => {
   assert.deepEqual(pii, []);
 });
 
+test('D.2 barbershop exploration rotates concrete visual directions while retaining strategy identity', () => {
+  const strategy = makeStrategy('barbershop');
+  const first = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
+  const again = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
+  assert.equal(first.creativeDirectionOffset, again.creativeDirectionOffset);
+  assert.equal(first.strategyId, strategy.strategyId);
+  assert.deepEqual(detectPiiInRequest(first), []);
+
+  const prompts = [0, 1, 2].map(index => buildStitchScreenPrompt(first, index));
+  assert.equal(new Set(prompts).size, 3);
+  assert.equal(new Set(prompts.map(prompt => /Visual direction for this specific candidate: ([^.]*)\./.exec(prompt)?.[1])).size, 3);
+  assert.ok(prompts.every(prompt => prompt.includes('Required semantic section order:')));
+  assert.ok(prompts.every(prompt => !prompt.includes('Hero patterns: split')));
+  assert.ok(prompts.every(prompt => !prompt.includes('req-1') && !prompt.includes('proj-1')));
+
+  const second = buildExplorationRequest(strategy, 'proj-1', 'req-2', 'MOBILE');
+  assert.notEqual(first.creativeDirectionOffset, second.creativeDirectionOffset);
+  assert.equal(second.strategyId, strategy.strategyId);
+  const directions = Array.from({ length: 6 }, (_, creativeDirectionOffset) =>
+    /Visual direction for this specific candidate: ([^.]*)\./.exec(
+      buildStitchScreenPrompt({ ...first, creativeDirectionOffset }, 0),
+    )?.[1]);
+  assert.equal(new Set(directions).size, 6);
+});
+
 test('D.2 Request Builder: PII sentinel detects injected PII values', () => {
   const strategy = makeStrategy('barbershop');
   const request = buildExplorationRequest(strategy, 'proj-1', 'req-1', 'MOBILE');
@@ -81,6 +107,47 @@ test('D.2 Request Builder: PII sentinel detects injected PII values', () => {
   const pii = detectPiiInRequest(request);
   assert.ok(pii.includes('email'));
   assert.ok(pii.includes('phone'));
+});
+
+test('D.2 Desktop companion prompt locks the mobile semantic section order', () => {
+  const strategy = makeStrategy('barbershop');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-desk', 'DESKTOP', 'pair-1');
+  request.referenceScreenId = 'mobile-screen-1';
+  request.sectionPriorities = ['hero', 'services', 'about', 'contact', 'location'];
+
+  const prompt = buildStitchScreenPrompt(request);
+  assert.match(prompt, /Keep exactly the same semantic section sequence as the mobile screen/);
+  assert.doesNotMatch(prompt, /Visual direction for this specific candidate/);
+  assert.match(prompt, /Required semantic section order: hero -> services -> about -> contact -> location/);
+  assert.match(prompt, /Do not add, remove, duplicate or reorder these sections/);
+});
+
+test('D.2 Desktop companion edits the persisted mobile screen instead of generating an unrelated screen', () => {
+  const strategy = makeStrategy('barbershop');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-desk', 'DESKTOP', 'pair-1');
+  request.targetProjectId = 'stitch-project-1';
+  request.referenceScreenId = 'mobile-screen-1';
+
+  const call = buildStitchScreenToolCall(request, 'stitch-project-1', buildStitchScreenPrompt(request));
+
+  assert.equal(call.name, 'edit_screens');
+  assert.deepEqual(call.args.selectedScreenIds, ['mobile-screen-1']);
+  assert.equal(call.args.deviceType, 'DESKTOP');
+  assert.equal(call.args.projectId, 'stitch-project-1');
+});
+
+test('D.2 Initial mobile exploration remains text-to-screen generation', () => {
+  const strategy = makeStrategy('barbershop');
+  const request = buildExplorationRequest(strategy, 'proj-1', 'req-mobile', 'MOBILE');
+
+  const prompt = buildStitchScreenPrompt(request, 1);
+  const call = buildStitchScreenToolCall(request, 'stitch-project-1', prompt, 1);
+
+  assert.equal(call.name, 'generate_screen_from_text');
+  assert.equal(call.args.deviceType, 'MOBILE');
+  assert.equal(call.args.prompt, prompt);
+  assert.match(String(call.args.prompt), /Visual direction for this specific candidate/);
+  assert.notEqual(call.args.prompt, buildStitchScreenPrompt(request, 0));
 });
 
 // ── Producer Mapper ───────────────────────────────────────────────
@@ -138,6 +205,12 @@ test('D.2 Producer Mapper: returns null for empty variants', () => {
     strategy, 'proj-1', 'req-1',
   );
   assert.equal(artifact, null);
+});
+
+test('D.2 Producer Mapper: missing Stitch sections are not invented from strategy', () => {
+  const strategy = makeStrategy('barbershop');
+  const artifact = mapStitchRawToArtifact({ status: 'ok', variants: [{ id: 'partial-screen', sectionOrder: ['hero', 'services', 'about'] }] }, strategy, 'proj-1', 'req-1');
+  assert.deepEqual(artifact?.candidates[0].sectionOrder, ['hero', 'services', 'about']);
 });
 
 test('D.2 Producer Mapper: scores initialized to zero (ranker responsibility)', () => {

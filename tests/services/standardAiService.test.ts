@@ -123,6 +123,54 @@ test("Auto Router: 401/403 triggers fallback but NO aggressive retries/cooldown"
   assert.ok(!providerCooldown.isCooling(modelA.provider, modelA.model));
 });
 
+test("Auto Router: OpenRouter sem créditos não bloqueia o próximo provedor", async () => {
+  const openrouter = { ...modelA, id: "openrouter:model", provider: "openrouter" as const };
+  const calls: string[] = [];
+  const deps = {
+    discoverModels: async () => ({ models: [openrouter, modelB], warnings: [] }),
+    requestBlueprint: async (candidate: AiModelDefinition) => {
+      calls.push(candidate.id);
+      if (candidate.provider === "openrouter") {
+        throw new SiteAiError("payment", 402, false, 'SITE_AI_PROVIDER_UNAVAILABLE', 'openrouter', candidate.model, 402, 'provider-payment-required');
+      }
+      return blueprint;
+    },
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
+  };
+  const result = await generateStandardAiSite(source, { mode: "auto" }, undefined, {}, deps);
+  assert.equal(result.generation.modelId, modelB.id);
+  assert.deepEqual(calls, [openrouter.id, modelB.id]);
+});
+
+test("Auto Router: Blueprint incompatível tenta o próximo provedor", async () => {
+  const calls: string[] = [];
+  const deps = {
+    discoverModels: async () => ({ models: [modelA, modelB], warnings: [] }),
+    requestBlueprint: async (candidate: AiModelDefinition) => {
+      calls.push(candidate.id);
+      return candidate.id === modelA.id ? { headline: "estrutura incompleta" } : blueprint;
+    },
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
+  };
+
+  const result = await generateStandardAiSite(source, { mode: "auto" }, undefined, {}, deps);
+  assert.equal(result.generation.modelId, modelB.id);
+  assert.deepEqual(calls, [modelA.id, modelB.id]);
+});
+
+test("Auto Router: todos os Blueprints incompatíveis preservam a falha de contrato", async () => {
+  const deps = {
+    discoverModels: async () => ({ models: [modelA, modelB], warnings: [] }),
+    requestBlueprint: async () => ({ headline: "estrutura incompleta" }),
+    audit: async () => ({ kind: 'current-business', status: 'absent', auditedAt: new Date().toISOString(), method: 'bounded-static-html', observations: [], structure: [], identity: [], technicalProblems: [], visualProblems: [], conversionProblems: [], contentProblems: [], accessibilityProblems: [], opportunities: [], limitations: [] } as any),
+  };
+
+  await assert.rejects(
+    () => generateStandardAiSite(source, { mode: "auto" }, undefined, {}, deps),
+    (error: any) => error.code === 'SITE_AI_PROVIDER_INVALID_RESPONSE' && error.safeDetail === 'provider-invalid-response',
+  );
+});
+
 test("Manual mode: 429 returns structured error, no fallback", async () => {
   providerCooldown._resetCooldowns();
   const deps = {

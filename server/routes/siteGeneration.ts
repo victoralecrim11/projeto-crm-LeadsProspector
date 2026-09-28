@@ -33,6 +33,7 @@ export function siteGenerationRouter() {
     const geminiByok = req.get("x-gemini-api-key")?.trim();
     const groqByok = req.get("x-groq-api-key")?.trim();
     const hfByok = req.get("x-huggingface-api-key")?.trim();
+    const openrouterByok = req.get("x-openrouter-api-key")?.trim();
     const openaiByok = req.get("x-openai-api-key")?.trim();
     const anthropicByok = req.get("x-anthropic-api-key")?.trim();
     const mistralByok = req.get("x-mistral-api-key")?.trim();
@@ -49,6 +50,7 @@ export function siteGenerationRouter() {
       geminiKey: geminiByok || (authorized ? process.env.GEMINI_API_KEY : undefined),
       groqKey: groqByok || (authorized ? process.env.GROQ_API_KEY : undefined),
       huggingfaceKey: hfByok || (authorized ? process.env.HUGGINGFACE_API_KEY : undefined),
+      openrouterKey: openrouterByok || (authorized ? process.env.OPENROUTER_API_KEY : undefined),
       openaiKey: openaiByok || (authorized ? process.env.OPENAI_API_KEY : undefined),
       anthropicKey: anthropicByok || (authorized ? process.env.ANTHROPIC_API_KEY : undefined),
       mistralKey: mistralByok || (authorized ? process.env.MISTRAL_API_KEY : undefined),
@@ -219,7 +221,10 @@ export function siteGenerationRouter() {
     if (!id) return res.status(400).json({ error: 'Missing ID' });
     
     const { stitchDesignProductionService } = await import('../services/research/stitchProductionService.js');
-    const prod = await stitchDesignProductionService.getProduction(id);
+    const current = await stitchDesignProductionService.getProduction(id);
+    const prod = current?.status === 'PARTIAL' && current.errorCode === 'COHERENCE_FAILED' && current.desktopReference
+      ? (await stitchDesignProductionService.loadConsumableDesignProduction(id)).production
+      : current;
     
     if (!prod) {
        return res.status(404).json({ error: 'DESIGN_PRODUCTION_NOT_FOUND' });
@@ -231,6 +236,7 @@ export function siteGenerationRouter() {
       status: prod.status,
       stage: prod.stage,
       errorCode: prod.errorCode,
+      incoherenceReason: prod.incoherenceReason,
       providerStatus: prod.providerStatus,
       elapsedMs: prod.updatedAt - prod.createdAt,
       lastTransitionAt: prod.lastTransitionAt

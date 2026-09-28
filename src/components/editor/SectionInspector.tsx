@@ -52,7 +52,7 @@ interface Props {
   draftBlueprint: GeneratedSiteBlueprint;
   overrides: SiteUserOverrides;
   busy: boolean;
-  onChangeBlueprint: (next: GeneratedSiteBlueprint) => void;
+  onChangeBlueprint: (next: GeneratedSiteBlueprint, preserveReview?: boolean) => void;
   onChangeOverrides: (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => void;
 }
 
@@ -278,9 +278,26 @@ export const SectionInspector: React.FC<Props> = ({
                   true,
                 )}
                 {s.source === "ai_suggestion" && (
-                  <p className="adv-inspector-hint adv-ai-warning">
-                    ⚠ Sugestão da IA — revise antes de publicar
-                  </p>
+                  <>
+                    <p className="adv-inspector-hint adv-ai-warning">
+                      ⚠ Sugestão da IA — confirme que o negócio oferece este serviço antes de exportar.
+                    </p>
+                    <button
+                      type="button"
+                      className="adv-confirm-service-btn"
+                      disabled={!s.title.trim() || s.title === "Novo serviço" || !s.description.trim()}
+                      onClick={() =>
+                        onChangeBlueprint({
+                          ...draftBlueprint,
+                          services: draftBlueprint.services.map((service, index) =>
+                            index === i ? { ...service, source: "known" } : service,
+                          ),
+                        }, true)
+                      }
+                    >
+                      Confirmar serviço
+                    </button>
+                  </>
                 )}
                 <button
                   type="button"

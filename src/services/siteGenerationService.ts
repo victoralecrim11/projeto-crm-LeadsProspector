@@ -74,6 +74,8 @@ export function formatFallbackMessage(generation: GenerationMetadata): string {
       return "A geração por IA excedeu o tempo limite. O site foi criado com fallback determinístico.";
     case "provider-network-error":
       return "Não foi possível concluir a comunicação com o provedor de IA. O site foi criado com fallback determinístico.";
+    case "provider-payment-required":
+      return "Os provedores configurados exigem créditos ou estão sem saldo disponível. O site foi criado com fallback determinístico.";
     case "provider-no-compatible-model":
       return "Nenhum modelo compatível estava disponível para esta estratégia. O site foi criado com fallback determinístico.";
     default:
@@ -96,7 +98,10 @@ function headers(settings: CrmSettingsConfig, body?: any) {
   };
 
   const getProviderKey = (providerId: string) => {
-    return settings.aiProviders?.find((p) => p.provider === providerId)?.apiKey;
+    return [...(settings.aiProviders ?? [])]
+      .reverse()
+      .find((p) => p.provider === providerId && p.apiKey?.trim())
+      ?.apiKey.trim();
   };
 
   const selection = body?.selection || body?.modelSelection;
@@ -106,8 +111,10 @@ function headers(settings: CrmSettingsConfig, body?: any) {
     const provider = selection.modelId.split(":")[0];
     allowedProviders.push(provider);
   } else {
-    // Auto mode or discovery -> send all homologated
-    allowedProviders = ["gemini", "groq", "huggingface"];
+    // Auto mode or discovery: every provider supported by the Site Builder
+    // must reach the backend catalog. Connection testing uses a different
+    // route, so omitting one here makes a green provider silently unusable.
+    allowedProviders = ["gemini", "groq", "huggingface", "cohere", "openrouter"];
   }
 
   const legacyGeminiKey =

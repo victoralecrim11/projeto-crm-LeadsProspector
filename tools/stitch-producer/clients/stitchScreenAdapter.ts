@@ -102,7 +102,7 @@ export function extractStitchVisuals(html: string): Partial<StitchRawVariant> {
     : /text-center/.test(heroClass) ? 'minimal' as const
     : /(?:absolute[^>]*|background-image:)/.test(hero) && /(?:<img|background-image:)/.test(hero) ? 'full-bleed' as const : undefined;
   const spaceKey = /(?:^|[\s"'])py-([a-z-]+)/.exec(sections[1]?.[0].split('>')[0] ?? '')?.[1];
-  const sectionAliases: Record<string, string> = { hero: 'hero', inicio: 'hero', about: 'about', sobre: 'about', services: 'services', servicos: 'services', contact: 'contact', contato: 'contact', location: 'location', localizacao: 'location' };
+  const sectionAliases: Record<string, string> = { hero: 'hero', inicio: 'hero', about: 'about', sobre: 'about', services: 'services', servicos: 'services', contact: 'contact', contato: 'contact', agendamento: 'contact', location: 'location', localizacao: 'location' };
   const sectionOrder = sections.flatMap(section => {
     if (/<h1\b/i.test(section[1])) return ['hero'];
     const id = /\bid=["']([a-z-]+)["']/i.exec(section[0].split('>')[0])?.[1];

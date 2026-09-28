@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { z } from 'zod';
 import { constrainBlueprint } from '../../../src/site-builder/context.js';
 import { blueprintSchema, type ModelSelection, type GeneratedSiteBlueprint, type GenerationMetadata } from '../../../src/site-builder/types.js';
 import { buildDesignSystemContract, blueprintFromDesign, resolveStandardDesign } from '../../../src/site-builder/designPipeline.js';
@@ -37,6 +38,8 @@ export function getFallbackUserMessage(
       return 'A geração por IA excedeu o tempo limite. O site foi criado com fallback determinístico.';
     case 'provider-network-error':
       return 'Não foi possível concluir a comunicação com o provedor de IA. O site foi criado com fallback determinístico.';
+    case 'provider-payment-required':
+      return 'Os provedores configurados exigem créditos ou estão sem saldo disponível. O site foi criado com fallback determinístico.';
     case 'provider-no-compatible-model':
       return 'Nenhum modelo compatível estava disponível para esta estratégia. O site foi criado com fallback determinístico.';
     default:
@@ -188,7 +191,24 @@ export async function generateStandardAiSite(
           buildStandardAiPrompt(source, finalDesign, contract),
           credentials,
         );
-        const blueprint = preserveDesign(raw, finalDesign);
+        let blueprint: GeneratedSiteBlueprint;
+        try {
+          blueprint = preserveDesign(raw, finalDesign);
+        } catch (error) {
+          if (error instanceof z.ZodError) {
+            throw new SiteAiError(
+              'A IA retornou uma estrutura incompatível com o site.',
+              502,
+              true,
+              'SITE_AI_PROVIDER_INVALID_RESPONSE',
+              model.provider,
+              model.model,
+              undefined,
+              'provider-invalid-response',
+            );
+          }
+          throw error;
+        }
         const durationMs = Date.now() - startTime;
         console.log(
           `[SiteAI] ${JSON.stringify({
@@ -227,8 +247,10 @@ export async function generateStandardAiSite(
           const siteAiError = error as import('../ai/modelRegistry.js').SiteAiError;
           const isTransient = siteAiError.status === 429 || siteAiError.status === 503 || siteAiError.status === 504 || siteAiError.code === 'SITE_AI_PROVIDER_TIMEOUT' || siteAiError.code === 'SITE_AI_PROVIDER_NETWORK' || siteAiError.safeDetail === 'provider-network-error';
           const isAuthError = siteAiError.status === 401 || siteAiError.status === 403;
+          const isProviderUnavailable = siteAiError.status === 402 || siteAiError.safeDetail === 'provider-payment-required';
+          const isInvalidResponse = siteAiError.code === 'SITE_AI_PROVIDER_INVALID_RESPONSE' || siteAiError.safeDetail === 'provider-invalid-response';
           
-          if (isAuto && (isTransient || isAuthError)) {
+          if (isAuto && (isTransient || isAuthError || isProviderUnavailable || isInvalidResponse)) {
             // For 429/503/504, requestBlueprint already sets cooldown based on Retry-After.
             // But just in case it didn't, or for network errors:
             if (isTransient && !isCooling(model.provider, model.model)) {
@@ -271,6 +293,9 @@ export async function generateStandardAiSite(
         
         if (siteAiError.code === 'SITE_AI_PROVIDER_RATE_LIMIT' || siteAiError.status === 429) {
           return fallback('rate-limit', 'provider-http-429', siteAiError.upstreamStatus ?? 429);
+        }
+        if (siteAiError.status === 402 || siteAiError.safeDetail === 'provider-payment-required') {
+          return fallback('provider-unavailable', 'provider-payment-required', 402);
         }
         if (siteAiError.safeDetail === 'provider-http-503' || (siteAiError.status === 503 && siteAiError.upstreamStatus === 503)) {
           return fallback('provider-unavailable', 'provider-http-503', 503);

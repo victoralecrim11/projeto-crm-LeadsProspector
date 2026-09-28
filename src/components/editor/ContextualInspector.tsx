@@ -11,7 +11,7 @@ export interface ContextualInspectorProps {
   draftBlueprint: GeneratedSiteBlueprint;
   overrides: SiteUserOverrides;
   busy: boolean;
-  onChangeBlueprint: (next: GeneratedSiteBlueprint) => void;
+  onChangeBlueprint: (next: GeneratedSiteBlueprint, preserveReview?: boolean) => void;
   onChangeOverrides: (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => void;
 }
 

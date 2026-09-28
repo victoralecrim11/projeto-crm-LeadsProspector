@@ -68,6 +68,17 @@ test('accepts viewport-specific hero, layout, size and spacing adaptations', () 
   assert.deepEqual(validateAnchorCoherence(mobile, desktop), { status: 'PAIRED' });
 });
 
+test('accepts desktop section reordering when both viewports contain the same semantic sections', () => {
+  const mobile = candidate();
+  const desktop = candidate({
+    candidateId: 'screen-desktop',
+    screenId: 'screen-desktop',
+    viewport: 'desktop',
+    sectionOrder: ['hero', 'location', 'services', 'about', 'contact'],
+  });
+  assert.deepEqual(validateAnchorCoherence(mobile, desktop), { status: 'PAIRED' });
+});
+
 test('still rejects identity and semantic drift', () => {
   const mobile = candidate();
   const reason = (result: ReturnType<typeof validateAnchorCoherence>) =>
@@ -81,10 +92,8 @@ test('still rejects identity and semantic drift', () => {
     reason(validateAnchorCoherence(mobile, candidate({ responsivePairId: 'pair-2' }))),
     /responsivePairId/,
   );
-  assert.match(
-    reason(validateAnchorCoherence(mobile, candidate({ sectionOrder: ['hero', 'about', 'services', 'location', 'contact'] }))),
-    /sectionOrder/,
-  );
+  assert.match(reason(validateAnchorCoherence(mobile, candidate({ sectionOrder: ['hero', 'about', 'services', 'location'] }))), /section membership/);
+  assert.match(reason(validateAnchorCoherence(mobile, candidate({ sectionOrder: ['hero', 'about', 'services', 'location', 'location'] }))), /section membership/);
   assert.match(
     reason(validateAnchorCoherence(mobile, candidate({ appearance: { ...mobile.appearance!, headingFont: 'Bodoni Moda' } }))),
     /heading font/,

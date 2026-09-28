@@ -232,6 +232,7 @@ export type FallbackDetail =
   | "provider-authentication"
   | "provider-invalid-request"
   | "provider-invalid-response"
+  | "provider-payment-required"
   | "provider-unknown";
 
 export type GenerationMetadata = {
@@ -271,6 +272,7 @@ export type ProviderId =
   | "ollama"
   | "groq"
   | "huggingface"
+  | "openrouter"
   | "openai"
   | "anthropic"
   | "mistral"

@@ -124,6 +124,7 @@ export async function resolveRuntimeResponsiveDesign(
     strategyId: mobileStrategyId,
     alternatives: canonicalAlternatives,
     selected: mobileWinner.candidateId,
+    stitchStatus: resolution.status,
   };
 
   // 4. Update the ResolvedDesign using designPipeline's responsive integrator

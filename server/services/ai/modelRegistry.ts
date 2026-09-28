@@ -55,6 +55,7 @@ export type Credentials = {
   ollamaUrl?: string;
   groqKey?: string;
   huggingfaceKey?: string;
+  openrouterKey?: string;
   openaiKey?: string;
   anthropicKey?: string;
   mistralKey?: string;
@@ -177,11 +178,10 @@ export async function discoverModels(
   }
 
   if (credentials.huggingfaceKey) {
-    // HuggingFace doesn't have a simple "list all my usable LLMs" endpoint that matches our needs easily.
-    // We register a few well-known models if the key is provided.
+    // Router model IDs are shared with the real connection-test adapter.
     const hfModels = [
-      { id: "meta-llama/Meta-Llama-3-8B-Instruct", name: "Llama-3-8B-Instruct" },
-      { id: "mistralai/Mixtral-8x7B-Instruct-v0.1", name: "Mixtral-8x7B-Instruct" }
+      { id: "openai/gpt-oss-120b:fastest", name: "GPT-OSS 120B", tier: "quality" as const },
+      { id: "google/gemma-2-2b-it:fastest", name: "Gemma 2 2B", tier: "fast" as const },
     ];
     for (const m of hfModels) {
       models.push({
@@ -190,12 +190,40 @@ export async function discoverModels(
         model: m.id,
         label: m.name,
         description: "Hugging Face Inference",
-        tier: "quality",
+        tier: m.tier,
         enabled: !credentials.disabledModels?.includes("huggingface:" + m.id),
         supportsSiteBuilder: true,
         capabilities: { structuredOutput: true, coding: true, vision: false },
       });
     }
+  }
+
+  if (credentials.cohereKey) {
+    models.push({
+      id: "cohere:command-a-plus-05-2026",
+      provider: "cohere",
+      model: "command-a-plus-05-2026",
+      label: "Command A Plus",
+      description: "Cohere · Structured Output",
+      tier: "quality",
+      enabled: !credentials.disabledModels?.includes("cohere:command-a-plus-05-2026"),
+      supportsSiteBuilder: true,
+      capabilities: { structuredOutput: true, coding: true, vision: false },
+    });
+  }
+
+  if (credentials.openrouterKey) {
+    models.push({
+      id: "openrouter:~openai/gpt-latest",
+      provider: "openrouter",
+      model: "~openai/gpt-latest",
+      label: "OpenRouter Auto",
+      description: "OpenRouter · Structured Output",
+      tier: "quality",
+      enabled: !credentials.disabledModels?.includes("openrouter:~openai/gpt-latest"),
+      supportsSiteBuilder: true,
+      capabilities: { structuredOutput: true, coding: true, vision: false },
+    });
   }
 
   if (credentials.ollamaUrl) {
@@ -227,7 +255,6 @@ export async function discoverModels(
     { key: credentials.openaiKey, provider: "openai", label: "OpenAI" },
     { key: credentials.anthropicKey, provider: "anthropic", label: "Anthropic" },
     { key: credentials.mistralKey, provider: "mistral", label: "Mistral" },
-    { key: credentials.cohereKey, provider: "cohere", label: "Cohere" },
     { key: credentials.azureKey, provider: "azure", label: "Azure OpenAI" },
     { key: credentials.awsKey, provider: "aws", label: "AWS Bedrock" },
     { key: credentials.replicateKey, provider: "replicate", label: "Replicate" },
@@ -249,7 +276,7 @@ export async function discoverModels(
     }
   }
 
-  if (!credentials.geminiKey && !credentials.ollamaUrl && !credentials.groqKey && !credentials.huggingfaceKey)
+  if (!credentials.geminiKey && !credentials.ollamaUrl && !credentials.groqKey && !credentials.huggingfaceKey && !credentials.cohereKey && !credentials.openrouterKey)
     warnings.push(
       "Configure provedores homologados nas configurações ou no .env.",
     );
@@ -304,7 +331,20 @@ export function resolveModels(
       undefined,
       'provider-no-compatible-model',
     );
-  return selection.mode === "auto"
-    ? candidates.slice(0, 3)
-    : candidates.slice(0, 1);
+  if (selection.mode !== "auto") return candidates.slice(0, 1);
+
+  // Try one model per provider before trying a second model from the same
+  // provider. A quota outage at Gemini must not consume the entire fallback
+  // budget while another configured provider is healthy.
+  const diverse: AiModelDefinition[] = [];
+  const deferred: AiModelDefinition[] = [];
+  const seenProviders = new Set<string>();
+  for (const candidate of candidates) {
+    if (seenProviders.has(candidate.provider)) deferred.push(candidate);
+    else {
+      seenProviders.add(candidate.provider);
+      diverse.push(candidate);
+    }
+  }
+  return [...diverse, ...deferred].slice(0, 6);
 }

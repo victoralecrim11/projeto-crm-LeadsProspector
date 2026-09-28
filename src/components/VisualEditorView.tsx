@@ -194,9 +194,9 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
 
   // ── Document change helpers ────────────────────────────────
   const changeBlueprint = useCallback(
-    (next: GeneratedSiteBlueprint) => {
+    (next: GeneratedSiteBlueprint, preserveReview = false) => {
       pushSnapshot({ blueprint: next, overrides: draftOverrides });
-      setReviewed(false);
+      if (!preserveReview) setReviewed(false);
       setDirty(true);
     },
     [pushSnapshot, draftOverrides],
@@ -204,7 +204,9 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
 
   const changeOverrides = useCallback(
     (updater: (prev: SiteUserOverrides) => SiteUserOverrides) => {
-      pushSnapshot({ blueprint: draftBlueprint, overrides: updater(draftOverrides) });
+      const nextOverrides = updater(draftOverrides);
+      pushSnapshot({ blueprint: draftBlueprint, overrides: nextOverrides });
+      if (nextOverrides.content !== draftOverrides.content) setReviewed(false);
       setDirty(true);
     },
     [pushSnapshot, draftBlueprint, draftOverrides],
@@ -253,20 +255,15 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
     redo();
   }, [redo]);
 
-  // Clean up invalid selectedTarget after blueprint/overrides changes
+  // Keep hidden sections editable (including services awaiting approval).
+  // Only clear a selection when its section no longer exists at all.
   useEffect(() => {
     if (selectedTarget?.scope !== "section") return;
     const exists = effectiveDraft.sectionOrder.includes(
       selectedTarget.sectionId as any,
     );
-    const isVisible = effectiveDraft.sections[selectedTarget.sectionId as keyof typeof effectiveDraft.sections] !== false;
-
-    if (!exists) {
-      setSelectedTarget(null);
-    } else if (!isVisible) {
-      setSelectedTarget({ scope: "site" });
-    }
-  }, [effectiveDraft.sectionOrder, effectiveDraft.sections, selectedTarget]);
+    if (!exists) setSelectedTarget(null);
+  }, [effectiveDraft.sectionOrder, selectedTarget]);
 
   // ── Save / Export ──────────────────────────────────────────
   const save = useCallback(() => {
@@ -355,6 +352,18 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
   );
 
   const exportSite = useCallback(async () => {
+    if (!reviewed) {
+      document.getElementById("editor-content-reviewed")?.focus();
+      toast("Marque a declaração de revisão acima da prévia antes de exportar.", "error");
+      return;
+    }
+    const pendingServices = effectiveDraft.services.filter((service) => service.source === "ai_suggestion");
+    if (pendingServices.length > 0) {
+      setSelectedTarget({ scope: "section", sectionId: "services" });
+      setInspectorOpen(true);
+      toast(`Confirme ou remova ${pendingServices.length} serviço(s) sugerido(s) no painel Serviços antes de exportar.`, "error");
+      return;
+    }
     setBusy(true);
     try {
       const next = save();
@@ -372,7 +381,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
       toast("Site exportado em ZIP.");
     } catch (e) { toast((e as Error).message, "error"); }
     finally { setBusy(false); }
-  }, [save, crm]);
+  }, [save, crm, reviewed, effectiveDraft.services]);
 
   // ────────────────────────────────────────────────────────────
   return (
@@ -457,6 +466,31 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
             onSave={runSave}
             onExport={exportSite}
           />
+
+          <section className="adv-editor-review-bar" aria-labelledby="editor-review-heading">
+            <div>
+              <h3 id="editor-review-heading">Revisão antes de exportar</h3>
+              <p>Confira as informações do site e os serviços sugeridos pela IA.</p>
+              {effectiveDraft.services.some((service) => service.source === "ai_suggestion") && (
+                <p className="adv-ai-warning">
+                  Serviços sugeridos precisam ser confirmados ou removidos individualmente no painel Serviços.
+                </p>
+              )}
+            </div>
+            <label className="editor-review-label">
+              <input
+                id="editor-content-reviewed"
+                type="checkbox"
+                checked={reviewed}
+                disabled={busy}
+                onChange={(e) => {
+                  setReviewed(e.target.checked);
+                  setDirty(true);
+                }}
+              />
+              Revisei os textos e confirmei que correspondem aos dados disponíveis.
+            </label>
+          </section>
 
           {/* ── 3-column workspace ───────────────────────────── */}
           <div className="adv-editor-body">
@@ -658,20 +692,12 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
                 </section>
               )}
 
-              {/* Review checkbox + media auto-resolve (global level) */}
-              {selectedTarget?.scope === "site" && (
+              {/* Media auto-resolve (global level) */}
+              {selectedTarget?.scope === "site" && Boolean(
+                autoResolveMessage ||
+                (autoResolveStatus === "idle" && mediaPlan?.items.some((i) => i.sourcePreference === "licensed")),
+              ) && (
                 <div className="adv-inspector-review-panel">
-                  <label className="editor-review-label">
-                    <input
-                      type="checkbox"
-                      checked={reviewed}
-                      onChange={(e) => {
-                        setReviewed(e.target.checked);
-                        setDirty(true);
-                      }}
-                    />{" "}
-                    Revisei os textos e confirmei que correspondem aos dados disponíveis.
-                  </label>
                   {autoResolveStatus === "idle" &&
                     mediaPlan?.items.some((i) => i.sourcePreference === "licensed") && (
                       <button

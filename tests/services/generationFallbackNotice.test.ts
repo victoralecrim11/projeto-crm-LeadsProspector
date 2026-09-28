@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import React from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { GenerationResultStep } from '../../src/site-builder/components/wizard/GenerationResultStep';
-import { GenerationFallbackNotice } from '../../src/site-builder/components/GenerationFallbackNotice';
+import { GenerationFallbackNotice, StitchAdaptationNotice } from '../../src/site-builder/components/GenerationFallbackNotice';
 import type { GenerationMetadata } from '../../src/site-builder/types';
 
 test('completed fallback is presented as basic draft rather than successful AI generation', () => {
@@ -21,4 +21,14 @@ test('persisted fallback warning survives reopening and is absent for successful
  assert.match(renderToStaticMarkup(React.createElement(GenerationFallbackNotice,{generation})),/versão básica de contingência/);
  assert.equal(renderToStaticMarkup(React.createElement(GenerationFallbackNotice,{generation:{...generation,fallbackUsed:false}})),'');
  assert.equal(renderToStaticMarkup(React.createElement(GenerationFallbackNotice,{})),'');
+});
+
+test('partial Stitch notice distinguishes a rejected desktop pairing from a missing desktop artifact', () => {
+ const partialDesign = { stitch: { stitchStatus: 'PARTIAL', viewportAnchors: { desktop: { requestId: 'req-desk' } } } } as any;
+ const partialHtml = renderToStaticMarkup(React.createElement(StitchAdaptationNotice, { design: partialDesign }));
+ assert.match(partialHtml, /foi recuperada, mas não passou no pareamento responsivo/);
+
+ const missingDesktop = { stitch: { stitchStatus: 'PARTIAL', viewportAnchors: {} } } as any;
+ const missingHtml = renderToStaticMarkup(React.createElement(StitchAdaptationNotice, { design: missingDesktop }));
+ assert.match(missingHtml, /não ficou disponível/);
 });

@@ -41,7 +41,7 @@ export const GenerationResultStep: React.FC<GenerationResultStepProps> = ({
         </p>
       </div>
 
-      {isSuccess && partialDesign && <p className="text-amber-300 max-w-sm">A versão desktop do design não ficou disponível. O site usa a referência mobile adaptada; revise os dois tamanhos.</p>}
+      {isSuccess && partialDesign && <p className="text-amber-300 max-w-sm">A versão desktop do design não pôde ser validada no pareamento responsivo. O site usa a referência mobile como base; revise os dois tamanhos.</p>}
       {isSuccess && mediaPending && <p className="text-amber-300 max-w-sm">Abra o Editor Visual para buscar as imagens automaticamente. Revise e aprove cada imagem antes de exportar.</p>}
       <div className="flex flex-col w-full max-w-xs gap-3 mt-6">
         {isSuccess ? (

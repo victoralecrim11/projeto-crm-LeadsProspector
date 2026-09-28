@@ -46,9 +46,18 @@ export function validateAnchorCoherence(mobile: DesignCandidate, desktop: Design
     return { status: 'INVALID', reason: 'body font mismatch' };
   }
   
-  const orderMismatch = mobile.sectionOrder.some((section, index) => section !== desktop.sectionOrder[index]);
-  if (orderMismatch || mobile.sectionOrder.length !== desktop.sectionOrder.length) {
-    return { status: 'INVALID', reason: 'sectionOrder mismatch' };
+  // The final Blueprint takes its section order from the mobile winner. Stitch
+  // may place the same sections differently on desktop without changing the
+  // content or the rendered site's canonical sequence. Reject a missing or
+  // duplicated section, but allow a viewport-specific permutation.
+  const mobileSections = new Set(mobile.sectionOrder);
+  const desktopSections = new Set(desktop.sectionOrder);
+  if (mobileSections.size !== 5 || desktopSections.size !== 5 ||
+      mobileSections.size !== mobile.sectionOrder.length ||
+      desktopSections.size !== desktop.sectionOrder.length ||
+      mobileSections.size !== desktopSections.size ||
+      [...mobileSections].some(section => !desktopSections.has(section))) {
+    return { status: 'INVALID', reason: 'section membership mismatch' };
   }
 
   return { status: 'PAIRED' };

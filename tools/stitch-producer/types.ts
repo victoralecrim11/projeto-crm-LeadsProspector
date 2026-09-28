@@ -32,6 +32,8 @@ export interface StitchExplorationRequest {
   deviceType: 'MOBILE' | 'DESKTOP' | 'TABLET' | 'AGNOSTIC';
   responsivePairId?: string;
   strategyId: string;
+  /** PII-safe rotation of visual directions for this generation; never changes strategy identity. */
+  creativeDirectionOffset?: number;
   /** Safety instruction appended to every request. */
   safetyInstruction: string;
   /** Existing Stitch project ID to reuse (for responsive companion). */

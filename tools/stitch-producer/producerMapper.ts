@@ -43,7 +43,7 @@ function mapRawVariant(
     heroPattern: sanitizeText(raw.heroPattern) || 'split',
     aboutPattern: sanitizeText(raw.aboutPattern) || 'standard',
     servicePattern: sanitizeText(raw.servicePattern) || 'grid',
-    sectionOrder: mapSectionOrder(raw.sectionOrder, strategy),
+    sectionOrder: mapSectionOrder(raw.sectionOrder),
     typographySignals: sanitizeStringArray(raw.typographySignals),
     colorSignals: sanitizeStringArray(raw.colorSignals) || [],
     spacingSignals: sanitizeStringArray(raw.spacingSignals) || [],
@@ -102,10 +102,10 @@ export function mapStitchRawToArtifact(
 
 const VALID_SECTION_IDS = new Set(['hero', 'about', 'services', 'contact', 'location']);
 
-function mapSectionOrder(raw: string[] | undefined, strategy: DesignStrategy): DesignCandidate['sectionOrder'] {
-  const observed = (raw ?? []).filter(s => VALID_SECTION_IDS.has(s)) as DesignCandidate['sectionOrder'];
-  // Unsupported/absent sections keep strategy order; only observed IDs alter their order.
-  return [...new Set([...observed, ...strategy.sectionPriorities])];
+function mapSectionOrder(raw: string[] | undefined): DesignCandidate['sectionOrder'] {
+  // Preserve what Stitch actually rendered. Filling gaps from the strategy
+  // would turn a missing provider section into fabricated coherence evidence.
+  return (raw ?? []).filter(s => VALID_SECTION_IDS.has(s)) as DesignCandidate['sectionOrder'];
 }
 
 /** SECONDARY PII BARRIER: truncate and strip suspicious patterns from text. */

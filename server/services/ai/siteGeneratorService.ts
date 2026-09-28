@@ -134,7 +134,7 @@ export async function generateSite(
       } catch (e) {
         console.error(`[SiteGenerator] Error in attempt ${attempt} for ${model.id}:`, e instanceof Error ? e.message : e);
         lastError = e;
-        if (e instanceof SiteAiError && (e.status === 429 || e.status === 503 || e.status === 504 || e.code === 'SITE_AI_PROVIDER_TIMEOUT' || e.code === 'SITE_AI_PROVIDER_NETWORK')) {
+        if (e instanceof SiteAiError && (e.status === 402 || e.status === 429 || e.status === 503 || e.status === 504 || e.code === 'SITE_AI_PROVIDER_TIMEOUT' || e.code === 'SITE_AI_PROVIDER_NETWORK')) {
           // Automatic selection: mark cooldown and move to next fallback model.
           // Note: requestBlueprint already sets cooldown using Retry-After if present.
           if (input.modelSelection?.mode === "auto") {
@@ -155,7 +155,7 @@ export async function generateSite(
     }
   }
   if (lastError instanceof SiteAiError) {
-    if (input.blueprint && (lastError.status === 429 || lastError.status === 503 || lastError.status === 504 || lastError.code === 'SITE_AI_PROVIDER_TIMEOUT' || lastError.code === 'SITE_AI_PROVIDER_NETWORK' || lastError.code === 'SITE_AI_NO_COMPATIBLE_MODEL')) {
+    if (input.blueprint && (lastError.status === 402 || lastError.status === 429 || lastError.status === 503 || lastError.status === 504 || lastError.code === 'SITE_AI_PROVIDER_TIMEOUT' || lastError.code === 'SITE_AI_PROVIDER_NETWORK' || lastError.code === 'SITE_AI_NO_COMPATIBLE_MODEL')) {
       // Create a deterministic fallback variant
       let blueprint = structuredClone(input.blueprint);
       

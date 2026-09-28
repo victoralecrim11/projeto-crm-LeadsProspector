@@ -50,20 +50,47 @@ export async function requestBlueprint(
           }),
           signal: AbortSignal.timeout(60000),
         });
-      } else if (model.provider === "huggingface") {
-        if (!credentials.huggingfaceKey)
-          throw new SiteAiError("Chave do Hugging Face não configurada.", 503);
-        response = await fetch("https://api-inference.huggingface.co/models/" + model.model + "/v1/chat/completions", {
+      } else if (model.provider === "huggingface" || model.provider === "openrouter") {
+        const apiKey = model.provider === "huggingface" ? credentials.huggingfaceKey : credentials.openrouterKey;
+        const baseUrl = model.provider === "huggingface"
+          ? "https://router.huggingface.co/v1"
+          : "https://openrouter.ai/api/v1";
+        if (!apiKey)
+          throw new SiteAiError(`Chave do ${model.provider === "huggingface" ? "Hugging Face" : "OpenRouter"} não configurada.`, 503);
+        response = await fetch(baseUrl + "/chat/completions", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            "Authorization": `Bearer ${credentials.huggingfaceKey}`,
+            "Authorization": `Bearer ${apiKey}`,
+            ...(model.provider === "openrouter" && {
+              "HTTP-Referer": process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000",
+              "X-OpenRouter-Title": "CRM Prospector",
+            }),
           },
           body: JSON.stringify({
             model: model.model,
             messages: [{ role: "user", content: prompt + "\n\nRetorne APENAS um JSON válido seguindo estritamente o formato esperado. Não inclua Markdown." }],
+            response_format: { type: "json_object" },
             temperature: 0.2,
-            max_tokens: 4000,
+            max_tokens: 8000,
+          }),
+          signal: AbortSignal.timeout(60000),
+        });
+      } else if (model.provider === "cohere") {
+        if (!credentials.cohereKey)
+          throw new SiteAiError("Chave da Cohere não configurada.", 503);
+        response = await fetch("https://api.cohere.ai/v2/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${credentials.cohereKey}`,
+            "X-Client-Name": "crm-prospector",
+          },
+          body: JSON.stringify({
+            model: model.model,
+            stream: false,
+            messages: [{ role: "user", content: prompt + "\n\nRetorne somente o objeto JSON solicitado." }],
+            response_format: { type: "json_object" },
           }),
           signal: AbortSignal.timeout(60000),
         });
@@ -95,6 +122,18 @@ export async function requestBlueprint(
           status,
           'provider-authentication',
         );
+      if (status === 402) {
+        throw new SiteAiError(
+          "O provedor exige créditos ou pagamento para este modelo.",
+          402,
+          false,
+          'SITE_AI_PROVIDER_UNAVAILABLE',
+          model.provider,
+          model.model,
+          status,
+          'provider-payment-required',
+        );
+      }
       if (status === 429) {
         // honor Retry-After when present and set cooldown
         setCooldownFromRetryAfter(response, model.provider, model.model, 60000);
@@ -164,8 +203,13 @@ export async function requestBlueprint(
             ?.filter((p: { thought?: boolean }) => !p.thought)
             .map((p: { text?: string }) => p.text ?? "")
             .join("")
-        : model.provider === "groq" || model.provider === "huggingface"
+        : model.provider === "groq" || model.provider === "huggingface" || model.provider === "openrouter"
           ? data.choices?.[0]?.message?.content
+          : model.provider === "cohere"
+            ? data.message?.content
+                ?.filter((part: { type?: string }) => part.type === "text")
+                .map((part: { text?: string }) => part.text ?? "")
+                .join("")
           : data.response;
     if (typeof content !== "string" || !content.trim())
       throw new SiteAiError(

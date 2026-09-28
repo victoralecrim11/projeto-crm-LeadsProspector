@@ -85,3 +85,51 @@ test("preserva mensagem segura devolvida pelo backend", async () => {
     globalThis.fetch = originalFetch;
   }
 });
+
+test("catálogo de sites recebe as chaves de todos os provedores homologados", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured = new Headers();
+  globalThis.fetch = async (_input, init) => {
+    captured = new Headers(init?.headers);
+    return Response.json({ models: [], warnings: [] });
+  };
+  const configured = {
+    aiProviders: [
+      { id: "g", provider: "gemini", apiKey: "gemini-secret" },
+      { id: "q", provider: "groq", apiKey: "groq-secret" },
+      { id: "h", provider: "huggingface", apiKey: "hf-secret" },
+      { id: "c", provider: "cohere", apiKey: "cohere-secret" },
+      { id: "o", provider: "openrouter", apiKey: "openrouter-secret" },
+    ],
+  } as CrmSettingsConfig;
+  try {
+    await getSiteModels(configured);
+    for (const provider of ["gemini", "groq", "huggingface", "cohere", "openrouter"]) {
+      assert.ok(captured.get(`x-${provider}-api-key`));
+    }
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("catálogo de sites prioriza a configuração mais recente do mesmo provedor", async () => {
+  const originalFetch = globalThis.fetch;
+  let captured = new Headers();
+  globalThis.fetch = async (_input, init) => {
+    captured = new Headers(init?.headers);
+    return Response.json({ models: [], warnings: [] });
+  };
+  const configured = {
+    aiProviders: [
+      { id: "old", provider: "groq", apiKey: "old-secret" },
+      { id: "empty", provider: "groq", apiKey: "" },
+      { id: "new", provider: "groq", apiKey: " new-secret " },
+    ],
+  } as CrmSettingsConfig;
+  try {
+    await getSiteModels(configured);
+    assert.equal(captured.get("x-groq-api-key"), "new-secret");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});

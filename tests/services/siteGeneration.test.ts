@@ -164,6 +164,18 @@ test("modelos inválidos, desabilitados e incompatíveis falham; explícito é f
   assert.throws(() => resolveModels([model], { mode: "local" }));
 });
 
+test("seleção automática distribui tentativas entre provedores antes de repetir Gemini", () => {
+  const models = [
+    { ...model, id: "gemini:3", model: "gemini-3" },
+    { ...model, id: "gemini:2", model: "gemini-2" },
+    { ...model, id: "groq:fast", provider: "groq" as const, model: "fast", tier: "fast" as const },
+    { ...model, id: "cohere:command", provider: "cohere" as const, model: "command" },
+  ];
+  const resolved = resolveModels(models, { mode: "auto" });
+  assert.deepEqual(resolved.slice(0, 3).map(candidate => candidate.provider), ["gemini", "cohere", "groq"]);
+  assert.equal(resolved[3].provider, "gemini");
+});
+
 test("429 triggers cooldown and automatic fallback to next model", async () => {
   providerCooldown._resetCooldowns();
   const calls: string[] = [];
