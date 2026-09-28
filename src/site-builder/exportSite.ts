@@ -8,6 +8,14 @@ import { designSystemMarkdown, buildDesignSystemContract } from './designPipelin
 import type { MediaAssetStore } from './media/assetStore';
 import { IndexedDbMediaAssetStore } from './media/assetStore';
 
+function imageDataUrl(bytes: Uint8Array, mimeType: string): string {
+  const chunks: string[] = [];
+  for (let offset = 0; offset < bytes.length; offset += 8192) {
+    chunks.push(String.fromCharCode(...bytes.subarray(offset, offset + 8192)));
+  }
+  return `data:${mimeType};base64,${btoa(chunks.join(''))}`;
+}
+
 export async function createSiteZip(project: Project, assetStore?: MediaAssetStore) {
   if (!project.siteBlueprint || !project.siteContext)
     throw new Error("Este projeto ainda não tem site gerado.");
@@ -27,6 +35,9 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
   const assetUrls: Record<string, string> = {};
   if (project.siteMediaManifest?.entries.length && project.siteMediaManifest.projectId !== project.id) {
     throw new Error('MEDIA_ACQUIRE_FAILED: manifesto de outro projeto.');
+  }
+  if (project.siteMediaManifest?.entries.some(e => e.reviewStatus === 'selected')) {
+    throw new Error('Aprove ou remova as imagens selecionadas antes de exportar.');
   }
   const manifest = project.siteMediaManifest ? { ...project.siteMediaManifest,
     entries: project.siteMediaManifest.entries.filter(e => ['reviewed', 'exportable'].includes(e.reviewStatus)) } : undefined;
@@ -51,7 +62,8 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
           if (!buffer) throw new Error("MEDIA_ASSET_MISSING: imagem aprovada indisponível para exportação.");
           if (buffer) {
             zip.file(`assets/${entry.assetPath}`, buffer);
-            assetUrls[entry.assetId] = `./assets/${entry.assetPath}`;
+            // Keep each asset in the ZIP, but make index.html usable even when opened alone.
+            assetUrls[entry.assetId] = imageDataUrl(buffer, entry.mimeType);
           }
         }
       }

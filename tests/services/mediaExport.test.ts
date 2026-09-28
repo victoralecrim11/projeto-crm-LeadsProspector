@@ -76,7 +76,7 @@ test('SiteRenderer: sem manifest ou asset ausente renderiza fallback CSS sem err
   assert.ok(htmlSplit.includes('class="hero-monogram"'));
 });
 
-test('exportSite: ZIP estático inclui assets binários, manifest e caminhos relativos', async () => {
+test('exportSite: ZIP inclui assets binários e HTML autossuficiente com a imagem aprovada', async () => {
   const store = new InMemoryMediaAssetStore();
   const dummyJpegData = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]); // fake JPEG bytes
   await store.put(
@@ -126,15 +126,24 @@ test('exportSite: ZIP estático inclui assets binários, manifest e caminhos rel
   const manifestContent = await manifestFile.async('string');
   assert.ok(manifestContent.includes('media-hero-555.jpg'));
 
-  // 3. index.html tem caminhos relativos e nunca URLs temporárias
+  // 3. index.html abre com a imagem mesmo sem extrair a pasta assets/
   const indexHtml = await zip.file('index.html')!.async('string');
-  assert.ok(indexHtml.includes('src="./assets/media-hero-555.jpg"'));
+  const embeddedImage = indexHtml.match(/src="(data:image\/jpeg;base64,[^"]+)"/);
+  assert.ok(embeddedImage, 'A imagem do hero deve estar incorporada ao HTML');
+  assert.deepEqual(new Uint8Array(Buffer.from(embeddedImage[1].split(',')[1], 'base64')), dummyJpegData);
   assert.equal(indexHtml.includes('blob:'), false, 'Nenhuma blob URL permitida no ZIP');
   assert.equal(indexHtml.includes('localhost'), false, 'Nenhuma URL localhost permitida no ZIP');
   assert.equal(indexHtml.includes('media_asset_'), false, 'Nenhuma storage key interna no HTML');
 
   // 4. Créditos de imagem preservados
   assert.ok(indexHtml.includes('Photo by Chef Lucas on Pexels'));
+});
+
+test('exportSite: não omite imagem visível que ainda aguarda aprovação', async () => {
+  const project = { id: 'proj_zip_test', siteBlueprint: baseBlueprint, siteContext: baseContext,
+    contentReviewed: true, siteMediaManifest: { ...mockManifest,
+      entries: [{ ...mockManifest.entries[0], reviewStatus: 'selected' as const }] } } as Project;
+  await assert.rejects(createSiteZip(project, new InMemoryMediaAssetStore()), /Aprove ou remova as imagens selecionadas/);
 });
 
 

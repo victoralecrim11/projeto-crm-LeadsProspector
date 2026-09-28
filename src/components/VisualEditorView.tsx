@@ -371,10 +371,10 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
         (e) => e.reviewStatus === "selected",
       );
       if (selectedOnly && selectedOnly.length > 0) {
-        const reviewNow = window.confirm(
-          `Há ${selectedOnly.length} imagem(ns) selecionada(s) automaticamente que ainda não foi(ram) aprovada(s).\n\nElas NÃO entrarão no arquivo ZIP exportado, e o site exibirá o layout visual padrão sem fotos nessas seções.\n\nClique em OK para revisar as imagens agora, ou Cancelar para exportar sem elas.`,
-        );
-        if (reviewNow) { setBusy(false); return; }
+        setSelectedTarget({ scope: "section", sectionId: selectedOnly[0].section });
+        setInspectorOpen(true);
+        toast(`Aprove ou remova ${selectedOnly.length} imagem(ns) selecionada(s) no painel de mídia antes de exportar.`, "error");
+        return;
       }
       await downloadSiteZip(next);
       crm.updateProject({ ...next, generationStatus: "exported" });
