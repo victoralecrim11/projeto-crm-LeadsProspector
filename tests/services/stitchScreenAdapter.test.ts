@@ -70,3 +70,12 @@ test('cartões técnicos e suaves do Stitch atravessam o contrato visual sem imp
   assert.match(stitchAppearanceCss(soft.appearance!), /border-radius:18px/);
   assert.doesNotMatch(stitchAppearanceCss(technical.appearance!), /<article/);
 });
+
+test('overlay absoluto sobre foto editorial não transforma hero em full-bleed', () => {
+  const editorial = extractStitchVisuals('<section class="relative"><div class="relative"><img src="https://example.com/photo.jpg"/><div class="absolute inset-0 bg-gradient-to-t"></div></div><h1>Barbearia</h1></section>');
+  assert.equal(editorial.appearance?.heroLayout, undefined);
+  const split = extractStitchVisuals('<section class="lg:grid-cols-[1fr_1fr]"><div><h1>Barbearia</h1></div><img src="https://example.com/photo.jpg"/></section>');
+  assert.equal(split.appearance?.heroLayout, 'split');
+  const fullBleed = extractStitchVisuals('<section><img class="absolute inset-0 w-full h-full" src="https://example.com/photo.jpg"/><h1>Barbearia</h1></section>');
+  assert.equal(fullBleed.appearance?.heroLayout, 'full-bleed');
+});

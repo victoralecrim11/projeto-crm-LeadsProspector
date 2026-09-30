@@ -102,9 +102,15 @@ export function extractStitchVisuals(html: string): Partial<StitchRawVariant> {
     : /rounded-(?:xl|2xl|3xl)/.test(servicesSection) ? 'soft' as const : undefined;
   const heroClass = /^<section\b[^>]*class=["']([^"']*)["']/i.exec(hero)?.[1] ?? '';
   // Map only layouts supported by the renderer. Unknown compositions remain explicitly unmeasured.
-  const heroLayout = /(?:grid-cols-2|flex-row)/.test(hero) ? 'split' as const
+  const splitColumns = /(?:^|[\s"'])(?:(?:sm|md|lg|xl|2xl):)?(?:grid-cols-2|grid-cols-\[[^\]\s]+_[^\]\s]+\]|flex-row(?:-reverse)?)(?=[\s"'])/.test(hero);
+  const absoluteImage = [...hero.matchAll(/<img\b[^>]*>/gi)].some(([tag]) => {
+    const classes = /\bclass=["']([^"']*)["']/i.exec(tag)?.[1] ?? '';
+    return /\babsolute\b/.test(classes) && /\binset-0\b/.test(classes);
+  });
+  const backgroundImage = absoluteImage || /background-image\s*:/i.test(hero);
+  const heroLayout = splitColumns ? 'split' as const
     : /text-center/.test(heroClass) ? 'minimal' as const
-    : /(?:absolute[^>]*|background-image:)/.test(hero) && /(?:<img|background-image:)/.test(hero) ? 'full-bleed' as const : undefined;
+    : backgroundImage ? 'full-bleed' as const : undefined;
   const spaceKey = /(?:^|[\s"'])py-([a-z-]+)/.exec(sections[1]?.[0].split('>')[0] ?? '')?.[1];
   const sectionAliases: Record<string, string> = { hero: 'hero', inicio: 'hero', about: 'about', sobre: 'about', services: 'services', servicos: 'services', contact: 'contact', contato: 'contact', agendamento: 'contact', location: 'location', localizacao: 'location' };
   const sectionOrder = sections.flatMap(section => {
