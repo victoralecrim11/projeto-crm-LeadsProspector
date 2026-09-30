@@ -83,6 +83,13 @@ export function blueprintFromDesign(input: ResolvedDesign): GeneratedSiteBluepri
 
 
 
+/** Observed sections reorder the canonical slots; missing slots do not imply new content. */
+export function resolveStitchComposition(base: ResolvedDesign['composition'], observed: Readonly<ResolvedDesign['composition']>): ResolvedDesign['composition'] {
+  return resolvedDesignSchema.shape.composition.parse([
+    ...observed, ...base.filter(section => !observed.includes(section)),
+  ]);
+}
+
 export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNullable<ResolvedDesign['stitch']>, candidate?: DesignCandidate): ResolvedDesign {
   if (!evidence.alternatives.includes(evidence.selected)) throw new Error('A direção deve pertencer à exploração revisada.');
   const d = resolvedDesignSchema.parse({ ...base, mode: 'premium', stitch: evidence });
@@ -91,8 +98,8 @@ export function resolvePremiumSelection(base: ResolvedDesign, evidence: NonNulla
   let originStr = `Stitch: ${evidence.projectUrl || 'mcp-fallback'}; seleção ${evidence.selected}. Mapeamento para componentes suportados; copy externa não importada.`;
   if (candidate) {
     originStr = `Stitch MCP Candidate: ${candidate.candidateId}; strategy: ${candidate.strategyId}. Diversidade Estrutural aplicada.`;
-    if (candidate.sectionOrder && candidate.sectionOrder.length === 5) {
-      d.composition = candidate.sectionOrder;
+    if (candidate.sectionOrder) {
+      d.composition = resolveStitchComposition(d.composition, candidate.sectionOrder);
     }
   }
 
@@ -121,8 +128,8 @@ export function resolvePremiumSelectionResponsive(
   let originStr = `Responsive Resolution: ${resolution.status}. Mobile Winner: ${candidate.candidateId}`;
   if (companion) originStr += ` + Desktop Companion: ${companion.candidateId}`;
 
-  if (candidate.sectionOrder && candidate.sectionOrder.length === 5) {
-    d.composition = candidate.sectionOrder;
+  if (candidate.sectionOrder) {
+    d.composition = resolveStitchComposition(d.composition, candidate.sectionOrder);
   }
 
   d.resolution = { status: 'resolved', resolvedAt: now.toISOString(), reason: evidence.review };

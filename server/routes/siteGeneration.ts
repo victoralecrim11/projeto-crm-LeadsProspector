@@ -220,9 +220,11 @@ export function siteGenerationRouter() {
     const id = req.params.id;
     if (!id) return res.status(400).json({ error: 'Missing ID' });
     
-    const { stitchDesignProductionService } = await import('../services/research/stitchProductionService.js');
+    const { stitchDesignProductionService, isRecoverableDesignContractFailure } = await import('../services/research/stitchProductionService.js');
     const current = await stitchDesignProductionService.getProduction(id);
-    const prod = current?.status === 'PARTIAL' && current.errorCode === 'COHERENCE_FAILED' && current.desktopReference
+    const shouldReplay = isRecoverableDesignContractFailure(current) ||
+      (current?.status === 'PARTIAL' && current.errorCode === 'COHERENCE_FAILED' && current.desktopReference);
+    const prod = shouldReplay
       ? (await stitchDesignProductionService.loadConsumableDesignProduction(id)).production
       : current;
     
