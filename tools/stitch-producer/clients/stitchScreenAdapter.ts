@@ -108,9 +108,10 @@ export function extractStitchVisuals(html: string): Partial<StitchRawVariant> {
     return /\babsolute\b/.test(classes) && /\binset-0\b/.test(classes);
   });
   const backgroundImage = absoluteImage || /background-image\s*:/i.test(hero);
+  // Centered text is alignment evidence, not evidence that a background photo is absent.
   const heroLayout = splitColumns ? 'split' as const
-    : /text-center/.test(heroClass) ? 'minimal' as const
-    : backgroundImage ? 'full-bleed' as const : undefined;
+    : backgroundImage ? 'full-bleed' as const
+    : /text-center/.test(heroClass) ? 'minimal' as const : undefined;
   const spaceKey = /(?:^|[\s"'])py-([a-z-]+)/.exec(sections[1]?.[0].split('>')[0] ?? '')?.[1];
   const sectionAliases: Record<string, string> = { hero: 'hero', inicio: 'hero', about: 'about', sobre: 'about', services: 'services', servicos: 'services', contact: 'contact', contato: 'contact', agendamento: 'contact', location: 'location', localizacao: 'location' };
   const sectionOrder = sections.flatMap(section => {
