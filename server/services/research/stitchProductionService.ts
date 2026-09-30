@@ -50,6 +50,12 @@ export interface DesignProduction {
   terminalAt?: number;
 }
 
+/** Only a completed consumer contract failure can be replayed without new production. */
+export function isRecoverableDesignContractFailure(production: DesignProduction | undefined): boolean {
+  return production?.status === 'FAILED' && production.stage === 'COMPLETED' &&
+    production.errorCode === 'SITE_DESIGN_CONTRACT_INVALID';
+}
+
 export const designProductionSchema = z.object({
   designProductionId: z.string().min(1), generationRequestId: z.string().min(1),
   leadId: z.string().min(1), strategyId: z.string().min(1),
@@ -160,6 +166,14 @@ export class StitchDesignProductionServiceImpl {
     if (!parity.isConsumable && (production.status === 'PAIRED' || production.status === 'PARTIAL')) {
       console.warn(`[StitchProduction] Historical production ${generationRequestId} failed consumer parity check. Classifying as FAILED.`);
       await this.transition(production, { status: 'FAILED', errorCode: parity.errorCode || 'CONSUMER_PARITY_FAILED', stage: 'COMPLETED' });
+    } else if (isRecoverableDesignContractFailure(production) && parity.isConsumable) {
+      // Recovery still requires persist/reload, exact identities and the real read-only consumer.
+      // Preserve terminalAt: replay does not renew the session or regenerate artifacts.
+      await this.transition(production, {
+        status: parity.status,
+        errorCode: parity.status === 'PARTIAL' ? 'COHERENCE_FAILED' : undefined,
+        incoherenceReason: parity.incoherenceReason,
+      });
     } else if (production.status === 'PARTIAL' && production.errorCode === 'COHERENCE_FAILED' &&
       production.desktopReference && parity.isConsumable && parity.status === 'PAIRED') {
       // A revised coherence contract may validate a historical pair. Promote
@@ -200,6 +214,7 @@ export class StitchDesignProductionServiceImpl {
       return {
         isConsumable: true,
         status: prepared.resolution.status === 'PAIRED' ? 'PAIRED' : 'PARTIAL',
+        incoherenceReason: prepared.resolution.incoherenceReason,
       };
     } catch (e: any) {
       const errorCode = e.code || e.message?.split(':')[0] || 'CONSUMER_RESOLUTION_FAILED';
