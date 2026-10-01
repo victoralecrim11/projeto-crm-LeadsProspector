@@ -25,10 +25,11 @@ export function findSectionMedia(
   let entry: MediaManifestEntry | undefined;
   
   if (overrideId) {
-    entry = props.mediaManifest.entries.find(e => e.assetId === overrideId);
-  }
-
-  if (!entry) {
+    // Explicit intent must not revive unreviewed/rejected media or pick another asset.
+    entry = props.mediaManifest.entries.find(
+      e => e.assetId === overrideId && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
+    );
+  } else {
     entry = props.mediaManifest.entries.find(
       (e) => e.section === section && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
     );
