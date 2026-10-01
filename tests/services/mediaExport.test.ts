@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import JSZip from 'jszip';
 import { renderSiteDocument } from '../../src/site-builder/renderer/SiteRenderer.js';
 import { createSiteZip } from '../../src/site-builder/exportSite.js';
+import { applySiteUserOverrides } from '../../src/site-builder/overridesResolver.js';
+import { normalizeForRender } from '../../src/site-builder/sections/registry.js';
 import { InMemoryMediaAssetStore } from '../../src/site-builder/media/assetStore.js';
 import { blueprint as baseBlueprint, context as baseContext } from '../fixtures/siteFixture.js';
 import type { MediaManifest } from '../../src/site-builder/contracts/media.js';
@@ -154,4 +156,80 @@ test('export applies saved user overrides and refuses missing approved media', a
   assert.match(await zip.file('index.html')!.async('string'), /Saved edited headline/);
   await assert.rejects(createSiteZip({ ...project, siteMediaManifest: mockManifest }), /MEDIA_ASSET_MISSING/);
   await assert.rejects(createSiteZip({ ...project, siteMediaManifest: mockManifest }, new InMemoryMediaAssetStore()), /MEDIA_ASSET_MISSING/);
+});
+
+
+test('export preserves saved section order/visibility and never mutates the baseline', async () => {
+  const project = { id: 'proj_zip_test', siteBlueprint: structuredClone(baseBlueprint),
+    siteContext: baseContext, contentReviewed: true, siteOverrides: {
+      sectionOrder: ['about', 'hero', 'services', 'contact', 'location'],
+      sectionVisibility: { about: true, hero: true, services: false, contact: false, location: false },
+      content: { hero: { headline: 'Saved parity headline' }, about: { description: 'Saved parity description' } },
+    } } as Project;
+  const savedBytes = JSON.stringify(project);
+  const reloaded = JSON.parse(savedBytes) as Project;
+  const effective = normalizeForRender(applySiteUserOverrides(reloaded.siteBlueprint!, reloaded.siteOverrides));
+  const expected = renderSiteDocument(effective, baseContext);
+  for (let i = 0; i < 2; i++) {
+    const zip = await JSZip.loadAsync(await createSiteZip(reloaded));
+    const html = await zip.file('index.html')!.async('string');
+    assert.equal(html, expected);
+    assert.ok(html.includes('id="about"'));
+    assert.ok(html.includes('id="hero"'));
+    assert.ok(html.indexOf('id="about"') < html.indexOf('id="hero"'));
+    assert.match(html, /Saved parity headline/);
+    assert.match(html, /Saved parity description/);
+    assert.deepEqual(JSON.parse(await zip.file('blueprint.json')!.async('string')), effective);
+    assert.equal(JSON.stringify(reloaded), savedBytes);
+    assert.equal(html.includes('data-editor-section-id'), false);
+  }
+  reloaded.siteOverrides!.sectionVisibility!.about = false;
+  const hiddenZip = await JSZip.loadAsync(await createSiteZip(reloaded));
+  assert.doesNotMatch(await hiddenZip.file('index.html')!.async('string'), /id="about"|Saved parity description/);
+  assert.equal(JSON.stringify(project), savedBytes);
+});
+
+test('export keeps the explicitly selected approved image after project reload', async () => {
+  const store = new InMemoryMediaAssetStore();
+  const entries = [mockManifest.entries[0], { ...mockManifest.entries[0],
+    id: 'media_hero_2', assetId: 'asset_556', assetPath: 'media-hero-556.jpg',
+    providerAssetId: '556', alt: 'Approved alternative image' }];
+  const bytes = [new Uint8Array([0xff, 0xd8, 1, 1]), new Uint8Array([0xff, 0xd8, 2, 2])];
+  for (const [index, entry] of entries.entries()) {
+    await store.put({ assetId: entry.assetId, requestId: entry.requestId, provider: entry.provider,
+      storageKey: 'fixture_' + entry.assetId, mimeType: entry.mimeType, width: entry.width,
+      height: entry.height, byteLength: bytes[index].length, contentHash: entry.contentHash,
+      createdAt: mockManifest.generatedAt }, bytes[index]);
+  }
+  const project = { id: 'proj_zip_test', siteBlueprint: baseBlueprint, siteContext: baseContext,
+    contentReviewed: true, siteMediaManifest: { ...mockManifest, entries },
+    siteOverrides: { content: { hero: { assetId: 'asset_556' } } } } as Project;
+  const savedBytes = JSON.stringify(project);
+  const zip = await JSZip.loadAsync(await createSiteZip(JSON.parse(savedBytes), store));
+  const html = await zip.file('index.html')!.async('string');
+  assert.match(html, /alt="Approved alternative image"/);
+  assert.doesNotMatch(html, /alt="Salão refinado do restaurante"/);
+  assert.ok(html.includes('src="data:image/jpeg;base64,' + Buffer.from(bytes[1]).toString('base64') + '"'));
+  assert.deepEqual(await zip.file('assets/media-hero-556.jpg')!.async('uint8array'), bytes[1]);
+  assert.equal(JSON.stringify(project), savedBytes);
+});
+
+test('export respects explicit image removal without deleting approved media', async () => {
+  const store = new InMemoryMediaAssetStore();
+  const entry = mockManifest.entries[0], bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+  await store.put({ assetId: entry.assetId, requestId: entry.requestId, provider: entry.provider,
+    storageKey: 'fixture_remove', mimeType: entry.mimeType, width: entry.width, height: entry.height,
+    byteLength: bytes.length, contentHash: entry.contentHash, createdAt: mockManifest.generatedAt }, bytes);
+  const project = { id: 'proj_zip_test', siteBlueprint: baseBlueprint, siteContext: baseContext,
+    contentReviewed: true, siteMediaManifest: mockManifest,
+    siteOverrides: { content: { hero: { assetId: '__REMOVE__' } } } } as Project;
+  const savedBytes = JSON.stringify(project);
+  const zip = await JSZip.loadAsync(await createSiteZip(JSON.parse(savedBytes), store));
+  const html = await zip.file('index.html')!.async('string');
+  assert.doesNotMatch(html, /alt="Salão refinado do restaurante"|src="data:image/);
+  assert.ok(zip.file('assets/media-hero-555.jpg'), 'Removal hides media; it does not delete it.');
+  const exportedManifest = JSON.parse(await zip.file('media/media-manifest.json')!.async('string'));
+  assert.equal(exportedManifest.entries[0].assetId, entry.assetId);
+  assert.deepEqual(await store.getBuffer(entry.assetId), bytes);
+  assert.equal(JSON.stringify(project), savedBytes);
 });
