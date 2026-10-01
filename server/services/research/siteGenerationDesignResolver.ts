@@ -9,7 +9,7 @@ import {
   type DesignCandidate,
   type DesignArtifactReference
 } from '../../../src/site-builder/contracts/research.js';
-import { resolveStandardDesign } from '../../../src/site-builder/designPipeline.js';
+import { resolveStandardDesign, resolveStitchComposition } from '../../../src/site-builder/designPipeline.js';
 import { resolveDesignStrategy } from './designStrategy/designStrategyResolver.js';
 import { probeStitch, ArtifactMcpProvider } from './stitch/index.js';
 import { rankCandidates } from './stitch/stitchCandidateRanker.js';
@@ -236,7 +236,11 @@ export async function resolveSiteGenerationDesign(
   const resolvedDesign = resolveStandardDesign(source, current, overrides, now, finalSnapshot);
 
   if (stitchSectionOrder && designSource === 'STITCH') {
-    resolvedDesign.composition = [...stitchSectionOrder];
+    try {
+      resolvedDesign.composition = resolveStitchComposition(resolvedDesign.composition, stitchSectionOrder);
+    } catch {
+      throw new SiteAiError('Não foi possível validar a ordem das seções do design.', 422, false, 'SITE_DESIGN_CONTRACT_INVALID');
+    }
   }
 
 function mapAboutVariant(pattern: string): any {

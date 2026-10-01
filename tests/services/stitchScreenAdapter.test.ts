@@ -79,3 +79,19 @@ test('overlay absoluto sobre foto editorial não transforma hero em full-bleed',
   const fullBleed = extractStitchVisuals('<section><img class="absolute inset-0 w-full h-full" src="https://example.com/photo.jpg"/><h1>Barbearia</h1></section>');
   assert.equal(fullBleed.appearance?.heroLayout, 'full-bleed');
 });
+
+test('foto de fundo explícita prevalece sobre alinhamento central no hero', () => {
+  for (const html of [
+    '<section class="relative text-center"><img class="absolute inset-0 w-full h-full" src="https://example.com/photo.jpg"/><h1>Barbearia</h1></section>',
+    '<section class="text-center" style="background-image:url(https://example.com/photo.jpg)"><h1>Barbearia</h1></section>',
+  ]) {
+    const raw = extractStitchVisuals(html);
+    assert.equal(raw.appearance?.heroLayout, 'full-bleed');
+    assert.equal(raw.heroPattern, 'full-bleed');
+    const design = { specification: { visual: { hero: 'minimal' }, tokens: { color: {} } } } as ResolvedDesign;
+    applyStitchVisualEvidence(design, raw as DesignCandidate);
+    assert.equal(design.specification.visual.hero, 'full-bleed');
+  }
+  const centeredEditorial = extractStitchVisuals('<section class="text-center"><div><img src="https://example.com/photo.jpg"/></div><h1>Barbearia</h1></section>');
+  assert.equal(centeredEditorial.appearance?.heroLayout, 'minimal');
+});

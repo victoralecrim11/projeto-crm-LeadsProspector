@@ -85,6 +85,92 @@ test('POST-E.3.9 persisted real consumer replay and contract lock', async t => {
     }
   });
 
+  await t.test('incomplete observed sections preserve canonical composition and recover only after real replay', async () => {
+    const mobile = JSON.parse(mobileBytes), desktop = JSON.parse(desktopBytes);
+    for (const artifact of [mobile, desktop]) {
+      for (const candidate of artifact.candidates) candidate.sectionOrder = ['hero', 'services', 'contact'];
+    }
+    const callsBefore = stitchCalls;
+    try {
+      await fs.writeFile(mobilePath, JSON.stringify(mobile));
+      await fs.writeFile(desktopPath, JSON.stringify(desktop));
+      const partialBytes = JSON.stringify({ ...persisted, status: 'PARTIAL', errorCode: 'COHERENCE_FAILED' });
+      await fs.writeFile(jobPath, partialBytes);
+      const prepared = await prepareStandardAiDesignContext(params);
+      assert.equal(prepared.resolution.status, 'PARTIAL');
+      assert.equal(prepared.resolution.incoherenceReason, 'section membership mismatch');
+      assert.deepEqual(prepared.finalDesign.composition, ['hero', 'services', 'contact', 'about', 'location']);
+      assert.deepEqual(first.finalDesign.composition, ['hero', 'services', 'about', 'contact', 'location']);
+      assert.equal(await fs.readFile(jobPath, 'utf8'), partialBytes);
+      await fs.writeFile(jobPath, JSON.stringify({ ...persisted, status: 'FAILED', errorCode: 'SITE_DESIGN_CONTRACT_INVALID' }));
+      service['store'].clear();
+      const recovered = await service.loadConsumableDesignProduction(generationRequestId, true);
+      assert.equal(recovered.production?.status, 'PARTIAL');
+      assert.equal(recovered.production?.errorCode, 'COHERENCE_FAILED');
+      assert.equal(recovered.production?.incoherenceReason, 'section membership mismatch');
+      assert.equal(recovered.production?.strategyId, persisted.strategyId);
+      assert.equal(recovered.production?.terminalAt, persisted.terminalAt);
+      assert.deepEqual(recovered.production?.mobileReference, persisted.mobileReference);
+      assert.deepEqual(recovered.production?.desktopReference, persisted.desktopReference);
+      assert.equal(stitchCalls, callsBefore);
+      assert.equal(await fs.readFile(mobilePath, 'utf8'), JSON.stringify(mobile));
+      assert.equal(await fs.readFile(desktopPath, 'utf8'), JSON.stringify(desktop));
+      assert.equal((await prepareStandardAiDesignContext(params)).resolution.status, 'PARTIAL');
+      await fs.writeFile(jobPath, JSON.stringify({ ...persisted, status: 'FAILED', errorCode: 'SITE_DESIGN_CONTRACT_INVALID' }));
+      stitchDesignProductionService['store'].clear();
+      const app = express(); app.use(siteGenerationRouter());
+      const server = app.listen(0, '127.0.0.1');
+      await new Promise<void>(resolve => server.once('listening', resolve));
+      try {
+        const response = await fetch(`http://127.0.0.1:${(server.address() as { port: number }).port}/research/stitch/produce/${generationRequestId}`);
+        assert.equal(response.status, 200);
+        const payload = await response.json();
+        assert.equal(payload.status, 'PARTIAL');
+        assert.equal(payload.errorCode, 'COHERENCE_FAILED');
+        assert.equal(stitchCalls, callsBefore);
+      } finally { await new Promise<void>(resolve => server.close(() => resolve())); }
+    } finally {
+      await fs.writeFile(jobPath, jobBytes);
+      await fs.writeFile(mobilePath, mobileBytes);
+      await fs.writeFile(desktopPath, desktopBytes);
+      service['store'].clear();
+    }
+  });
+
+  await t.test('duplicate sections cannot bypass the contract or recover a failed production', async () => {
+    const mobile = JSON.parse(mobileBytes);
+    for (const candidate of mobile.candidates) candidate.sectionOrder = ['hero', 'hero', 'services'];
+    const failedBytes = JSON.stringify({ ...persisted, status: 'FAILED', errorCode: 'SITE_DESIGN_CONTRACT_INVALID' });
+    try {
+      await fs.writeFile(mobilePath, JSON.stringify(mobile));
+      await fs.writeFile(jobPath, failedBytes);
+      service['store'].clear();
+      await assert.rejects(prepareStandardAiDesignContext({ ...params, allowPreTerminal: true }), { code: 'SITE_DESIGN_CONTRACT_INVALID' });
+      const result = await service.loadConsumableDesignProduction(generationRequestId, true);
+      assert.equal(result.consumability?.isConsumable, false);
+      assert.equal(result.production?.status, 'FAILED');
+      assert.equal(await fs.readFile(jobPath, 'utf8'), failedBytes);
+      await fs.writeFile(mobilePath, mobileBytes);
+      for (const failure of [
+        { errorCode: 'SITE_AI_PROVIDER_AUTH', stage: 'COMPLETED' },
+        { errorCode: 'SITE_DESIGN_CONTRACT_INVALID', stage: 'INITIALIZING' },
+      ]) {
+        const unchanged = JSON.stringify({ ...persisted, status: 'FAILED', ...failure });
+        await fs.writeFile(jobPath, unchanged);
+        service['store'].clear();
+        const unrelated = await service.loadConsumableDesignProduction(generationRequestId, true);
+        assert.equal(unrelated.consumability?.isConsumable, true);
+        assert.equal(unrelated.production?.status, 'FAILED');
+        assert.equal(await fs.readFile(jobPath, 'utf8'), unchanged);
+      }
+    } finally {
+      await fs.writeFile(jobPath, jobBytes);
+      await fs.writeFile(mobilePath, mobileBytes);
+      service['store'].clear();
+      stitchDesignProductionService['store'].clear();
+    }
+  });
+
   await t.test('numeric provider screen IDs remain canonical while internal family IDs are valid', async () => {
     const mobile = JSON.parse(mobileBytes);
     const desktop = JSON.parse(desktopBytes);
