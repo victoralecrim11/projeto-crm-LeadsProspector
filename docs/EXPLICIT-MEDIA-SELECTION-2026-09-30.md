@@ -21,3 +21,20 @@ Fixtures locais com metadados/bytes sintéticos; nenhuma chamada a provedor ou f
 PR #5 não faz parte desta base: seus três testes são outro incremento independente. Não confundir contagens iguais entre as branches.
 Fidelidade integral Stitch e PAIRED real continuam pendentes. Runtime local segue sem HTML exato útil; B.1 não foi reativada.
 Node global 24.18.0/npm11.16.0 intactos; PATH portátil limitado aos processos. Checkout principal e commit mobile preservados.
+
+
+## Revalidação conjunta — 01/10/2026
+
+O PR #5 foi integrado à main remota bacf2debb09404b54d1661dbc21409be82883a40. O PR #6 continua aberto. A própria branch automation/explicit-media-selection recebeu origin/main por merge normal, sem conflitos, para validar as duas mudanças juntas; nenhum merge na main foi executado nesta retomada.
+
+SHA combinado testado: bd7cc32b23390ab105fba16910cf761eff7e2e09. Fonte/testes permaneceram inalterados após os checks; esta seção foi acrescentada depois.
+
+- npm.cmd test: 357/357, 19 suites, zero fail/skipped/cancelled/todo, 21.16s, exit 0.
+- npm.cmd run lint: exit 0 (todos os projetos TypeScript, incluindo producer).
+- npm.cmd run build: cliente 38.70s, servidor 43ms, exit 0.
+- git diff --check: exit 0; árvore testada limpa.
+- Node portátil 22.23.3 só no PATH do processo; Node global 24.18.0/npm11.16.0 preservados.
+
+Warnings do build: chunks maiores que 500 kB, import estático/dinâmico misto de leadStore e anotações PURE de Zod removidas pelo Rollup. Nenhuma dependência mudou; audit não repetido.
+
+O checkout principal continua limpo em 5020388, ahead 1/behind 10, com avanço mobile do usuário preservado e não publicado. Não houve restart, deploy, LLM, geração externa, UI real ou homologação Stitch/PAIRED. Os limites das fixtures e do reload JSON acima continuam válidos.
