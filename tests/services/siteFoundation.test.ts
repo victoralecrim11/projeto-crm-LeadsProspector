@@ -10,7 +10,7 @@ import { legacyDesignSpecification } from "../../src/site-builder/guidance/desig
 import { siteGuidanceFoundation } from "../../src/site-builder/guidance/index";
 import { renderSiteDocument } from "../../src/site-builder/renderer/SiteRenderer";
 
-test("família legada preserva HTML e CSS das 40 combinações capturadas antes da extração", () => {
+test("família legada preserva o baseline aprovado de HTML e CSS das 40 combinações", () => {
   const records = JSON.parse(readFileSync(new URL("../fixtures/phaseARenderBaseline.json", import.meta.url), "utf8"));
   assert.equal(records.length, 40);
   for (const record of records) {

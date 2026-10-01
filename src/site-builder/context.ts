@@ -1,4 +1,5 @@
 import type { Lead } from "../types.js";
+import { buildAboutContent } from './aboutContent.js';
 import {
   contextSchema,
   blueprintSchema,
@@ -74,6 +75,9 @@ export function constrainBlueprint(
     b.hero.ctaType = "none";
   b.sections.testimonials = false;
   if (fromAi) {
+    if (b.sections.about && b.about.description.trim().split(/\s+/).length < 50) {
+      b.about = { ...b.about, ...buildAboutContent(context) };
+    }
     b.services = b.services.map((s) => ({
       title: s.title,
       description: s.description,

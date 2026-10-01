@@ -1,4 +1,5 @@
 import { constrainBlueprint } from "../../../src/site-builder/context.js";
+import { buildAboutContent } from '../../../src/site-builder/aboutContent.js';
 import { addExampleServicePrices } from "../../../src/site-builder/exampleServicePrices.js";
 import type {
   GeneratedSiteBlueprint,
@@ -167,8 +168,7 @@ export async function generateSite(
         blueprint.hero.subtitle = "Confira nossos serviços para mais detalhes.";
       } else if (input.section === "about") {
         blueprint.visual.about = blueprint.visual.about === "editorial-split" ? "centered-story" : "editorial-split";
-        blueprint.about.title = "Nossa História";
-        blueprint.about.description = `A ${input.context.business.name} trabalha com dedicação para trazer os melhores resultados.`;
+        blueprint.about = { ...blueprint.about, ...buildAboutContent(input.context) };
       } else if (input.section === "services") {
         blueprint.visual.services = blueprint.visual.services === "editorial-list" ? "horizontal-cards" : "editorial-list";
       } else if (input.section === "tone") {

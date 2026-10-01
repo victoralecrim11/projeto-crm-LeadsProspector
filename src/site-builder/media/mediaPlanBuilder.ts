@@ -131,7 +131,7 @@ export function buildMediaPlan({
 export function deriveDefaultMediaPlan(project: Pick<Project, 'category' | 'siteBlueprint' | 'siteContext' | 'siteDesign'>): MediaPlan | undefined {
   if (!project.siteBlueprint || !project.siteContext) return undefined;
 
-  const niche = project.category?.toLowerCase() || 'business';
+  const niche = project.siteDesign?.referenceBrief.business.derivedNiche || project.category?.toLowerCase() || 'business';
   const subNiche = undefined;
   const imageryDirection = project.siteDesign?.imageryDirection;
 

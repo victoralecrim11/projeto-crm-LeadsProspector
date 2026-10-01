@@ -1,4 +1,5 @@
 import { applyStitchVisualEvidence } from './stitchVisualEvidence.js';
+import { buildAboutContent } from './aboutContent.js';
 import { blueprintSchema, type GeneratedSiteBlueprint } from './types.js';
 import { contactAvailable } from './context.js';
 import { resolvedDesignSchema, type LeadSourceContext, type CurrentBusinessReference, type ResolvedDesign, type DesignResearchSnapshot, type DesignCandidate } from './contracts/research.js';
@@ -75,7 +76,7 @@ export function blueprintFromDesign(input: ResolvedDesign): GeneratedSiteBluepri
     brand: { primaryColor: s.tokens.color.primary, accentColor: s.tokens.color.accent, tone: 'profissional' },
     seo: { title: c.business.name, description: `${c.business.category} · ${c.business.city}` },
     hero: { headline: c.business.name, subtitle: `${c.business.category} em ${c.business.city}`, ctaText: hasContact ? 'Entre em contato' : '', ctaType: hasContact ? 'contact' : 'none' },
-    about: { title: c.business.category, description: [c.business.neighborhood, c.business.city].filter(Boolean).join(' · ') },
+    about: buildAboutContent(c, d.referenceBrief.business.derivedNiche),
     services: [], sections: { hero: true, about: true, services: false, contact: hasContact, location: Boolean(c.contact.address), testimonials: false },
     sectionOrder: d.composition, warnings: ['Revise os dados do lead. Serviços, equipe, avaliações e horários ausentes não foram inventados.'],
   });

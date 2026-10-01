@@ -1,3 +1,4 @@
+import { isSupportedDesignNiche, normalizeLegacyBusinessNiche } from '../../../src/domain/businessTaxonomy.js';
 export interface LicensedMediaQueryInput {
   niche: string;
   subNiche?: string;
@@ -16,7 +17,7 @@ const CRM_DATA_PATTERNS = [
 ];
 
 function sanitizeContextText(text: string): string {
-  let cleaned = text;
+  let cleaned = text.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   for (const pattern of CRM_DATA_PATTERNS) {
     cleaned = cleaned.replace(pattern, ' ');
   }
@@ -35,9 +36,10 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
   const queries: string[] = [];
 
   // Interpret subNiche to override generic categories if needed
-  let effectiveNiche = niche;
+  const canonical = isSupportedDesignNiche(niche) ? niche : normalizeLegacyBusinessNiche(niche);
+  let effectiveNiche = canonical === 'other' ? niche : canonical;
   if (niche === 'barbershop' || niche.includes('barbearia')) {
-    if (subNiche.includes('salão') || subNiche.includes('beleza') || subNiche.includes('cabel') || subNiche.includes('salon')) {
+    if (subNiche.includes('salao') || subNiche.includes('beleza') || subNiche.includes('cabel') || subNiche.includes('salon')) {
       effectiveNiche = 'hair-salon';
     }
   } else if (niche === 'restaurant' || niche.includes('restaurante')) {
@@ -82,7 +84,7 @@ export function buildLicensedMediaQueries(input: LicensedMediaQueryInput): strin
         queries.push('barber styling men haircut');
       }
     } else if (section === 'about') {
-      queries.push('barber shaving beard razor');
+      queries.push('premium barbershop grooming craftsmanship');
       queries.push('vintage barber shop tools detail');
     } else {
       queries.push('barber shop haircut styling');

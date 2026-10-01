@@ -181,7 +181,7 @@ export function normalizeLegacyBusinessNiche(categoryOrNiche: string): Canonical
   const normalized = categoryOrNiche.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (normalized.includes('barbear') || normalized.includes('barber')) return 'barbershop';
   if (normalized.includes('salao') || normalized.includes('cabeleireiro')) return 'hair-salon';
-  if (normalized.includes('estetica') || normalized.includes('spa')) return 'beauty-studio';
+  if (normalized.includes('estetica') || /\bspa\b/.test(normalized)) return 'beauty-studio';
   if (normalized.includes('cosmetico')) return 'cosmetics-retail';
   if (normalized.includes('odont') || normalized.includes('dentist')) return 'dentistry';
   if (normalized.includes('pizzaria') || normalized.includes('pizza') || normalized.includes('pizzeria')) return 'pizzeria';

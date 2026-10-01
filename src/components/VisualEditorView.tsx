@@ -121,7 +121,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
 
   const mediaManager = useMediaManager({
     projectId: project?.id || "",
-    niche: project?.category?.toLowerCase() || "business",
+    niche: project?.siteDesign?.referenceBrief.business.derivedNiche || project?.category?.toLowerCase() || "business",
     subNiche: undefined,
     imageryDirection: project?.siteDesign?.imageryDirection,
     mediaPlan: mediaPlan,
@@ -147,7 +147,10 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
     setAutoResolveStatus("resolving");
     setAutoResolveMessage("Buscando imagens licenciadas ilustrativas...");
     try {
-      const result = await autoResolveEligibleMedia({ ...mediaPlan, items: mediaPlan.items.filter(item => !mediaManager.manifest.entries.some(e => e.id === item.id)) }, mediaManager);
+      const result = await autoResolveEligibleMedia({ ...mediaPlan, items: mediaPlan.items.filter(item => !mediaManager.manifest.entries.some(e => e.id === item.id)) }, mediaManager, undefined, {
+        projectId: project?.id,
+        manifests: [...crm.projects.filter(p => p.id !== project?.id).flatMap(p => p.siteMediaManifest ? [p.siteMediaManifest] : []), mediaManager.manifest],
+      });
       if (result.resolved > 0) {
         setAutoResolveMessage(
           `${result.resolved} imagem(ns) selecionada(s) automaticamente para revisão.`,
@@ -168,7 +171,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
       );
       setAutoResolveStatus("not-configured");
     }
-  }, [mediaPlan, mediaManager]);
+  }, [mediaPlan, mediaManager, crm.projects, project?.id]);
 
   useEffect(() => {
     if (!mediaPlan || mediaPlan.items.length === 0) return;
