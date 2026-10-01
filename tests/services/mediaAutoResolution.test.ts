@@ -42,3 +42,19 @@ test('unsuccessful acquisition is never counted as a selected image', async () =
   });
   assert.deepEqual(result, { resolved: 0, failed: 2, skipped: 0 });
 });
+
+
+test('exhausted relevant photos do not promote an irrelevant unused alternative', async () => {
+  const selected: string[] = [];
+  const progress: number[] = [];
+  const result = await autoResolveEligibleMedia(plan, {
+    searchMedia: async () => [candidates[0], { ...candidates[1], confidence: 0.1 }],
+    selectCandidate: async (_item, candidate) => { selected.push(candidate.providerAssetId); return candidate.candidateId; },
+  }, completed => progress.push(completed), {
+    projectId: 'same',
+    manifests: [{ projectId: 'same', entries: [{ provider: 'pexels', providerAssetId: 'a', reviewStatus: 'selected' }] } as MediaManifest],
+  });
+  assert.deepEqual(result, { resolved: 0, failed: 0, skipped: 2 });
+  assert.deepEqual(selected, []);
+  assert.deepEqual(progress, [1, 2]);
+});

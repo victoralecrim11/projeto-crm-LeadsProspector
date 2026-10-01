@@ -51,7 +51,7 @@ export async function autoResolveEligibleMedia(
       if (candidates && candidates.length > 0) {
         // Preserve relevance, then favor unused photography across saved projects.
         const available = candidates.filter(candidate => !used.has(keyFor(candidate)));
-        const confidence = Math.max(...available.map(candidate => candidate.confidence));
+        const confidence = Math.max(...candidates.map(candidate => candidate.confidence));
         const best = available.filter(candidate => candidate.confidence >= confidence - 0.05).sort((a, b) =>
           (usage.get(keyFor(a)) ?? 0) - (usage.get(keyFor(b)) ?? 0) ||
           stableRank(`${options.projectId ?? ''}:${item.id}:${keyFor(a)}`) - stableRank(`${options.projectId ?? ''}:${item.id}:${keyFor(b)}`)
