@@ -134,7 +134,7 @@ Mantenha sempre a atribuição exigida pelo fornecedor dos tiles.
 6. Abra **Ver detalhes**, adicione o lead ao CRM e prepare a abordagem.
 7. Gere ou melhore o script com IA, registre o contato e avance o lead pelo funil.
 8. Em **Gerar Site IA**, selecione lead, template, estilo, objetivo e estratégia/modelo.
-   Ao abrir o gerador por um lead, o filtro é inicializado pelo nicho canônico desse mesmo registro. O ID explicitamente selecionado permanece nas opções mesmo se a categoria persistida e o filtro divergirem momentaneamente; ao trocar o filtro manualmente, uma seleção incompatível continua sendo limpa.
+   Ao abrir o gerador por um lead, o filtro é inicializado pelo nicho canônico desse mesmo registro. O modal é reiniciado pela identidade explícita do lead e reaplica essa seleção se o estado ou a lista terminarem de atualizar após a montagem. O ID explicitamente selecionado permanece nas opções mesmo se a categoria persistida e o filtro divergirem momentaneamente; ao trocar o filtro manualmente, uma seleção incompatível continua sendo limpa.
 
 9. O backend auditará (Fase B) e definirá um design com base em templates modulares (Renderer Visual P0). No editor, revise textos e sugestões, confira Desktop/Tablet/Mobile, ajuste componentes e seções, e salve.
 10. Confirme a revisão e aceite ou remova os serviços sugeridos para exportar `site.zip`. Extraia e abra `index.html` fora do CRM. Exportar não publica o site.

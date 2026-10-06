@@ -20,4 +20,12 @@ Limitações de validação e integridade semântica registradas em `docs/AI_SIT
 - [x] Garantir que o ID explicitamente selecionado permaneça no seletor durante divergência transitória de categoria.
 - [x] Preservar a limpeza da seleção quando o usuário troca manualmente para categoria incompatível.
 - [x] Cobrir a divergência entre classificação canônica persistida e filtro com teste automatizado.
-- [ ] Revisar e integrar o novo PR; homologação exige repetição humana no navegador com os dados reais.
+- [x] Revisar e integrar o PR #12; a repetição humana confirmou que a regressão ainda ocorre.
+
+## Regressão residual — sincronização tardia do lead explícito (06/10/2026)
+
+- [x] Confirmar no fluxo real que o dropdown de Redesenho altera corretamente o card antes de abrir o gerador.
+- [x] Reiniciar o orquestrador pela identidade explícita do lead recebido do card.
+- [x] Sincronizar categoria e ID quando o store ou a lista de leads terminarem de atualizar após a montagem.
+- [x] Cobrir chegada tardia e estabilidade da mesma seleção com testes automatizados.
+- [ ] Revisar e integrar o novo PR; homologação exige repetição humana em `localhost:3000/redesenhar` com os dados reais.

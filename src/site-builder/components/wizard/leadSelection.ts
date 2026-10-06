@@ -23,6 +23,21 @@ export function createInitialLeadSelection(
   };
 }
 
+export function synchronizeExplicitLeadSelection(
+  current: InitialLeadSelection,
+  leads: Lead[],
+  initialLeadId?: string,
+): InitialLeadSelection {
+  const explicitSelection = createInitialLeadSelection(leads, initialLeadId);
+
+  if (!explicitSelection.leadId || current.leadId === explicitSelection.leadId) {
+    return current;
+  }
+
+  // O lead recebido do card é autoridade mesmo quando chega após a montagem do modal.
+  return explicitSelection;
+}
+
 export function filterLeadsByCategory(
   leads: Lead[],
   categoryId: string,

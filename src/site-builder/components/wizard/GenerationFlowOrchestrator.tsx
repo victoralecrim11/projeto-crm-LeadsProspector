@@ -15,7 +15,7 @@ import { ProductionProgressStep } from './ProductionProgressStep';
 import { GenerationResultStep } from './GenerationResultStep';
 import { buildLeadSiteContext } from '../../context';
 import { normalizeLeadSource } from '../../leadSource';
-import { createInitialLeadSelection } from './leadSelection';
+import { createInitialLeadSelection, synchronizeExplicitLeadSelection } from './leadSelection';
 import { generateSiteBlueprint, generateStandardAiBlueprint } from '../../../services/siteGenerationService';
 import { resolvedDesignSchema } from '../../contracts/research';
 import { deriveDefaultMediaPlan } from '../../media/mediaPlanBuilder';
@@ -76,6 +76,14 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
     const initialSelection = createInitialLeadSelection(crm.leads, initialLeadId);
     return { ...initialDraftState, ...initialSelection };
   });
+
+  // Reaplica o lead explícito caso o store ou a lista terminem de atualizar após a montagem.
+  useEffect(() => {
+    setDraft((current) => {
+      const synchronized = synchronizeExplicitLeadSelection(current, crm.leads, initialLeadId);
+      return synchronized === current ? current : { ...current, ...synchronized };
+    });
+  }, [crm.leads, initialLeadId]);
 
   // Guard against closing while processing (UX warning only)
   useEffect(() => {

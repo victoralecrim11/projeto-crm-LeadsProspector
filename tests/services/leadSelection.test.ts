@@ -5,6 +5,7 @@ import { BUSINESS_TAXONOMY_VERSION } from '../../src/domain/businessTaxonomy.js'
 import {
   createInitialLeadSelection,
   filterLeadsByCategory,
+  synchronizeExplicitLeadSelection,
 } from '../../src/site-builder/components/wizard/leadSelection.js';
 
 function createLead(overrides: Partial<Lead>): Lead {
@@ -53,6 +54,34 @@ test('mantém o lead legado selecionado dentro do filtro canônico do gerador', 
   assert.deepEqual(
     filteredLeads.map((lead) => lead.id),
     ['julia', 'eustaquio'],
+  );
+});
+
+test('sincroniza o lead explícito quando ele chega depois da montagem do modal', () => {
+  const julia = createLead({
+    id: 'julia',
+    name: 'Júlia Cabeleireira',
+    category: 'Barbearia',
+    niche: 'barbearia',
+  });
+
+  assert.deepEqual(
+    synchronizeExplicitLeadSelection(
+      { categoryId: null, leadId: null },
+      [julia],
+      julia.id,
+    ),
+    { categoryId: 'hair-salon', leadId: julia.id },
+  );
+});
+
+test('não substitui uma escolha já sincronizada pelo mesmo lead explícito', () => {
+  const julia = createLead({ id: 'julia', name: 'Júlia Cabeleireira' });
+  const current = { categoryId: 'hair-salon', leadId: julia.id };
+
+  assert.equal(
+    synchronizeExplicitLeadSelection(current, [julia], julia.id),
+    current,
   );
 });
 
