@@ -12,15 +12,17 @@ function stableRank(seed: string): number {
 }
 
 /**
- * Auto-resolves eligible media plan items by searching licensed providers
- * and auto-selecting the best candidate.
+ * Resolve itens elegíveis do plano por busca em provedores licenciados
+ * e seleção automática de candidatos relevantes.
  *
- * Rules:
- * - Only items with sourcePreference='licensed' are eligible.
- * - Auto-selected items get reviewStatus='selected' (NOT 'exportable').
- * - Human review remains mandatory before export.
- * - Failures fall back to CSS gradient/monogram silently.
- * - Does NOT block UI — runs in background.
+ * Regras:
+ * - Apenas itens com sourcePreference='licensed' são elegíveis.
+ * - A seleção fica em reviewStatus='selected'; exportação exige revisão humana.
+ * - Não repete fotos no projeto e prioriza menor uso nos demais projetos.
+ * - Mantém a janela de confiança de 0.05 relativa ao melhor candidato retornado,
+ *   inclusive quando esse candidato já está em uso; sem alternativa, ignora o item.
+ * - Falhas preservam o fallback visual de gradiente/monograma existente.
+ * - Executa em segundo plano sem bloquear a interface.
  */
 export async function autoResolveEligibleMedia(
   mediaPlan: MediaPlan,
@@ -49,7 +51,7 @@ export async function autoResolveEligibleMedia(
     try {
       const candidates = await manager.searchMedia(item);
       if (candidates && candidates.length > 0) {
-        // Preserve relevance, then favor unused photography across saved projects.
+        // Preserva a relevância antes de diversificar fotos entre projetos salvos.
         const available = candidates.filter(candidate => !used.has(keyFor(candidate)));
         const confidence = Math.max(...candidates.map(candidate => candidate.confidence));
         const best = available.filter(candidate => candidate.confidence >= confidence - 0.05).sort((a, b) =>

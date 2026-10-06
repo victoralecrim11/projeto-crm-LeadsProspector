@@ -121,7 +121,7 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 
 Os testes automatizados (em `tests/`) refletem rigorosamente serviços e componentes. Novas suítes foram implementadas para garantir a estabilidade do fluxo Phase B e Phase C:
 - `visualRenderer.test.ts`, `visualBlueprint.test.ts`, `phaseB.test.ts`, `reactToolkit.test.ts`, `dynamicResearch.test.ts`, `mediaContracts.test.ts`, `mediaStore.test.ts`, `mediaProviders.test.ts`, `mediaAcquisition.test.ts`, `mediaExport.test.ts`, `mediaRoutes.test.ts`, entre outros.
-- O script `npm test` valida **121 testes (100% PASS)**, cobrindo todos os cenários legados de Phase A (40 hashes exatos de baseline), migrações v1->v2, busca dinâmica B.3, pipeline completo de mídia C.0/C.1 e os rigorosos testes de Observabilidade do Backend.
+- O script `npm test` executa a suíte atual; a contagem deve ser obtida em cada validação real, não fixada como garantia. O registro de **121 testes aprovados** corresponde ao checkpoint histórico de 10/09/2026 abaixo. O relatório [de relevância da mídia de 01/10/2026](MEDIA-RELEVANCE-REGRESSION-2026-10-01.md) registra 366 testes aprovados na árvore daquele incremento; não é prova de CI nem de execução na main atual.
 
 ## Checkpoints de Homologação
 

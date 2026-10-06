@@ -176,6 +176,10 @@ A suíte cobre amplamente:
 - Resposta do teste real de conexão com provedores de IA.
 - Busca global e integração Maps.
 
+## Desenvolvimento e revisão
+
+Cada fase documentada é dividida em incrementos verificáveis, implementados e testados em branch própria e enviados em PR draft para revisão humana. Atualize no mesmo PR toda documentação impactada pela mudança, incluindo comentários explicativos, em português brasileiro. Consulte o [fluxo de fases e documentação](FLUXO-DE-FASES-E-DOCUMENTACAO.md) para critérios, evidências e limites da tradução gradual.
+
 ## Documentação do projeto
 
 Documentos humanos são mantidos na pasta `docs/`; especificações formais desta fase ficam em `openspec/`:
