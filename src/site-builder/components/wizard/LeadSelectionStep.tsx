@@ -2,6 +2,7 @@ import React from 'react';
 import { DraftFlowState } from './types';
 import { Lead } from '../../../types';
 import { resolveLeadCanonicalNiche, getLeadCategory } from '../../leadSource';
+import { filterLeadsByCategory } from './leadSelection';
 import { BUSINESS_CATEGORIES } from '../../../domain/businessTaxonomy';
 
 interface LeadSelectionStepProps {
@@ -69,8 +70,7 @@ export const LeadSelectionStep: React.FC<LeadSelectionStepProps> = ({ state, upd
             aria-invalid={!leadId}
           >
             <option value="">Selecione um cliente...</option>
-            {leads
-              .filter(l => selectedCategory === 'all' || resolveLeadCanonicalNiche(l) === selectedCategory)
+            {filterLeadsByCategory(leads, selectedCategory)
               .map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name} {l.city ? `· ${l.city}` : ''}

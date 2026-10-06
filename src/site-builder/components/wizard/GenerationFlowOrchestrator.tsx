@@ -15,6 +15,7 @@ import { ProductionProgressStep } from './ProductionProgressStep';
 import { GenerationResultStep } from './GenerationResultStep';
 import { buildLeadSiteContext } from '../../context';
 import { normalizeLeadSource } from '../../leadSource';
+import { createInitialLeadSelection } from './leadSelection';
 import { generateSiteBlueprint, generateStandardAiBlueprint } from '../../../services/siteGenerationService';
 import { resolvedDesignSchema } from '../../contracts/research';
 import { deriveDefaultMediaPlan } from '../../media/mediaPlanBuilder';
@@ -72,12 +73,8 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
 
   // Form draft state
   const [draft, setDraft] = useState<DraftFlowState>(() => {
-    let cat = null;
-    if (initialLeadId) {
-       const l = crm.leads.find(l => l.id === initialLeadId);
-       if (l) cat = l.category || null;
-    }
-    return { ...initialDraftState, leadId: initialLeadId || null, categoryId: cat };
+    const initialSelection = createInitialLeadSelection(crm.leads, initialLeadId);
+    return { ...initialDraftState, ...initialSelection };
   });
 
   // Guard against closing while processing (UX warning only)
