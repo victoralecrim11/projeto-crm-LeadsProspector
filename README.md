@@ -2,7 +2,7 @@
 
 CRM full-stack para prospecção local, geração de sites com IA, edição visual e acompanhamento comercial.
 
-A documentação completa do projeto está em [docs/README.md](docs/README.md).
+A documentação completa do projeto está em [docs/README.md](docs/README.md). O [fluxo de desenvolvimento por fases e documentação](docs/FLUXO-DE-FASES-E-DOCUMENTACAO.md) exige incrementos testados, revisão por PR e documentação atualizada em português.
 
 ## Desenvolvimento local
 
