@@ -42,3 +42,7 @@ O esboço de contratos acima é histórico; os contratos atuais estão em `src/s
 Ao resolver uma escolha explícita, o renderer prioriza a entrada correspondente à seção. Se ela for candidate/rejected, não usa a aprovação de outra seção. Na ausência de entrada local, referências antigas ainda podem resolver o assetId aprovado em outra seção. Uma referência ausente não escolhe outro asset; `__REMOVE__` continua sendo ocultação não destrutiva.
 
 A exportação conserva o manifesto original para resolver essa intenção no HTML, mas empacota apenas binários e entradas reviewed/exportable no manifesto publicado. Entradas selected bloqueiam a exportação para revisão humana. IDs, baseline e bytes armazenados não são modificados pela leitura/exportação.
+
+## Créditos de imagem reutilizada — 06/10/2026
+
+Cada entrada do manifesto mantém procedência, revisão e metadados próprios da seção. Ao exibir os créditos de mídia licenciada aprovada, uma fotografia reutilizada apresenta sua atribuição e link uma vez por `assetId`; a prévia e o HTML do ZIP seguem a mesma regra. O manifesto exportado conserva as entradas aprovadas de cada seção. A alteração não remove crédito obrigatório nem dispensa revisão humana.
