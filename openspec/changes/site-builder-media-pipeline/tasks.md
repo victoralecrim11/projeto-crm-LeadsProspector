@@ -40,6 +40,10 @@ Os itens concluídos preservam o registro histórico de C.0/C.1; não substituem
 - [x] Priorizar alt, intenção decorativa e revisão da seção atual na escolha explícita.
 - [x] Impedir que aprovação em outra seção substitua candidate/rejected no preview e no HTML do ZIP.
 - [x] Preservar referências antigas, IDs, baseline e bytes após reload/exportações repetidas.
+- [x] PR #9 revisado pelo usuário e integrado à main; integração não homologa providers ao vivo.
+
+## Regressão de C.1 — créditos de foto reutilizada (06/10/2026)
+- [x] Exibir uma atribuição por `assetId` reutilizado na prévia e no HTML do ZIP, sem apagar a procedência das entradas do manifesto.
 - [ ] Revisar e integrar o PR deste incremento; integração não homologa providers ao vivo.
 
 ## Tradução das pendências históricas C.2–C.4

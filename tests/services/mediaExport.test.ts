@@ -233,3 +233,32 @@ test('export respects explicit image removal without deleting approved media', a
   assert.deepEqual(await store.getBuffer(entry.assetId), bytes);
   assert.equal(JSON.stringify(project), savedBytes);
 });
+test('crédito único para foto reutilizada no preview e no ZIP', async () => {
+  const shared = mockManifest.entries[0];
+  const reused = { ...shared, id: 'media_about_1', section: 'about' as const,
+    alt: 'Foto reaproveitada na apresentação' };
+  const manifest: MediaManifest = { ...mockManifest, entries: [shared, reused] };
+  const snapshot = JSON.stringify(manifest);
+  const url = 'data:image/jpeg;base64,/9j/4A==';
+  const preview = renderSiteDocument(baseBlueprint, baseContext, undefined, manifest,
+    { [shared.assetId]: url });
+  assert.match(preview, /alt="Foto reaproveitada na apresentação"/);
+  assert.equal(preview.split('Photo by Chef Lucas on Pexels').length - 1, 1);
+  assert.equal(preview.split('href="https://www.pexels.com/photo/555"').length - 1, 1);
+
+  const store = new InMemoryMediaAssetStore(), bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
+  await store.put({ assetId: shared.assetId, requestId: shared.requestId, provider: shared.provider,
+    storageKey: 'fixture_reused', mimeType: shared.mimeType, width: shared.width, height: shared.height,
+    byteLength: bytes.length, contentHash: shared.contentHash, createdAt: manifest.generatedAt }, bytes);
+  const project = { id: manifest.projectId, siteBlueprint: baseBlueprint, siteContext: baseContext,
+    siteMediaManifest: manifest, contentReviewed: true } as Project;
+  const reloaded = JSON.parse(JSON.stringify(project)) as Project;
+  const zip = await JSZip.loadAsync(await createSiteZip(reloaded, store));
+  const html = await zip.file('index.html')!.async('string');
+  assert.equal(html.split('Photo by Chef Lucas on Pexels').length - 1, 1);
+  assert.equal(html.split('href="https://www.pexels.com/photo/555"').length - 1, 1);
+  assert.deepEqual(await zip.file('assets/media-hero-555.jpg')!.async('uint8array'), bytes);
+  assert.equal(JSON.parse(await zip.file('media/media-manifest.json')!.async('string')).entries.length, 2);
+  assert.equal(JSON.stringify(manifest), snapshot);
+  assert.deepEqual(await store.getBuffer(shared.assetId), bytes);
+});

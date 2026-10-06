@@ -45,9 +45,15 @@ export function findSectionMedia(
 
 export function MediaCredits({ manifest }: { manifest?: MediaManifest }) {
   if (!manifest || !manifest.entries) return null;
-  const requiringAttribution = manifest.entries.filter(
-    (e) => e.licenseLabel && (e.attributionText || e.creator) && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
-  );
+  const creditedAssets = new Set<string>();
+  const requiringAttribution = manifest.entries.filter((e) => {
+    if (!e.licenseLabel || !(e.attributionText || e.creator) ||
+      !['selected', 'reviewed', 'exportable'].includes(e.reviewStatus) ||
+      creditedAssets.has(e.assetId)) return false;
+    // Uma foto reutilizada mantém sua atribuição sem repetir o crédito por seção.
+    creditedAssets.add(e.assetId);
+    return true;
+  });
   if (requiringAttribution.length === 0) return null;
   return (
     <div className="media-credits" aria-label="Créditos das imagens">
