@@ -23,8 +23,15 @@ export function createInitialLeadSelection(
   };
 }
 
-export function filterLeadsByCategory(leads: Lead[], categoryId: string): Lead[] {
+export function filterLeadsByCategory(
+  leads: Lead[],
+  categoryId: string,
+  selectedLeadId?: string | null,
+): Lead[] {
   return leads.filter(
-    (lead) => categoryId === 'all' || resolveLeadCanonicalNiche(lead) === categoryId,
+    (lead) =>
+      lead.id === selectedLeadId
+      || categoryId === 'all'
+      || resolveLeadCanonicalNiche(lead) === categoryId,
   );
 }

@@ -70,7 +70,7 @@ export const LeadSelectionStep: React.FC<LeadSelectionStepProps> = ({ state, upd
             aria-invalid={!leadId}
           >
             <option value="">Selecione um cliente...</option>
-            {filterLeadsByCategory(leads, selectedCategory)
+            {filterLeadsByCategory(leads, selectedCategory, leadId)
               .map((l) => (
               <option key={l.id} value={l.id}>
                 {l.name} {l.city ? `· ${l.city}` : ''}
