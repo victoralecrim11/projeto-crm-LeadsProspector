@@ -25,10 +25,13 @@ export function findSectionMedia(
   let entry: MediaManifestEntry | undefined;
   
   if (overrideId) {
-    // Explicit intent must not revive unreviewed/rejected media or pick another asset.
-    entry = props.mediaManifest.entries.find(
-      e => e.assetId === overrideId && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),
-    );
+    // Os mesmos bytes podem ter alt, intenção decorativa e revisão diferentes por seção.
+    const matching = props.mediaManifest.entries.filter(e => e.assetId === overrideId);
+    entry = matching.find(e => e.section === section);
+    // Referências antigas sem entrada na seção preservam a resolução pelo assetId.
+    if (!entry) entry = matching.find(e => ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus));
+    // Uma rejeição local não pode ser substituída pela aprovação em outra seção.
+    if (entry && !['selected', 'reviewed', 'exportable'].includes(entry.reviewStatus)) return undefined;
   } else {
     entry = props.mediaManifest.entries.find(
       (e) => e.section === section && ['selected', 'reviewed', 'exportable'].includes(e.reviewStatus),

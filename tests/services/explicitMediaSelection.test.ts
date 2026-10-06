@@ -8,7 +8,7 @@ import { blueprint, context } from '../fixtures/siteFixture.js';
 import type { MediaManifestEntry, MediaManifest } from '../../src/site-builder/contracts/media.js';
 import type { Project } from '../../src/types.js';
 
-// Synthetic metadata/bytes only; no provider requests or business-media claims.
+// Apenas metadados/bytes sintéticos; sem chamadas a provedores ou alegações de mídia real.
 function entry(id: string, reviewStatus: MediaManifestEntry['reviewStatus']): MediaManifestEntry {
   return { id, requestId: 'fixture-request', section: 'hero', sourceType: 'licensed',
     provider: 'pexels', providerAssetId: id, licenseLabel: 'Fixture license',
@@ -73,4 +73,77 @@ test('valid explicit choices and automatic media retain their existing behavior'
     const removed = renderSiteDocument(selectedBlueprint('__REMOVE__'), context, undefined, data, urls);
     assert.doesNotMatch(removed, /alt="approved-fixture"|alt="chosen-fixture"/);
   }
+});
+
+test('mídia reutilizada preserva alt e intenção decorativa de cada seção', () => {
+  const about = { ...entry('shared-fixture', 'exportable'), id: 'about-slot',
+    section: 'about' as const, decorative: true, alt: '' };
+  const hero = { ...entry('shared-fixture', 'exportable'), id: 'hero-slot',
+    alt: 'Descrição informativa da abertura' };
+  const data = manifest([about, hero]);
+  const before = JSON.stringify(data);
+  const chosen = { ...selectedBlueprint('shared-fixture'),
+    about: { ...blueprint.about, assetId: 'shared-fixture' } };
+  for (const entries of [[about, hero], [hero, about]]) {
+    const html = renderSiteDocument(chosen, context, undefined, { ...data, entries },
+      { 'shared-fixture': 'data:image/jpeg;base64,AQIDBA==' });
+    assert.match(html, /alt="Descrição informativa da abertura"/);
+    assert.match(html, /alt=""/);
+  }
+  assert.equal(JSON.stringify(data), before);
+});
+
+test('aprovação de outra seção não revive a seleção explicitamente rejeitada', async () => {
+  const about = { ...entry('shared-fixture', 'exportable'), id: 'about-slot', section: 'about' as const };
+  for (const status of ['candidate', 'rejected'] as const) {
+    const hero = { ...entry('shared-fixture', status), id: 'hero-slot' };
+    const html = renderSiteDocument(selectedBlueprint('shared-fixture'), context, undefined,
+      manifest([about, hero]), { 'shared-fixture': 'data:image/jpeg;base64,AQIDBA==' });
+    assert.doesNotMatch(html, /hero-full-bleed has-media/);
+    const store = new InMemoryMediaAssetStore(), bytes = new Uint8Array([1, 2, 3, 4]);
+    const data = manifest([about, hero]);
+    await store.put({ assetId: about.assetId, requestId: about.requestId, provider: about.provider,
+      storageKey: 'fixture-rejected', mimeType: about.mimeType, width: about.width, height: about.height,
+      byteLength: bytes.length, contentHash: about.contentHash, createdAt: data.generatedAt }, bytes);
+    const project = { id: data.projectId, siteBlueprint: selectedBlueprint('shared-fixture'),
+      siteContext: context, contentReviewed: true, siteMediaManifest: data } as Project;
+    const zip = await JSZip.loadAsync(await createSiteZip(JSON.parse(JSON.stringify(project)), store));
+    assert.doesNotMatch(await zip.file('index.html')!.async('string'), /hero-full-bleed has-media/);
+    const exported = JSON.parse(await zip.file('media/media-manifest.json')!.async('string'));
+    assert.deepEqual(exported.entries.map((e: MediaManifestEntry) => e.id), ['about-slot']);
+    assert.deepEqual(await store.getBuffer(about.assetId), bytes);
+  }
+});
+
+test('ZIP após reload mantém metadados por seção ao reutilizar os mesmos bytes', async () => {
+  const about = { ...entry('shared-fixture', 'exportable'), id: 'about-slot',
+    section: 'about' as const, alt: 'Descrição da seção sobre' };
+  const hero = { ...entry('shared-fixture', 'exportable'), id: 'hero-slot', alt: 'Descrição da abertura' };
+  const data = manifest([about, hero]), bytes = new Uint8Array([1, 2, 3, 4]);
+  const store = new InMemoryMediaAssetStore();
+  await store.put({ assetId: hero.assetId, requestId: hero.requestId, provider: hero.provider,
+    storageKey: 'fixture-shared', mimeType: hero.mimeType, width: hero.width, height: hero.height,
+    byteLength: bytes.length, contentHash: hero.contentHash, createdAt: data.generatedAt }, bytes);
+  const chosen = { ...selectedBlueprint('shared-fixture'),
+    about: { ...blueprint.about, assetId: 'shared-fixture' } };
+  const project = { id: data.projectId, siteBlueprint: chosen, siteContext: context,
+    contentReviewed: true, siteMediaManifest: data } as Project;
+  const saved = JSON.stringify(project), reloaded = JSON.parse(saved) as Project;
+  for (let iteration = 0; iteration < 2; iteration++) {
+    const zip = await JSZip.loadAsync(await createSiteZip(reloaded, store));
+    const html = await zip.file('index.html')!.async('string');
+    assert.match(html, /alt="Descrição da abertura"/);
+    assert.match(html, /alt="Descrição da seção sobre"/);
+    assert.deepEqual(await zip.file('assets/shared-fixture.jpg')!.async('uint8array'), bytes);
+    assert.equal(JSON.stringify(reloaded), saved);
+  }
+  assert.deepEqual(await store.getBuffer(hero.assetId), bytes);
+});
+
+test('referência antiga sem entrada da seção continua resolvendo pelo assetId', () => {
+  const data = manifest([{ ...entry('legacy-fixture', 'exportable'), section: 'about' }]);
+  const html = renderSiteDocument(selectedBlueprint('legacy-fixture'), context, undefined, data,
+    { 'legacy-fixture': 'data:image/jpeg;base64,AQIDBA==' });
+  assert.match(html, /hero-full-bleed has-media/);
+  assert.match(html, /alt="legacy-fixture"/);
 });

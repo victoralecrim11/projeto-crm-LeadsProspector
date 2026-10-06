@@ -111,6 +111,8 @@ O ComfyUI é opcional e é o adaptador atualmente registrado para geração de i
 
 Depois de salvar o arquivo, reinicie `npm run dev` e abra **Configurações CRM → Provedores de mídia**. A busca automática seleciona imagens para revisão; a aprovação no Editor Visual continua obrigatória antes da exportação.
 
+Ao reutilizar uma imagem em mais de uma seção, cada seção mantém seu texto alternativo, intenção decorativa e revisão. Uma rejeição local não é substituída pela aprovação da mesma foto em outra seção. O ZIP conserva essa decisão no HTML e publica apenas mídia aprovada; os arquivos armazenados permanecem intactos.
+
 ### Tiles do mapa
 
 Por padrão, o mapa usa os tiles públicos do OpenStreetMap. Uma fonte compatível pode ser definida com:

@@ -62,7 +62,7 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
           if (!buffer) throw new Error("MEDIA_ASSET_MISSING: imagem aprovada indisponível para exportação.");
           if (buffer) {
             zip.file(`assets/${entry.assetPath}`, buffer);
-            // Keep each asset in the ZIP, but make index.html usable even when opened alone.
+            // Mantém os arquivos no ZIP e permite abrir index.html sozinho com as imagens incorporadas.
             assetUrls[entry.assetId] = imageDataUrl(buffer, entry.mimeType);
           }
         }
@@ -71,7 +71,8 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
     zip.file("media/media-manifest.json", JSON.stringify(manifest, null, 2));
   }
 
-  zip.file("index.html", renderSiteDocument(blueprint, context, design, manifest, assetUrls));
+  // O renderer precisa da rejeição por seção; o manifesto do ZIP inclui apenas mídias aprovadas.
+  zip.file("index.html", renderSiteDocument(blueprint, context, design, project.siteMediaManifest, assetUrls));
   if (design) {
     zip.file('DESIGN.md', design.designMarkdown);
     zip.file('design.json', JSON.stringify(design, null, 2));
