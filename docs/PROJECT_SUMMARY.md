@@ -114,8 +114,8 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
   - `LicensedMediaQueryBuilder` que gera termos de busca objetivos utilizando `ResolvedDesign.imageryDirection` e nicho, com filtro rigoroso que remove emails, telefones, CNPJ e endereços do CRM.
   - Camada de aquisição segura (`mediaAcquisitionService`) com proteção SSRF, resolução DNS e verificação de IP público, bloqueio estrito de redes privadas/loopback, limite de 5 MiB por asset, limite de 2 redirects, validação de magic bytes (JPEG/PNG/WebP) e bloqueio de SVG e HTML disfarçado.
   - Componente de UI `MediaPanel` permitindo busca contextual, seleção, aprovação para exportação e aviso de "Imagem licenciada ilustrativa".
-  - `SiteRenderer` integra imagens por URLs de objeto efêmeras revogadas no unmount, renderiza componente `MediaCredits` com créditos obrigatórios e degrada graciosamente para fallbacks visuais CSS caso o asset esteja ausente.
-  - `exportSite.ts` gera ZIPs estáticos independentes (air-gapped) gravando binários reais em `assets/media-...`, referenciando caminhos relativos no `index.html`, exportando `media/media-manifest.json` e preservando créditos de imagem, sem vazar URLs `blob:` ou `localhost`.
+  - `SiteRenderer` integra imagens por URLs de objeto efêmeras revogadas no unmount, renderiza componente `MediaCredits` com créditos obrigatórios e degrada graciosamente para fallbacks visuais CSS caso o asset esteja ausente. Ao reutilizar o mesmo `assetId`, a escolha explícita prioriza os metadados e a revisão da seção atual; a aprovação em outra seção não substitui uma rejeição local. Referências antigas sem entrada na seção mantêm a resolução pelo `assetId`.
+  - `exportSite.ts` gera ZIPs estáticos independentes gravando binários em `assets/media-...` e incorporando imagens aprovadas no `index.html`, que pode ser aberto sozinho. O manifesto exportado inclui apenas entradas `reviewed`/`exportable`; a renderização conserva a revisão específica de cada seção, inclusive rejeições. Créditos são preservados, sem URLs `blob:` ou `localhost`. Entradas `selected` continuam bloqueando a exportação até revisão humana.
 
 ## Organização dos testes
 
