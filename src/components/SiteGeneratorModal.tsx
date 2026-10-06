@@ -22,7 +22,8 @@ export const SiteGeneratorModal: React.FC = () => {
         aria-labelledby="site-generator-title"
         className="site-workspace site-generator-panel bg-slate-950 text-white rounded-2xl border border-slate-600 w-full max-w-2xl h-[calc(100dvh-1.5rem)] sm:h-[90dvh] sm:max-h-[760px] min-h-0 overflow-hidden flex flex-col p-5 sm:p-6"
       >
-        <GenerationFlowOrchestrator 
+        <GenerationFlowOrchestrator
+          key={initialLeadId || 'sem-lead-inicial'}
           initialLeadId={initialLeadId} 
           onClose={handleClose} 
         />
