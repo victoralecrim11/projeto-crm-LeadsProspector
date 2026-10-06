@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Lead } from '../../src/types.js';
+import { BUSINESS_TAXONOMY_VERSION } from '../../src/domain/businessTaxonomy.js';
 import {
   createInitialLeadSelection,
   filterLeadsByCategory,
@@ -59,4 +60,28 @@ test('não conserva um identificador inicial que não existe na lista atual', ()
   const selection = createInitialLeadSelection([], 'lead-removido');
 
   assert.deepEqual(selection, { categoryId: null, leadId: null });
+});
+
+
+test('mantém o lead explicitamente selecionado quando o filtro e a classificação persistida divergem', () => {
+  const julia = createLead({
+    id: 'julia',
+    name: 'Júlia Cabeleireira',
+    canonicalNiche: 'barbershop',
+    classificationVersion: BUSINESS_TAXONOMY_VERSION,
+  });
+  const eustaquio = createLead({
+    id: 'eustaquio',
+    name: 'Eustáquio Cabeleireiros',
+  });
+  const leads = [julia, eustaquio];
+
+  assert.deepEqual(
+    filterLeadsByCategory(leads, 'hair-salon').map((lead) => lead.id),
+    ['eustaquio'],
+  );
+  assert.deepEqual(
+    filterLeadsByCategory(leads, 'hair-salon', julia.id).map((lead) => lead.id),
+    ['julia', 'eustaquio'],
+  );
 });

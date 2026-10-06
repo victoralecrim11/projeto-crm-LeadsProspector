@@ -59,7 +59,7 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 
 - O sistema utiliza um schema `GeneratedSiteBlueprint` atualizado para **v2**. O parse realiza migrações dinâmicas de v1.
 - `SiteGeneratorModal` aciona o backend. O contexto provido via auditoria e pesquisa molda o JSON exigido pelo provider.
-- A seleção inicial do gerador resolve a categoria canônica do lead antes de filtrar as opções. Isso mantém o ID escolhido visível e impede que categorias legadas, como uma cabeleireira gravada como `Barbearia`, apontem a interface para outro negócio.
+- A seleção inicial do gerador resolve a categoria canônica do lead antes de filtrar as opções. Além disso, o ID explicitamente escolhido permanece visível mesmo durante uma divergência transitória entre categoria persistida e filtro; uma troca manual de categoria continua removendo a seleção incompatível.
 - O antigo renderer monolítico foi substituído por uma **arquitetura de componentes modulares**. Cada seção (Hero, About, Services, Contact, etc.) suporta múltiplas variantes (ex: `full-bleed` vs `split`, `editorial-list` vs `horizontal-cards`), rompendo a limitação de estruturas DOM idênticas.
 - Estilos base e tipografia são encapsulados de forma performática. O preview aceita validação de viewports nativos simulados (Desktop 1440, Tablet 768, Mobile 390) usando URLs via Blob para garantir sandboxing seguro e navegação interna realística no preview.
 - O modal usa um briefing compacto: campos principais com direção de design opcional. O template pode ser decidido pela IA.
