@@ -1,30 +1,31 @@
-# SearXNG Local Setup Guide for ProspectorCRM
+# Guia de configuração local do SearXNG para o ProspectorCRM
 
-This guide details how to run a local, privacy-respecting, self-hosted SearXNG instance using Docker for **Phase B.3: Dynamic Design Research**.
-
----
-
-## 1. Overview
-
-ProspectorCRM uses **SearXNG** as its primary, best-effort search provider to discover public web design references by niche (e.g. *dentistry*, *restaurant*, *barbershop*).
-
-Key operational characteristics:
-- **Zero API Cost:** Completely free and open-source.
-- **Privacy First:** Strips user tracking; CRM never sends lead names, addresses, or phone numbers to the search engine.
-- **Graceful Fallback:** If SearXNG is not running, the CRM automatically logs `SEARCH_PROVIDER_NOT_CONFIGURED` or `UPSTREAM_ERROR`, activates Brave Search if configured, or falls back to curated benchmark families (`pilotFamilies`) without interrupting site generation.
+Este guia descreve como executar uma instância local, auto-hospedada e orientada à privacidade do SearXNG usando Docker para a **Fase B.3: Pesquisa Dinâmica de Design**.
 
 ---
 
-## 2. Prerequisites
+## 1. Visão geral
 
-- [Docker Desktop](https://www.docker.com/products/docker-desktop/) installed and running.
-- Port `8080` available on localhost.
+O ProspectorCRM usa o **SearXNG** como provedor de busca principal, em regime de melhor esforço, para descobrir referências públicas de design por nicho (por exemplo, *dentistry*, *restaurant* e *barbershop*).
+
+Principais características operacionais:
+
+- **Sem custo de API:** solução totalmente gratuita e de código aberto.
+- **Privacidade em primeiro lugar:** remove rastreamento de usuários; o CRM nunca envia nomes, endereços ou telefones de leads ao mecanismo de busca.
+- **Fallback resiliente:** se o SearXNG não estiver em execução, o CRM registra automaticamente `SEARCH_PROVIDER_NOT_CONFIGURED` ou `UPSTREAM_ERROR`, ativa o Brave Search quando configurado ou usa as famílias de referência curadas (`pilotFamilies`) sem interromper a geração do site.
 
 ---
 
-## 3. Quick Start (Docker Run)
+## 2. Pré-requisitos
 
-Run the official SearXNG container with JSON format output enabled:
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) instalado e em execução.
+- Porta `8080` disponível em `localhost`.
+
+---
+
+## 3. Início rápido (Docker Run)
+
+Execute o contêiner oficial do SearXNG com a saída no formato JSON habilitada:
 
 ```bash
 docker run -d \
@@ -37,9 +38,9 @@ docker run -d \
 
 ---
 
-## 4. Docker Compose Setup (Recommended for Development)
+## 4. Configuração com Docker Compose (recomendada para desenvolvimento)
 
-Create a `docker-compose.searxng.yml` file:
+Crie um arquivo `docker-compose.searxng.yml`:
 
 ```yaml
 version: '3.8'
@@ -58,9 +59,9 @@ services:
     restart: unless-stopped
 ```
 
-### Enabling JSON output in `settings.yml`:
+### Habilitar a saída JSON em `settings.yml`
 
-Ensure `/etc/searxng/settings.yml` has the JSON format active in search formats:
+Confirme que `/etc/searxng/settings.yml` contém o formato JSON ativo entre os formatos de busca:
 
 ```yaml
 search:
@@ -69,7 +70,7 @@ search:
     - json
 ```
 
-Start the service:
+Inicie o serviço:
 
 ```bash
 docker compose -f docker-compose.searxng.yml up -d
@@ -77,15 +78,16 @@ docker compose -f docker-compose.searxng.yml up -d
 
 ---
 
-## 5. Verify the Installation
+## 5. Verificar a instalação
 
-Test that SearXNG returns JSON query results:
+Teste se o SearXNG retorna os resultados da consulta em JSON:
 
 ```bash
 curl "http://localhost:8080/search?q=barbearia+design+brasil&format=json"
 ```
 
-Expected response contains:
+A resposta esperada contém:
+
 ```json
 {
   "query": "barbearia design brasil",
@@ -101,37 +103,36 @@ Expected response contains:
 
 ---
 
-## 6. Configure ProspectorCRM
+## 6. Configurar o ProspectorCRM
 
-Add or update your `.env` file in the project root:
+Adicione ou atualize o arquivo `.env` na raiz do projeto:
 
 ```env
-# Primary Search Provider for Dynamic Design Research
+# Provedor de busca principal da Pesquisa Dinâmica de Design
 SEARXNG_URL=http://localhost:8080
 
-# Optional Fallback Provider (if SearXNG is offline)
+# Provedor de fallback opcional (se o SearXNG estiver indisponível)
 BRAVE_SEARCH_API_KEY=
 
-# Snapshot Cache TTL (in days, default is 60)
+# TTL do cache de snapshots (em dias; o padrão é 60)
 DESIGN_RESEARCH_TTL_DAYS=60
 ```
 
 ---
 
-## 7. Operational Troubleshooting
+## 7. Solução de problemas operacionais
 
-| Symptom | Cause | Resolution |
+| Sintoma | Causa | Resolução |
 | :--- | :--- | :--- |
-| `HTTP 403 / 429` | Public SearXNG instance blocking automated JSON requests | Use a private local Docker container, not public instances. |
-| `SearchProviderError: NOT_CONFIGURED` | `SEARXNG_URL` missing from `.env` | Define `SEARXNG_URL=http://localhost:8080`. The system automatically falls back to curated families if absent. |
-| `TimeoutError (5000ms)` | Container overloaded or upstream engines sluggish | SearXNG automatically times out without hanging site generation. |
+| `HTTP 403 / 429` | Instância pública do SearXNG bloqueando requisições JSON automatizadas | Use um contêiner Docker local e privado, não instâncias públicas. |
+| `SearchProviderError: NOT_CONFIGURED` | `SEARXNG_URL` ausente no `.env` | Defina `SEARXNG_URL=http://localhost:8080`. O sistema usa automaticamente as famílias curadas quando a variável está ausente. |
+| `TimeoutError (5000ms)` | Contêiner sobrecarregado ou mecanismos upstream lentos | O SearXNG encerra a tentativa automaticamente, sem travar a geração do site. |
 
 ---
 
-## 8. Production / Serverless Behavior (Vercel)
+## 8. Comportamento em produção e ambientes serverless (Vercel)
 
-- In `NODE_ENV === 'production'`, `SEARXNG_URL` **must** be explicitly provided if a self-hosted instance is available.
-- If `SEARXNG_URL` is absent in production, SearXNG is marked `isConfigured() === false` immediately.
-- The server will **never** attempt `localhost:8080` in production / serverless environments, avoiding timeouts, connection refused errors, and function latency.
-- The provider chain skips directly to Brave Search (if `BRAVE_SEARCH_API_KEY` is configured) or gracefully activates curated pilot families (`pilotFamilies`) without delays.
-
+- Em `NODE_ENV === 'production'`, `SEARXNG_URL` **deve** ser informado explicitamente quando houver uma instância auto-hospedada disponível.
+- Se `SEARXNG_URL` estiver ausente em produção, o SearXNG é marcado imediatamente como `isConfigured() === false`.
+- O servidor **nunca** tenta acessar `localhost:8080` em ambientes de produção ou serverless, evitando timeouts, erros de conexão recusada e latência da função.
+- A cadeia de provedores segue diretamente para o Brave Search, quando `BRAVE_SEARCH_API_KEY` estiver configurada, ou ativa de forma resiliente as famílias piloto curadas (`pilotFamilies`) sem atrasos.
