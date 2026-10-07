@@ -18,7 +18,7 @@ import { buildExplorationRequest, detectPiiInRequest } from '../../tools/stitch-
 import { mapStitchRawToArtifact } from '../../tools/stitch-producer/producerMapper.js';
 import { writeArtifact, ArtifactValidationError } from '../../tools/stitch-producer/artifactWriter.js';
 import { produceArtifact } from '../../tools/stitch-producer/producerOrchestrator.js';
-import { buildStitchScreenPrompt, buildStitchScreenToolCall } from '../../tools/stitch-producer/clients/realStitchMcpClient.js';
+import { buildStitchScreenPrompt, buildStitchScreenToolCall, resolveStitchClientConfig } from '../../tools/stitch-producer/clients/realStitchMcpClient.js';
 
 // D.1 Consumer imports (REAL, not mocked)
 import { ArtifactMcpProvider } from '../../server/services/research/stitch/providers/artifactMcpProvider.js';
@@ -40,6 +40,19 @@ import {
   dentistVariants,
   pizzeriaVariants,
 } from '../fixtures/stitchProducerFixtures.js';
+
+test('Stitch client config forwards API key and OAuth project credentials', () => {
+  assert.deepEqual(resolveStitchClientConfig({
+    STITCH_API_KEY: '  test-api-key  ',
+    STITCH_ACCESS_TOKEN: '  test-access-token  ',
+    GOOGLE_CLOUD_PROJECT: '  test-project  ',
+  }), {
+    apiKey: 'test-api-key',
+    accessToken: 'test-access-token',
+    projectId: 'test-project',
+    timeout: 240000,
+  });
+});
 
 // ── Helpers ───────────────────────────────────────────────────────
 

@@ -7,6 +7,21 @@ import type {
   StitchRawResult 
 } from '../types.js';
 
+/** Resolve API-key or OAuth credentials without exposing their values. */
+export function resolveStitchClientConfig(env: NodeJS.ProcessEnv = process.env) {
+  return {
+    apiKey: env.STITCH_API_KEY?.trim() || undefined,
+    accessToken: env.STITCH_ACCESS_TOKEN?.trim() || undefined,
+    projectId: env.GOOGLE_CLOUD_PROJECT?.trim() || undefined,
+    timeout: 240000,
+  };
+}
+
+function isStitchAuthError(error: unknown): boolean {
+  const message = error instanceof Error ? error.message : String(error ?? '');
+  return /auth(?:entication|orization)?\s+failed|auth_failed|credentials_missing|no authentication credentials|unauthori[sz]ed|unauthenticated|\b401\b|\b403\b/i.test(message);
+}
+
 export function buildStitchScreenPrompt(request: StitchExplorationRequest, variantIndex = 0): string {
   const requiredSectionOrder = request.sectionPriorities.join(' -> ');
   const direction = barbershopDirectionForVariant(request, variantIndex);
@@ -78,10 +93,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
   private client: StitchToolClient;
 
   constructor() {
-    this.client = new StitchToolClient({
-      apiKey: process.env.STITCH_API_KEY,
-      timeout: 240000 // 4 minutes request timeout
-    });
+    this.client = new StitchToolClient(resolveStitchClientConfig());
   }
 
   async explore(request: StitchExplorationRequest): Promise<StitchRawResult> {
@@ -125,7 +137,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
           } catch (err: any) {
             const isTimeout = err.message?.includes('timeout') || err.message?.includes('Timeout');
             const isNetwork = err.message?.includes('network') || err.message?.includes('fetch failed') || err.message?.includes('ECONNRESET');
-            const isAuthError = err.message?.includes('401') || err.message?.includes('403');
+            const isAuthError = isStitchAuthError(err);
             console.error(`[StitchMcpClient] Failed to generate variant ${variantIndex + 1}:`, err.message);
             // Stitch explicitly forbids automatic retries because a failed connection
             // can still leave a completed remote generation behind.
@@ -152,7 +164,7 @@ export class RealStitchMcpClient implements StitchMcpClient {
         projectUrl: `https://stitch.googleapis.com/v1/projects/${projectId}`
       };
     } catch (error: any) {
-      if (error.message?.includes('401') || error.message?.includes('403')) {
+      if (isStitchAuthError(error)) {
         return { status: 'auth-failure', variants: [], errorMessage: error.message };
       }
       if (error.message?.includes('timeout')) {

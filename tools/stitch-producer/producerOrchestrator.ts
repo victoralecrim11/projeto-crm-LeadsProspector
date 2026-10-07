@@ -56,7 +56,7 @@ export async function produceArtifact(
     if (msg.toLowerCase().includes('timeout')) {
       return { status: 'STITCH_TIMEOUT', candidates: [], request, errorMessage: msg };
     }
-    if (msg.toLowerCase().includes('auth') || msg.toLowerCase().includes('401') || msg.toLowerCase().includes('403')) {
+    if (/auth(?:entication|orization)?\s+failed|auth_failed|credentials_missing|no authentication credentials|unauthori[sz]ed|unauthenticated|\b401\b|\b403\b/i.test(msg)) {
       return { status: 'STITCH_AUTH_FAILURE', candidates: [], request, errorMessage: msg };
     }
     return { status: 'STITCH_ERROR', candidates: [], request, errorMessage: msg };
