@@ -25,7 +25,10 @@ O gerador de sites evoluiu para uma nova **Fase B** de auditoria e um pipeline d
 O radar local usa **OpenStreetMap/Overpass** como fonte. O selo `REAL OSM` significa que o registro veio diretamente do OSM; ele não garante que o estabelecimento ainda esteja ativo, nem que os dados estejam completos.
 
 - Avaliação, telefone, site e endereço só são exibidos quando existem nos dados disponíveis.
-- “Site não informado no OSM” não prova que a empresa não possui site.
+- “Site não informado” significa apenas que a fonte consultada não informou um site; isso não prova que a empresa não possua um.
+- O nicho sugerido é calculado a partir das etiquetas originais do registro OSM. Uma nova busca atualiza essa classificação pela identidade exata `osmType + osmId`, preservando os demais dados do CRM.
+- Cadastros OSM antigos que não guardaram as etiquetas de origem aparecem como **Nicho não confirmado** até uma nova busca ou uma correção manual. Nome e endereço, isoladamente, não comprovam o nicho.
+- Em **Ver detalhes**, a opção **Corrigir nicho** persiste a escolha manual; buscas posteriores não substituem essa correção automaticamente.
 - A busca comercial no Google Maps é apenas uma conferência externa por texto.
 - O botão de coordenada abre exatamente a latitude e longitude recebidas do OSM, mesmo quando o Google Maps não associa o ponto a uma ficha comercial.
 
