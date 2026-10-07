@@ -97,8 +97,8 @@ Blueprints v1 recebem defaults por template. O parser rejeita v2 inválido no fl
 | Fullscreen nativo | Entrada e saída explícita verificadas; Escape e foco na toolbar verificados |
 | Fallback fullscreen | Diálogo modal e CSS; Escape fecha e restaura foco no botão |
 | Preview inicial srcDoc | Dispositivos e aparência inspecionados; bug de âncora identificado e corrigido no código |
-| Preview final Blob / Nova aba | **Validação visual bloqueada pela política do browser integrado**; não marcado como aprovado |
-| Escape com foco dentro do iframe | Pendente de verificação manual junto ao preview Blob |
+| Preview final Blob / Nova aba | PASS em Chrome 155 headless (07/10/2026): documento abriu completo, com `readyState=complete`, título e conteúdo renderizados |
+| Escape no fallback e retorno de foco | PASS em Chrome 155 headless (07/10/2026): diálogo fechado, scroll restaurado e foco devolvido ao botão Fullscreen |
 | Geração com LLM real | Não executada; testes do backend/provedores usam respostas simuladas |
 
 Inicialmente `npm test` não conseguia iniciar subprocessos (spawn EPERM); a execução autorizada fora dessa restrição resolveu. Na migração, uma expectativa antiga do teste do provider ainda exigia versão 1: foi atualizada para 2 e a suíte passou. O primeiro OpenSpec validate pediu SHALL no corpo dos requisitos: corrigido, validação aprovada.

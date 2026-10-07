@@ -15,6 +15,8 @@ Arquivos principais: `renderer/presentation.ts`, `renderer/SiteRenderer.tsx`, `t
 
 Validação: 60 testes aprovados, TypeScript sem erros, build de cliente e servidor aprovado. Contraste >=4,5:1 testado para texto principal/secundário em todas as superfícies dos dois temas. Quinze combinações reais de navegador (cinco nichos em 1440/768/375) sem overflow horizontal: `refinement-responsive.json`. Animação `site-enter` confirmada no CSS computado do HTML exportado. A preferência de movimento reduzido está implementada e coberta estruturalmente; não houve alteração da configuração do sistema operacional para simular essa preferência.
 
-Os HTMLs, JSONs e ZIPs nesta pasta foram atualizados. Os avisos de build continuam sendo tamanho de chunks, importação mista de leadStore e anotações PURE do Zod. A pendência anterior de homologação Blob/Nova aba no browser integrado permanece; não foi tentado contornar o bloqueio.
+Os HTMLs, JSONs e ZIPs nesta pasta foram atualizados. Os avisos de build continuam sendo tamanho de chunks, importação mista de leadStore e anotações PURE do Zod.
+
+Em 07/10/2026, a bancada `tests/manual/visual-preview.html` foi revalidada no Chrome 155 headless com o componente real. O fallback de tela cheia abriu um `dialog`, bloqueou o scroll e, ao receber Escape real via protocolo do navegador, fechou o diálogo, restaurou o scroll e devolveu foco ao botão `⛶ Fullscreen`. O controle `↗ Nova aba` abriu um documento Blob completo (`readyState=complete`, título `Mesa — demonstração`, 18.654 caracteres de HTML). Esta evidência cobre o comportamento da fixture fictícia da bancada; não substitui homologação de dados reais, integrações externas ou equivalência visual Stitch.
 
 ![Comparação após refinamento](refinamento.png)
