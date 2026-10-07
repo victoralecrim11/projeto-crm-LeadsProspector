@@ -60,8 +60,9 @@ export const useProspectorSearch = (CITY_COORDINATES: Record<string, { lat: numb
   const [radarPulse, setRadarPulse] = useState<boolean>(false);
 
   useEffect(() => {
-    // Geocoding reverso foi removido do fluxo para não depender do Google Maps API
-  }, [activeMarkerLead]);
+    // A rescan may refresh classification while this card remains open.
+    setActiveMarkerLead(current => current ? leads.find(lead => lead.id === current.id) ?? null : null);
+  }, [leads]);
 
   const {
     neighborhoods: currentCityNeighborhoods,

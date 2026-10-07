@@ -122,7 +122,7 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
   return R * c;
 }
 
-import { classifyOsmBusiness } from '../domain/businessTaxonomy';
+import { BUSINESS_TAXONOMY_VERSION, classifyOsmBusiness } from '../domain/businessTaxonomy';
 
 function osmElementToLead(
   element: OverpassElement,
@@ -178,6 +178,9 @@ function osmElementToLead(
     category: classification.categoryLabel,
     niche: classification.categoryLabel,
     canonicalNiche: classification.canonicalNiche,
+    classificationVersion: BUSINESS_TAXONOMY_VERSION,
+    classificationRule: classification.ruleId,
+    osmTags: { ...tags },
     subNiche: classification.subNiche,
     prospectingGroup: classification.prospectingGroup,
     temperature: 'quente',

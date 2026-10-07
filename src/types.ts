@@ -67,6 +67,9 @@ export interface Lead {
   niche: string;
   canonicalNiche?: CanonicalNiche;
   classificationVersion?: number;
+  /** Original OSM evidence; a mapped address does not independently verify the niche. */
+  osmTags?: Record<string, string>;
+  classificationRule?: string;
   subNiche?: string;
   prospectingGroup?: string;
   temperature: LeadTemperature;

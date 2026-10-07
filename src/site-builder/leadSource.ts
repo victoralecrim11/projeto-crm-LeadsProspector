@@ -37,6 +37,7 @@ export function resolveLeadCanonicalNiche(lead: Lead): CanonicalNiche {
   
   // 2. Name-based override if it strongly indicates hair-salon over barbershop
   const nameNorm = (lead.name || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  if (/\bspa\b/.test(nameNorm) || nameNorm.includes('estetica')) return 'beauty-studio';
   if (nameNorm.includes('cabeleireir') || nameNorm.includes('salao de beleza')) {
     return 'hair-salon';
   }

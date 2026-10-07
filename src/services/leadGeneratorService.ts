@@ -25,7 +25,7 @@ export function matchesNiche(source: string, target: string): boolean {
   const normalizedTarget = normalizeStr(target); const normalizedSource = normalizeStr(source);
   if (normalizedSource === normalizedTarget || normalizedSource.includes(normalizedTarget) || normalizedTarget.includes(normalizedSource)) return true;
   const keywords: Record<string, string[]> = {
-    barb: ['barb'], dent: ['odont', 'dent'], rest: ['rest', 'pizz', 'bistr', 'gastron', 'churrasc'],
+    barb: ['barb', 'cabeleireir', 'salao'], dent: ['odont', 'dent'], rest: ['rest', 'pizz', 'bistr', 'gastron', 'churrasc'],
     estet: ['estet', 'beleza', 'crossfit', 'laser', 'facial'], advoc: ['advoc', 'jurid', 'direito'],
     pet: ['pet', 'vet', 'animal', 'bicho'], mecan: ['mecan', 'auto', 'carro'], contab: ['contab', 'fiscal', 'finan'],
   };

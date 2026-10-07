@@ -11,6 +11,8 @@ import {
   Zap,
 } from "lucide-react";
 import { Lead } from "../../types";
+import { BUSINESS_CATEGORIES, BUSINESS_TAXONOMY_VERSION, CanonicalNiche, getCanonicalBusinessCategory } from "../../domain/businessTaxonomy";
+import { useLeadStore } from "../../store/leadStore";
 
 interface ProspectorLeadListProps {
   activeMarkerLead: Lead | null;
@@ -51,6 +53,32 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
               <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-sky-500/20 text-sky-300 border border-sky-400/30 uppercase">
                 {activeMarkerLead.category}
               </span>
+              {activeMarkerLead.dataSource === 'real' && (
+                <div className="mt-2 text-xs text-slate-400">
+                  <p>{activeMarkerLead.classificationRule === 'manual'
+                    ? 'Nicho corrigido por você.'
+                    : activeMarkerLead.classificationRule === 'missing-osm-evidence'
+                      ? 'Refaça a busca ou corrija o nicho. O cadastro antigo não preservou a classificação de origem.'
+                      : 'Nicho sugerido pelo OSM; pode estar desatualizado.'}</p>
+                  <label className="block mt-2">
+                    Corrigir nicho
+                    <select
+                      className="block mt-1 w-full rounded bg-slate-900 border border-white/20 p-1 text-slate-200"
+                      value={activeMarkerLead.canonicalNiche || 'other'}
+                      onChange={event => {
+                        const canonicalNiche = event.target.value as CanonicalNiche;
+                        const category = getCanonicalBusinessCategory(canonicalNiche);
+                        const updated = { ...activeMarkerLead, canonicalNiche, category, niche: category,
+                          classificationVersion: BUSINESS_TAXONOMY_VERSION, classificationRule: 'manual' };
+                        useLeadStore.getState().updateLeadDetails(updated);
+                        setActiveMarkerLead(updated);
+                      }}
+                    >
+                      {BUSINESS_CATEGORIES.map(category => <option key={category.id} value={category.id}>{category.label}</option>)}
+                    </select>
+                  </label>
+                </div>
+              )}
               <h3 className="text-base font-bold text-white mt-1.5 leading-snug">
                 {activeMarkerLead.name}
               </h3>
@@ -74,11 +102,11 @@ export const ProspectorLeadList: React.FC<ProspectorLeadListProps> = ({
               <span className="text-slate-400">Presença Web Atual:</span>
               {activeMarkerLead.hasWebsite ? (
                 <span className="text-amber-400 font-semibold flex items-center gap-1">
-                  <Globe className="w-3.5 h-3.5" /> Site Antigo
+                  <Globe className="w-3.5 h-3.5" /> Site informado
                 </span>
               ) : (
                 <span className="text-rose-400 font-bold flex items-center gap-1">
-                  <AlertTriangle className="w-3.5 h-3.5" /> Sem Website
+                  <AlertTriangle className="w-3.5 h-3.5" /> Site não informado
                 </span>
               )}
             </div>

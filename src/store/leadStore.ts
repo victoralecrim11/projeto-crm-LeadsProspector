@@ -234,6 +234,16 @@ export const useLeadStore = create<LeadState>((set, get) => ({
 
   addCustomLead: (newLeadData) => {
     const prev = get().leads;
+    // Refresh source classification by exact OSM identity, preserving CRM fields
+    // and explicit edits. Name/address similarities alone cannot establish identity.
+    const existingOsm = newLeadData.dataSource === 'real' && newLeadData.osmTags
+      ? prev.find(l => l.dataSource === 'real' && l.osmType === newLeadData.osmType && l.osmId === newLeadData.osmId && l.osmId)
+      : undefined;
+    if (existingOsm && existingOsm.classificationRule !== 'manual' && (existingOsm.classificationRule || existingOsm.classificationVersion === undefined)) {
+      const updated = normalizeStoredOsmLead({ ...existingOsm, osmTags: newLeadData.osmTags });
+      get().setLeads(prev.map(l => l.id === existingOsm.id ? updated : l));
+      return updated;
+    }
     const isDuplicate = prev.some(l => {
       if (l.googlePlaceId && newLeadData.googlePlaceId && l.googlePlaceId === newLeadData.googlePlaceId) return true;
       if (l.osmType && l.osmId && newLeadData.osmType && newLeadData.osmId && l.osmType === newLeadData.osmType && l.osmId === newLeadData.osmId) return true;

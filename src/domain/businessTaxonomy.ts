@@ -153,8 +153,8 @@ export function classifyOsmBusiness(tags: Record<string, string>, prospectingGro
   if (canonicalNiche === 'other' && tags['name']) {
     const name = tags['name'].toLowerCase();
     if (name.includes('barbearia') || name.includes('barber')) { canonicalNiche = 'barbershop'; ruleId = 'name-fallback'; confidence = 0.4; }
-    else if (name.includes('salão') || name.includes('salao') || name.includes('cabeleireiro')) { canonicalNiche = 'hair-salon'; ruleId = 'name-fallback'; confidence = 0.4; }
-    else if (name.includes('estética') || name.includes('estetica') || name.includes('spa')) { canonicalNiche = 'beauty-studio'; ruleId = 'name-fallback'; confidence = 0.4; }
+    else if (name.includes('estética') || name.includes('estetica') || /\bspa\b/.test(name)) { canonicalNiche = 'beauty-studio'; ruleId = 'name-fallback'; confidence = 0.4; }
+    else if (name.includes('salão') || name.includes('salao') || name.includes('cabeleireir')) { canonicalNiche = 'hair-salon'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('odont') || name.includes('dentist')) { canonicalNiche = 'dentistry'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('restaurante')) { canonicalNiche = 'restaurant'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('pizzaria')) { canonicalNiche = 'pizzeria'; ruleId = 'name-fallback'; confidence = 0.4; }
@@ -180,8 +180,8 @@ export function normalizeLegacyBusinessNiche(categoryOrNiche: string): Canonical
   if (!categoryOrNiche) return 'other';
   const normalized = categoryOrNiche.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   if (normalized.includes('barbear') || normalized.includes('barber')) return 'barbershop';
-  if (normalized.includes('salao') || normalized.includes('cabeleireiro')) return 'hair-salon';
   if (normalized.includes('estetica') || /\bspa\b/.test(normalized)) return 'beauty-studio';
+  if (normalized.includes('salao') || normalized.includes('cabeleireir')) return 'hair-salon';
   if (normalized.includes('cosmetico')) return 'cosmetics-retail';
   if (normalized.includes('odont') || normalized.includes('dentist')) return 'dentistry';
   if (normalized.includes('pizzaria') || normalized.includes('pizza') || normalized.includes('pizzeria')) return 'pizzeria';
