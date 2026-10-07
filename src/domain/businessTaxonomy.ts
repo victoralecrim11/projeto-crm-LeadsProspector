@@ -153,7 +153,7 @@ export function classifyOsmBusiness(tags: Record<string, string>, prospectingGro
   if (canonicalNiche === 'other' && tags['name']) {
     const name = tags['name'].toLowerCase();
     if (name.includes('barbearia') || name.includes('barber')) { canonicalNiche = 'barbershop'; ruleId = 'name-fallback'; confidence = 0.4; }
-    else if (name.includes('estética') || name.includes('estetica') || /\bspa\b/.test(name)) { canonicalNiche = 'beauty-studio'; ruleId = 'name-fallback'; confidence = 0.4; }
+    else if (name.includes('estética') || name.includes('estetica') || /\b(spa|beleza)\b/.test(name)) { canonicalNiche = 'beauty-studio'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('salão') || name.includes('salao') || name.includes('cabeleireir')) { canonicalNiche = 'hair-salon'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('odont') || name.includes('dentist')) { canonicalNiche = 'dentistry'; ruleId = 'name-fallback'; confidence = 0.4; }
     else if (name.includes('restaurante')) { canonicalNiche = 'restaurant'; ruleId = 'name-fallback'; confidence = 0.4; }

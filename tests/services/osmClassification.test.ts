@@ -5,6 +5,7 @@ import { normalizeStoredOsmLead } from '../../src/utils/osmLead';
 import { fetchLeadsFromOverpass } from '../../src/services/overpassService';
 import { resolveLeadCanonicalNiche } from '../../src/site-builder/leadSource';
 import { matchesNiche } from '../../src/services/leadGeneratorService';
+import { buildOsmClassificationQuery, fetchOsmClassificationEvidence, recoverOsmClassifications } from '../../src/services/osmClassificationRecovery';
 import type { Lead } from '../../src/types';
 
 const legacy: Lead = {
@@ -23,14 +24,46 @@ test('salão spa is beauty, while explicit OSM tags remain the source evidence',
   assert.equal(resolveLeadCanonicalNiche({ ...legacy, name: 'Júlia’s Salão Spa' }), 'beauty-studio');
 });
 
-test('legacy address/name do not prove the niche, and normalization is idempotent', () => {
+test('legacy migration retains existing fields while source evidence is missing', () => {
   const normalized = normalizeStoredOsmLead(legacy);
-  assert.equal(normalized.category, 'Nicho não confirmado');
+  assert.equal(normalized.category, 'Barbearia');
+  assert.equal(normalized.classificationRule, 'missing-osm-evidence');
   assert.equal(resolveLeadCanonicalNiche(normalized), 'other');
   assert.equal(normalized.address, legacy.address);
   assert.equal(normalized.name, legacy.name);
   assert.deepEqual(normalizeStoredOsmLead(normalized), normalized);
   assert.deepEqual(normalizeStoredOsmLead({ ...legacy, dataSource: 'manual' }), { ...legacy, dataSource: 'manual' });
+});
+
+test('previously erased categories recover from exact OSM identities', async t => {
+  const damaged = Array.from({ length: 46 }, (_, index): Lead => ({
+    ...legacy, id: `lead-${index + 1}`, osmId: String(index + 1),
+    name: index === 0 ? 'Vitalitá Instituto de Beleza' : `Negócio ${index + 1}`,
+    category: 'Nicho não confirmado', niche: 'Nicho não confirmado',
+    canonicalNiche: 'other', classificationVersion: BUSINESS_TAXONOMY_VERSION,
+    classificationRule: 'missing-osm-evidence',
+  }));
+  assert.equal(resolveLeadCanonicalNiche(damaged[0]), 'beauty-studio');
+  assert.equal(damaged.filter(lead => resolveLeadCanonicalNiche(lead) === 'other').length, 45);
+  const query = buildOsmClassificationQuery(damaged);
+  assert.match(query, /node\(id:1,2,3/);
+  assert.ok(!query.includes('undefined'));
+  t.mock.method(globalThis, 'fetch', async (_url, init) => {
+    assert.equal(JSON.parse(init!.body as string).query, query);
+    return new Response(JSON.stringify({ elements: damaged.map((lead, index) => ({
+      type: 'node', id: Number(lead.osmId), tags: index === 0
+        ? { name: lead.name, shop: 'beauty' }
+        : { name: lead.name, amenity: 'restaurant' },
+    })) }), { status: 200 });
+  });
+  const elements = await fetchOsmClassificationEvidence(damaged);
+  const recovered = recoverOsmClassifications(damaged, elements);
+  assert.equal(recovered.filter(lead => resolveLeadCanonicalNiche(lead) === 'other').length, 0);
+  assert.equal(recovered[0].canonicalNiche, 'beauty-studio');
+  assert.equal(recovered[1].canonicalNiche, 'restaurant');
+  assert.equal(recovered[0].inCrm, true);
+  assert.deepEqual(recoverOsmClassifications(recovered, elements), recovered);
+  assert.equal(recoverOsmClassifications(damaged, [{ type: 'node', id: 999, tags: { shop: 'barber' } }])[0], damaged[0]);
 });
 
 test('stored source tags repair stale categories but preserve a manual correction', () => {

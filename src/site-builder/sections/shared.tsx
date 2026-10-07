@@ -43,45 +43,6 @@ export function findSectionMedia(
   return url ? { ...entry, url } : undefined;
 }
 
-export function MediaCredits({ manifest }: { manifest?: MediaManifest }) {
-  if (!manifest || !manifest.entries) return null;
-  const creditedAssets = new Set<string>();
-  const requiringAttribution = manifest.entries.filter((e) => {
-    if (!e.licenseLabel || !(e.attributionText || e.creator) ||
-      !['selected', 'reviewed', 'exportable'].includes(e.reviewStatus) ||
-      creditedAssets.has(e.assetId)) return false;
-    // Uma foto reutilizada mantém sua atribuição sem repetir o crédito por seção.
-    creditedAssets.add(e.assetId);
-    return true;
-  });
-  if (requiringAttribution.length === 0) return null;
-  return (
-    <div className="media-credits" aria-label="Créditos das imagens">
-      <div className="media-credits-inner">
-        <span className="media-credits-title">Créditos de imagem:</span>
-        <ul className="media-credits-list">
-          {requiringAttribution.map((e) => (
-            <li key={e.id} className="media-credits-item">
-              {e.attributionText ? (
-                <span>{e.attributionText}</span>
-              ) : (
-                <span>
-                  Foto por {e.creator || 'Fotógrafo'} ({e.provider === 'pexels' ? 'Pexels' : 'Pixabay'})
-                </span>
-              )}
-              {e.sourcePageUrl && (
-                <a href={e.sourcePageUrl} target="_blank" rel="noopener noreferrer" className="media-credits-link">
-                  Ver foto ↗
-                </a>
-              )}
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
-}
-
 export function Cta({ blueprint: b, context }: SectionProps) {
   const href = resolveCtaHref(b, context);
   return href ? <a className="cta" href={href}>{b.hero.ctaText || "Entrar em contato"}<span aria-hidden="true"> ↗</span></a> : null;

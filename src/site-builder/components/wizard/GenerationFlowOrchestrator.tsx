@@ -14,12 +14,14 @@ import { ReviewConfirmStep } from './ReviewConfirmStep';
 import { ProductionProgressStep } from './ProductionProgressStep';
 import { GenerationResultStep } from './GenerationResultStep';
 import { buildLeadSiteContext } from '../../context';
-import { normalizeLeadSource } from '../../leadSource';
+import { normalizeLeadSource, resolveLeadCanonicalNiche } from '../../leadSource';
 import { createInitialLeadSelection, synchronizeExplicitLeadSelection } from './leadSelection';
 import { generateSiteBlueprint, generateStandardAiBlueprint } from '../../../services/siteGenerationService';
 import { resolvedDesignSchema } from '../../contracts/research';
 import { deriveDefaultMediaPlan } from '../../media/mediaPlanBuilder';
 import { toast } from '../../../store/toastStore';
+import { useLeadStore } from '../../../store/leadStore';
+import { fetchOsmClassificationEvidence, needsOsmClassificationRecovery, recoverOsmClassifications } from '../../../services/osmClassificationRecovery';
 
 const initialDraftState: DraftFlowState = {
   categoryId: null,
@@ -70,6 +72,8 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
   const [generatedProjectId, setGeneratedProjectId] = useState<string>('');
   const [fallbackUsed, setFallbackUsed] = useState(false);
   const [partialDesign, setPartialDesign] = useState(false);
+  const [recoveryAttempt, setRecoveryAttempt] = useState(0);
+  const [recoveryStatus, setRecoveryStatus] = useState<'idle' | 'loading' | 'incomplete' | 'failed'>('idle');
 
   // Form draft state
   const [draft, setDraft] = useState<DraftFlowState>(() => {
@@ -85,6 +89,28 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
     });
   }, [crm.leads, initialLeadId]);
 
+  const recoveryIds = crm.leads.filter(needsOsmClassificationRecovery)
+    .map(lead => `${lead.osmType}/${lead.osmId}`).join(',');
+
+  useEffect(() => {
+    if (!recoveryIds) {
+      setRecoveryStatus('idle');
+      return;
+    }
+    let cancelled = false;
+    setRecoveryStatus('loading');
+    fetchOsmClassificationEvidence(useLeadStore.getState().leads).then(elements => {
+      if (cancelled) return;
+      const store = useLeadStore.getState();
+      const updated = recoverOsmClassifications(store.leads, elements);
+      if (updated.some((lead, index) => lead !== store.leads[index])) store.setLeads(updated);
+      setRecoveryStatus(updated.some(needsOsmClassificationRecovery) ? 'incomplete' : 'idle');
+    }).catch(() => {
+      if (!cancelled) setRecoveryStatus('failed');
+    });
+    return () => { cancelled = true; };
+  }, [recoveryIds, recoveryAttempt]);
+
   // Guard against closing while processing (UX warning only)
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -99,6 +125,12 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
 
   // Derived
   const selectedLead = crm.leads.find(l => l.id === draft.leadId);
+
+  useEffect(() => {
+    if (!selectedLead || !draft.categoryId) return;
+    const categoryId = resolveLeadCanonicalNiche(selectedLead);
+    if (categoryId !== draft.categoryId) setDraft(current => ({ ...current, categoryId }));
+  }, [selectedLead, draft.categoryId]);
 
   const updateDraft = (partial: Partial<DraftFlowState>) => {
     setDraft(prev => ({ ...prev, ...partial }));
@@ -419,7 +451,22 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         {isDecisionPhase && <StepperIndicator currentStep={currentStep} />}
         
         {isDecisionPhase && currentStep === 'lead' && (
-          <LeadSelectionStep state={draft} updateState={updateDraft} leads={crm.leads} />
+          <>
+            <LeadSelectionStep state={draft} updateState={updateDraft} leads={crm.leads} />
+            {recoveryStatus === 'loading' && <p className="text-sm text-slate-400 mt-3">Atualizando categorias antigas pelo OSM...</p>}
+            {recoveryStatus === 'failed' && (
+              <p className="text-sm text-amber-300 mt-3">
+                Não foi possível atualizar as categorias antigas pelo OSM.{' '}
+                <button type="button" className="underline" onClick={() => setRecoveryAttempt(attempt => attempt + 1)}>Tentar novamente</button>
+              </p>
+            )}
+            {recoveryStatus === 'incomplete' && (
+              <p className="text-sm text-amber-300 mt-3">
+                Alguns registros não foram encontrados no OSM e continuam em Outro.{' '}
+                <button type="button" className="underline" onClick={() => setRecoveryAttempt(attempt => attempt + 1)}>Tentar novamente</button>
+              </p>
+            )}
+          </>
         )}
         
         {isDecisionPhase && currentStep === 'context' && selectedLead && (

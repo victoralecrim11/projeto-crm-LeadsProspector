@@ -1,7 +1,7 @@
 import type { Lead } from '../types.js';
 import { buildLeadSiteContext } from './context.js';
 import { leadSourceContextSchema, sourcedBusinessContextSchema, type LeadSourceContext } from './contracts/research.js';
-import { BUSINESS_TAXONOMY_VERSION, CanonicalNiche, getCanonicalBusinessCategory, normalizeLegacyBusinessNiche } from '../domain/businessTaxonomy.js';
+import { BUSINESS_TAXONOMY_VERSION, CanonicalNiche, classifyOsmBusiness, getCanonicalBusinessCategory, normalizeLegacyBusinessNiche } from '../domain/businessTaxonomy.js';
 
 export function normalizeLeadSource(lead: Lead): LeadSourceContext {
   const osmElement = lead.osmType && /^\d+$/.test(lead.osmId ?? '') ? `${lead.osmType}/${lead.osmId}` : undefined;
@@ -30,6 +30,14 @@ export function businessFromSource(input: LeadSourceContext) {
 }
 
 export function resolveLeadCanonicalNiche(lead: Lead): CanonicalNiche {
+  // The previous migration persisted `other` for every older OSM record.
+  // Recover explicit business terms while source tags are being fetched. A bare
+  // hairdresser name stays unconfirmed because it caused the original report.
+  if (lead.classificationRule === 'missing-osm-evidence') {
+    if (lead.canonicalNiche && lead.canonicalNiche !== 'other') return lead.canonicalNiche;
+    const inferred = classifyOsmBusiness({ name: lead.name }).canonicalNiche;
+    return inferred === 'hair-salon' ? 'other' : inferred;
+  }
   // 1. Current classification version
   if (lead.classificationVersion === BUSINESS_TAXONOMY_VERSION && lead.canonicalNiche) {
     return lead.canonicalNiche;

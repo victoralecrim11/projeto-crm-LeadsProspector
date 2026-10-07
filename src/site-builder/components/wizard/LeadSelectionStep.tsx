@@ -89,7 +89,7 @@ export const LeadSelectionStep: React.FC<LeadSelectionStepProps> = ({ state, upd
           </div>
           <div className="flex justify-between text-sm">
             <span className="text-slate-400">Nicho Canônico</span>
-            <span className="text-slate-200 font-medium">{currentLeadCanonical || 'Ambíguo'}</span>
+            <span className="text-slate-200 font-medium">{currentLeadCanonical === 'other' ? 'Nicho não confirmado' : getLeadCategory(currentLead)}</span>
           </div>
           {currentLead.city && (
             <div className="flex justify-between text-sm">

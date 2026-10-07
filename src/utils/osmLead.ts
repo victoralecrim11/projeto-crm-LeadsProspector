@@ -14,12 +14,12 @@ export function isVerifiedOsmLead(lead: Lead): boolean {
 export function normalizeStoredOsmLead(lead: Lead): Lead {
   if (!isVerifiedOsmLead(lead)) return lead;
 
-  // Legacy search-group labels are not evidence of an individual business's niche.
-  // Without the original tags, wait for a rescan instead of guessing from its name.
+  // Existing canonical classifications must not be erased merely because older
+  // records did not persist the source tags. Those tags can be recovered by OSM ID.
   const classification = lead.osmTags && lead.classificationRule !== 'manual'
     ? classifyOsmBusiness(lead.osmTags, lead.prospectingGroup)
     : undefined;
-  const needsEvidence = !classification && lead.classificationVersion !== BUSINESS_TAXONOMY_VERSION;
+  const needsEvidence = !classification && !lead.classificationRule;
 
   return {
     ...lead,
@@ -29,13 +29,7 @@ export function normalizeStoredOsmLead(lead: Lead): Lead {
       canonicalNiche: classification.canonicalNiche,
       classificationVersion: BUSINESS_TAXONOMY_VERSION,
       classificationRule: classification.ruleId,
-    } : needsEvidence ? {
-      category: 'Nicho não confirmado',
-      niche: 'Nicho não confirmado',
-      canonicalNiche: 'other' as const,
-      classificationVersion: BUSINESS_TAXONOMY_VERSION,
-      classificationRule: 'missing-osm-evidence',
-    } : {}),
+    } : needsEvidence ? { classificationRule: 'missing-osm-evidence' } : {}),
     rating: typeof lead.osmRating === 'number' ? lead.osmRating : undefined,
     reviewsCount: undefined,
     audit: undefined,

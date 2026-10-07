@@ -8,7 +8,6 @@ import { baseStyles, foregroundFor } from "./baseStyles";
 import { presentationStyles, resolvePresentation, surfacePalettes } from "./presentation";
 import { resolvedDesignSchema, type ResolvedDesign } from '../contracts/research';
 import { mediaManifestSchema, type MediaManifest } from '../contracts/media';
-import { MediaCredits } from '../sections/shared';
 import { StitchServices, stitchServicesStyles } from '../sections/services/StitchServices';
 
 export const mediaStyles = `
@@ -21,12 +20,6 @@ export const mediaStyles = `
 .hero-minimal-media{width:100%;max-height:360px;overflow:hidden;border-radius:var(--radius,8px);margin-bottom:16px}
 .hero-minimal-media img{width:100%;height:100%;max-height:360px;object-fit:cover;border-radius:inherit}
 .about-media img{width:100%;border-radius:var(--radius,8px);object-fit:cover;max-height:320px}
-.media-credits{padding:24px var(--gutter,32px);background:var(--surface,#f8fafc);color:var(--muted,#64748b);font-size:12px;border-top:1px solid var(--border,#e2e8f0)}
-.media-credits-inner{max-width:1200px;margin:0 auto;display:flex;flex-wrap:wrap;align-items:center;gap:12px}
-.media-credits-title{font-weight:600}
-.media-credits-list{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:16px}
-.media-credits-item{display:flex;gap:6px;align-items:center}
-.media-credits-link{color:inherit;text-decoration:underline}
 `;
 
 const stitchResponsiveCss = `
@@ -154,7 +147,6 @@ export function SiteRenderer({
           })}
       </main>
       <Footer {...props} />
-      {mediaManifest && <MediaCredits manifest={mediaManifest} />}
     </div>
   );
 }

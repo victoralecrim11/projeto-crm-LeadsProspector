@@ -14,7 +14,6 @@ export function InlineNavigation({ blueprint: b, context }: SectionProps) {
       <details className="site-navigation-mobile">
         <summary aria-label="Menu de navegação">
           <span className="site-navigation-menu-icon" aria-hidden="true"><i /><i /><i /></span>
-          <span>Menu</span>
         </summary>
         <nav aria-label="Seções do site">{links}</nav>
       </details>

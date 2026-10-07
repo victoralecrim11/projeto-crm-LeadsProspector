@@ -8,6 +8,7 @@ test("todas as famílias geradas têm navegação mobile funcional no HTML está
     const html = renderSiteDocument(blueprint, context);
     assert.match(html, /<nav class="site-navigation-desktop" aria-label="Seções do site">/, id);
     assert.match(html, /<details class="site-navigation-mobile"><summary aria-label="Menu de navegação">/, id);
+    assert.match(html, /<summary aria-label="Menu de navegação"><span class="site-navigation-menu-icon" aria-hidden="true"><i><\/i><i><\/i><i><\/i><\/span><\/summary>/, id);
     assert.match(html, /\.site-navigation-mobile:not\(\[open\]\) nav\{display:none\}/, id);
     assert.match(html, /@media\(max-width:800px\)/, id);
     const header = html.match(/<header class="site-navigation">([\s\S]*?)<\/header>/)?.[1];

@@ -45,7 +45,7 @@ const mockManifest: MediaManifest = {
   ],
 };
 
-test('SiteRenderer: renderiza imagem resolvida, alt e créditos de atribuição', () => {
+test('SiteRenderer: renderiza imagem resolvida e alt sem bloco de créditos no site', () => {
   const assetUrls = { asset_555: './assets/media-hero-555.jpg' };
   const html = renderSiteDocument(baseBlueprint, baseContext, undefined, mockManifest, assetUrls);
 
@@ -55,10 +55,8 @@ test('SiteRenderer: renderiza imagem resolvida, alt e créditos de atribuição'
   assert.ok(html.includes('loading="lazy"'));
   assert.ok(html.includes('decoding="async"'));
 
-  // 2. Créditos do fotógrafo / Pexels
-  assert.ok(html.includes('class="media-credits"'));
-  assert.ok(html.includes('Photo by Chef Lucas on Pexels'));
-  assert.ok(html.includes('href="https://www.pexels.com/photo/555"'));
+  assert.ok(!html.includes('class="media-credits"'));
+  assert.ok(!html.includes('Photo by Chef Lucas on Pexels'));
 });
 
 test('SiteRenderer: sem manifest ou asset ausente renderiza fallback CSS sem erro', () => {
@@ -137,8 +135,9 @@ test('exportSite: ZIP inclui assets binários e HTML autossuficiente com a image
   assert.equal(indexHtml.includes('localhost'), false, 'Nenhuma URL localhost permitida no ZIP');
   assert.equal(indexHtml.includes('media_asset_'), false, 'Nenhuma storage key interna no HTML');
 
-  // 4. Créditos de imagem preservados
-  assert.ok(indexHtml.includes('Photo by Chef Lucas on Pexels'));
+  // A autoria permanece no manifesto exportado, fora da página pública.
+  assert.ok(!indexHtml.includes('Photo by Chef Lucas on Pexels'));
+  assert.ok(manifestContent.includes('Photo by Chef Lucas on Pexels'));
 });
 
 test('exportSite: não omite imagem visível que ainda aguarda aprovação', async () => {
@@ -233,7 +232,7 @@ test('export respects explicit image removal without deleting approved media', a
   assert.deepEqual(await store.getBuffer(entry.assetId), bytes);
   assert.equal(JSON.stringify(project), savedBytes);
 });
-test('crédito único para foto reutilizada no preview e no ZIP', async () => {
+test('foto reutilizada mantém a autoria no manifesto sem créditos no rodapé', async () => {
   const shared = mockManifest.entries[0];
   const reused = { ...shared, id: 'media_about_1', section: 'about' as const,
     alt: 'Foto reaproveitada na apresentação' };
@@ -243,8 +242,8 @@ test('crédito único para foto reutilizada no preview e no ZIP', async () => {
   const preview = renderSiteDocument(baseBlueprint, baseContext, undefined, manifest,
     { [shared.assetId]: url });
   assert.match(preview, /alt="Foto reaproveitada na apresentação"/);
-  assert.equal(preview.split('Photo by Chef Lucas on Pexels').length - 1, 1);
-  assert.equal(preview.split('href="https://www.pexels.com/photo/555"').length - 1, 1);
+  assert.ok(!preview.includes('Photo by Chef Lucas on Pexels'));
+  assert.ok(!preview.includes('href="https://www.pexels.com/photo/555"'));
 
   const store = new InMemoryMediaAssetStore(), bytes = new Uint8Array([0xff, 0xd8, 0xff, 0xe0]);
   await store.put({ assetId: shared.assetId, requestId: shared.requestId, provider: shared.provider,
@@ -255,10 +254,12 @@ test('crédito único para foto reutilizada no preview e no ZIP', async () => {
   const reloaded = JSON.parse(JSON.stringify(project)) as Project;
   const zip = await JSZip.loadAsync(await createSiteZip(reloaded, store));
   const html = await zip.file('index.html')!.async('string');
-  assert.equal(html.split('Photo by Chef Lucas on Pexels').length - 1, 1);
-  assert.equal(html.split('href="https://www.pexels.com/photo/555"').length - 1, 1);
+  assert.ok(!html.includes('Photo by Chef Lucas on Pexels'));
+  assert.ok(!html.includes('href="https://www.pexels.com/photo/555"'));
   assert.deepEqual(await zip.file('assets/media-hero-555.jpg')!.async('uint8array'), bytes);
-  assert.equal(JSON.parse(await zip.file('media/media-manifest.json')!.async('string')).entries.length, 2);
+  const exportedManifest = JSON.parse(await zip.file('media/media-manifest.json')!.async('string'));
+  assert.equal(exportedManifest.entries.length, 2);
+  assert.equal(exportedManifest.entries[0].attributionText, 'Photo by Chef Lucas on Pexels');
   assert.equal(JSON.stringify(manifest), snapshot);
   assert.deepEqual(await store.getBuffer(shared.assetId), bytes);
 });
