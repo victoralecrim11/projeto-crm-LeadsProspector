@@ -570,3 +570,23 @@
   .adv-inspector-select,
   .adv-inspector-textarea { transition: none !important; }
 }
+
+.adv-editor-review-bar {
+  flex-wrap: wrap;
+  gap: 12px 20px;
+}
+.adv-publication-gates {
+  flex: 1 1 320px;
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+}
+.adv-publication-gates strong {
+  color: var(--text-primary, #e2e8f0);
+}
+.adv-publication-gates ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+.adv-publication-gates li {
+  margin: 2px 0;
+}
