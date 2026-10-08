@@ -29,6 +29,7 @@ import { toast } from "../store/toastStore";
 import type { MediaManifest } from "../site-builder/contracts/media";
 import type { SiteUserOverrides } from "../site-builder/contracts/overrides";
 import { applySiteUserOverrides } from "../site-builder/overridesResolver";
+import { evaluatePublicationReadiness } from "../site-builder/publicationGates";
 import { useEditorHistory } from "../site-builder/hooks/useEditorHistory";
 import {
   PanelsTopLeft,
@@ -128,6 +129,17 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
     initialManifest: project?.siteMediaManifest,
     onManifestChange: handleManifestChange,
   });
+
+  const publicationReadiness = React.useMemo(
+    () =>
+      evaluatePublicationReadiness({
+        blueprint: effectiveDraft,
+        context: project?.siteContext!,
+        contentReviewed: reviewed,
+        mediaManifest: mediaManager.manifest,
+      }),
+    [effectiveDraft, project?.siteContext, reviewed, mediaManager.manifest],
+  );
 
   // Reset transient UI when project switches
   useEffect(() => {
@@ -355,9 +367,14 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
   );
 
   const exportSite = useCallback(async () => {
-    if (!reviewed) {
-      document.getElementById("editor-content-reviewed")?.focus();
-      toast("Marque a declaração de revisão acima da prévia antes de exportar.", "error");
+    if (!publicationReadiness.canExport) {
+      const failedGate = publicationReadiness.gates.find(
+        (gate) => gate.blocking && gate.status !== "PASS",
+      );
+      if (failedGate?.id === "content-review") {
+        document.getElementById("editor-content-reviewed")?.focus();
+      }
+      toast(failedGate?.reason ?? "Corrija os gates de publicação antes de exportar.", "error");
       return;
     }
     const pendingServices = effectiveDraft.services.filter((service) => service.source === "ai_suggestion");
@@ -384,7 +401,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
       toast("Site exportado em ZIP.");
     } catch (e) { toast((e as Error).message, "error"); }
     finally { setBusy(false); }
-  }, [save, crm, reviewed, effectiveDraft.services]);
+  }, [save, crm, publicationReadiness, effectiveDraft.services]);
 
   // ────────────────────────────────────────────────────────────
   return (
@@ -463,6 +480,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
             canUndo={canUndo}
             canRedo={canRedo}
             previewViewport={previewViewport}
+            exportDisabled={!publicationReadiness.canExport}
             onUndo={handleUndo}
             onRedo={handleRedo}
             onViewportChange={setPreviewViewport}
@@ -479,6 +497,18 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
                   Serviços sugeridos precisam ser confirmados ou removidos individualmente no painel Serviços.
                 </p>
               )}
+            </div>
+            <div className="adv-publication-gates" aria-live="polite">
+              <strong>{publicationReadiness.canExport ? "Pronto para exportar" : "Exportação bloqueada"}</strong>
+              <ul>
+                {publicationReadiness.gates
+                  .filter((gate) => gate.status !== "PASS")
+                  .map((gate) => (
+                    <li key={gate.id}>
+                      {gate.label}: {gate.reason}
+                    </li>
+                  ))}
+              </ul>
             </div>
             <label className="editor-review-label">
               <input
