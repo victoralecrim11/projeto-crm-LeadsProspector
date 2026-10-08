@@ -15,3 +15,7 @@ O teste `tests/services/siteFoundation.test.ts` continua exigindo exatamente 40 
 ## Limites
 
 Este ajuste comprova coerência determinística do renderer atual e restaura a trava de regressão. Ele não homologa fidelidade visual ao projeto Stitch Delta Burguer, não comprova autenticação Stitch ao vivo e não substitui revisão humana da mudança visual.
+
+## Atualização após a integração do PR #18
+
+O PR #18 integrou os gates comerciais na `main`, mas a correção visual da demonstração Delta Burguer foi enviada à branch depois do merge. Em 2026-10-08, essa correção foi aplicada em uma nova branch. O rodapé passou a incluir navegação e atendimento, alterando o HTML das 40 combinações legadas. Os 40 hashes foram recalculados a partir das mesmas entradas, sem mudar a quantidade, a ordem ou as asserções. Os testes direcionados e a suíte completa passaram (390/390). A correção do hero móvel com mídia afeta apenas sites com design Stitch e não justifica alterar os hashes legados.
