@@ -68,6 +68,7 @@ export const PreviewCanvas: React.FC<PreviewCanvasProps> = ({
         mediaManifest,
         assetUrls,
         /* editorMode= */ true,
+        /* demoMode= */ true,
       );
     } catch {
       return null;

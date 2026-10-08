@@ -17,11 +17,13 @@ export interface EditorToolbarProps {
   canRedo: boolean;
   previewViewport: PreviewViewport;
   exportDisabled?: boolean;
+  demoExportDisabled?: boolean;
   onUndo: () => void;
   onRedo: () => void;
   onViewportChange: (v: PreviewViewport) => void;
   onSave: () => void;
   onExport: () => void;
+  onExportDemo: () => void;
 }
 
 const VIEWPORTS: { key: PreviewViewport; label: string; Icon: React.ElementType }[] = [
@@ -37,11 +39,13 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   canRedo,
   previewViewport,
   exportDisabled = false,
+  demoExportDisabled = false,
   onUndo,
   onRedo,
   onViewportChange,
   onSave,
   onExport,
+  onExportDemo,
 }) => (
   <div className="adv-editor-toolbar" role="toolbar" aria-label="Controles do editor">
     <div className="adv-toolbar-group">
@@ -80,14 +84,25 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
       </button>
       <button
         type="button"
+        disabled={busy || demoExportDisabled}
+        onClick={onExportDemo}
+        className="adv-toolbar-action-btn"
+        aria-label="Baixar demonstração do site"
+        title={demoExportDisabled ? "Revise o conteúdo, os serviços e as imagens antes de baixar a demonstração." : undefined}
+      >
+        <Download size={15} aria-hidden="true" />
+        <span>Baixar demo</span>
+      </button>
+      <button
+        type="button"
         disabled={busy || exportDisabled}
         onClick={onExport}
         className="adv-toolbar-action-btn"
-        aria-label="Exportar site ZIP"
+        aria-label="Exportar site final ZIP"
         title={exportDisabled ? "Corrija os gates de publicação antes de exportar." : undefined}
       >
         <Download size={15} aria-hidden="true" />
-        <span>Exportar</span>
+        <span>Exportar final</span>
       </button>
     </div>
   </div>

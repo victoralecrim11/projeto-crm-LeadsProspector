@@ -7,6 +7,7 @@ export type SectionProps = {
   context: LeadSiteContext;
   mediaManifest?: MediaManifest;
   assetUrls?: Record<string, string>;
+  demoMode?: boolean;
 };
 export const sectionNames = { hero: "Início", about: "Sobre", services: "Serviços", contact: "Contato", location: "Localização" };
 
