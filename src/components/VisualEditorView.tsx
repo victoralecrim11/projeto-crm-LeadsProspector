@@ -10,7 +10,6 @@ import {
   type ModelSelection,
   type RegenerationSection,
 } from "../site-builder/types";
-import { constrainBlueprint } from "../site-builder/context";
 import { resolvePresentation } from "../site-builder/renderer/presentation";
 import { ModelControls } from "../site-builder/components/ModelControls";
 import { MediaPanel } from "../site-builder/components/MediaPanel";
@@ -131,13 +130,14 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
   });
 
   const publicationReadiness = React.useMemo(
-    () =>
-      evaluatePublicationReadiness({
+    () => project?.siteContext && effectiveDraft
+      ? evaluatePublicationReadiness({
         blueprint: effectiveDraft,
-        context: project?.siteContext!,
+        context: project.siteContext,
         contentReviewed: reviewed,
         mediaManifest: mediaManager.manifest,
-      }),
+      })
+      : { gates: [], canExport: false, canExportDemo: false },
     [effectiveDraft, project?.siteContext, reviewed, mediaManager.manifest],
   );
 
@@ -285,7 +285,7 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
     if (!project?.siteContext || !draftBlueprint) {
       throw new Error("Selecione um projeto gerado.");
     }
-    const blueprint = constrainBlueprint(draftBlueprint, project.siteContext);
+    const blueprint = blueprintSchema.parse(draftBlueprint);
     const next = {
       ...project,
       siteBlueprint: blueprint,
@@ -403,6 +403,27 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
     finally { setBusy(false); }
   }, [save, crm, publicationReadiness, effectiveDraft.services]);
 
+  const exportDemo = useCallback(async () => {
+    if (!publicationReadiness.canExportDemo) {
+      const failedGate = publicationReadiness.gates.find(
+        (gate) => !["commercial-contact", "cta-conversion"].includes(gate.id)
+          && gate.blocking && gate.status !== "PASS",
+      );
+      toast(failedGate?.reason ?? "Revise o conteúdo antes de baixar a demonstração.", "error");
+      return;
+    }
+    setBusy(true);
+    try {
+      const next = save();
+      await downloadSiteZip(next, undefined, { mode: "demo" });
+      toast("Demonstração exportada em ZIP.");
+    } catch (error) {
+      toast((error as Error).message, "error");
+    } finally {
+      setBusy(false);
+    }
+  }, [publicationReadiness, save]);
+
   // ────────────────────────────────────────────────────────────
   return (
     <div className="site-workspace editor-workspace pb-12">
@@ -481,11 +502,13 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
             canRedo={canRedo}
             previewViewport={previewViewport}
             exportDisabled={!publicationReadiness.canExport}
+            demoExportDisabled={!publicationReadiness.canExportDemo}
             onUndo={handleUndo}
             onRedo={handleRedo}
             onViewportChange={setPreviewViewport}
             onSave={runSave}
             onExport={exportSite}
+            onExportDemo={exportDemo}
           />
 
           <section className="adv-editor-review-bar" aria-labelledby="editor-review-heading">
@@ -499,7 +522,13 @@ const ProjectEditor: React.FC<{ project?: Project }> = ({ project }) => {
               )}
             </div>
             <div className="adv-publication-gates" aria-live="polite">
-              <strong>{publicationReadiness.canExport ? "Pronto para exportar" : "Exportação bloqueada"}</strong>
+              <strong>
+                {publicationReadiness.canExport
+                  ? "Pronto para exportar o site final"
+                  : publicationReadiness.canExportDemo
+                    ? "Demonstração pronta para baixar"
+                    : "Revise o conteúdo antes de baixar"}
+              </strong>
               <ul>
                 {publicationReadiness.gates
                   .filter((gate) => gate.status !== "PASS")

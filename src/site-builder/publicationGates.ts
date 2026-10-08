@@ -15,6 +15,7 @@ export type PublicationGate = {
 export type PublicationReadiness = {
   gates: PublicationGate[];
   canExport: boolean;
+  canExportDemo: boolean;
 };
 
 export function evaluatePublicationReadiness(input: {
@@ -89,5 +90,8 @@ export function evaluatePublicationReadiness(input: {
   return {
     gates,
     canExport: gates.every((gate) => !gate.blocking || gate.status === "PASS"),
+    canExportDemo: gates
+      .filter((gate) => !["commercial-contact", "cta-conversion"].includes(gate.id))
+      .every((gate) => !gate.blocking || gate.status === "PASS"),
   };
 }

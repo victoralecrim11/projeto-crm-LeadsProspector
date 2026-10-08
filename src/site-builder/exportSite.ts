@@ -16,7 +16,11 @@ function imageDataUrl(bytes: Uint8Array, mimeType: string): string {
   return `data:${mimeType};base64,${btoa(chunks.join(''))}`;
 }
 
-export async function createSiteZip(project: Project, assetStore?: MediaAssetStore) {
+export async function createSiteZip(
+  project: Project,
+  assetStore?: MediaAssetStore,
+  options: { mode?: 'final' | 'demo' } = {},
+) {
   if (!project.siteBlueprint || !project.siteContext)
     throw new Error("Este projeto ainda não tem site gerado.");
   const blueprint = normalizeForRender(applySiteUserOverrides(project.siteBlueprint, project.siteOverrides));
@@ -72,7 +76,11 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
   }
 
   // O renderer precisa da rejeição por seção; o manifesto do ZIP inclui apenas mídias aprovadas.
-  zip.file("index.html", renderSiteDocument(blueprint, context, design, project.siteMediaManifest, assetUrls));
+  const demoMode = options.mode === 'demo';
+  zip.file("index.html", renderSiteDocument(blueprint, context, design, project.siteMediaManifest, assetUrls, false, demoMode));
+  if (demoMode) {
+    zip.file("DEMONSTRACAO.txt", "Projeto de demonstração. Confirme marca, textos, endereço, canais de atendimento e imagens com o cliente antes da publicação.\n");
+  }
   if (design) {
     zip.file('DESIGN.md', design.designMarkdown);
     zip.file('design.json', JSON.stringify(design, null, 2));
@@ -83,14 +91,18 @@ export async function createSiteZip(project: Project, assetStore?: MediaAssetSto
   return zip.generateAsync({ type: "uint8array" });
 }
 
-export async function downloadSiteZip(project: Project, assetStore?: MediaAssetStore) {
+export async function downloadSiteZip(
+  project: Project,
+  assetStore?: MediaAssetStore,
+  options: { mode?: 'final' | 'demo' } = {},
+) {
   const store = assetStore ?? (typeof window !== 'undefined' ? new IndexedDbMediaAssetStore() : undefined);
-  const bytes = await createSiteZip(project, store);
+  const bytes = await createSiteZip(project, store, options);
   const blob = new Blob([bytes as BlobPart], { type: "application/zip" });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = "site.zip";
+  link.download = options.mode === 'demo' ? "site-demo.zip" : "site.zip";
   link.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

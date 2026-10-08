@@ -57,6 +57,7 @@ export function SiteRenderer({
   mediaManifest: manifestInput,
   assetUrls,
   editorMode,
+  demoMode = false,
 }: {
   blueprint: GeneratedSiteBlueprint;
   context: LeadSiteContext;
@@ -65,12 +66,17 @@ export function SiteRenderer({
   assetUrls?: Record<string, string>;
   /** When true, adds data-editor-section-id attrs for click-to-select. Never set in export. */
   editorMode?: boolean;
+  demoMode?: boolean;
 }) {
   const design = designInput ? resolvedDesignSchema.parse(designInput) : undefined;
   const mediaManifest = manifestInput ? mediaManifestSchema.parse(manifestInput) : undefined;
   const tokens = design?.specification.tokens;
   const b = constrainBlueprint(normalizeForRender(input), context);
-  const props = { blueprint: b, context, mediaManifest, assetUrls };
+  if (demoMode) {
+    b.sections.contact = input.sections.contact;
+    b.sections.location = input.sections.location;
+  }
+  const props = { blueprint: b, context, mediaManifest, assetUrls, demoMode };
   const presentation = resolvePresentation(b);
   const palette = surfacePalettes[presentation.theme];
   const Navigation = resolveSection("navigation", b.visual.navigation);
@@ -158,8 +164,9 @@ export function renderSiteDocument(
   mediaManifest?: MediaManifest,
   assetUrls?: Record<string, string>,
   editorMode?: boolean,
+  demoMode = false,
 ) {
-  const blueprint = constrainBlueprint(normalizeForRender(input), context);
+  const blueprint = normalizeForRender(input);
   const typographyOverridden = resolvePresentation(blueprint).typography !== design?.specification.presentation.typography;
   const appearanceCss = (appearance: StitchAppearance) => stitchAppearanceCss(typographyOverridden
     ? { ...appearance, headingFont: undefined, bodyFont: undefined } : appearance);
@@ -191,6 +198,7 @@ export function renderSiteDocument(
             mediaManifest={mediaManifest}
             assetUrls={assetUrls}
             editorMode={editorMode}
+            demoMode={demoMode}
           />
         </body>
       </html>,
