@@ -38,7 +38,13 @@ const stitchFinishStyles = `
 .site-root[data-family] .hero-full-bleed.has-media .hero-bg-media{opacity:.42}
 .site-root[data-family] .about{border-bottom:1px solid var(--border)}
 .site-root[data-family] .footer-editorial{border-top:2px solid var(--border)}
-@media(max-width:800px){.site-root[data-family] .hero-split-detail:has(.hero-split-media){min-height:420px}}
+@media(max-width:800px){
+  .site-root[data-family] .hero-split-detail:has(.hero-split-media){display:flex;flex-direction:column;align-items:stretch;gap:20px;min-height:0;padding:0 0 32px;color:var(--text);background:var(--surface)}
+  .site-root[data-family] .hero-split-detail:has(.hero-split-media)::after{display:none}
+  .site-root[data-family] .hero-split-detail:has(.hero-split-media) .hero-split-media{position:relative;inset:auto;flex:none;height:clamp(260px,72vw,420px)}
+  .site-root[data-family] .hero-split-detail:has(.hero-split-media)>p{margin:0 6%;max-width:62ch}
+  .site-root[data-family] .hero-split-detail:has(.hero-split-media)>.cta{margin-inline:6%;align-self:flex-start}
+}
 `;
 export const siteCss = baseStyles + variantStyles + presentationStyles;
 
@@ -57,6 +63,7 @@ export function SiteRenderer({
   mediaManifest: manifestInput,
   assetUrls,
   editorMode,
+  demoMode = false,
 }: {
   blueprint: GeneratedSiteBlueprint;
   context: LeadSiteContext;
@@ -65,12 +72,17 @@ export function SiteRenderer({
   assetUrls?: Record<string, string>;
   /** When true, adds data-editor-section-id attrs for click-to-select. Never set in export. */
   editorMode?: boolean;
+  demoMode?: boolean;
 }) {
   const design = designInput ? resolvedDesignSchema.parse(designInput) : undefined;
   const mediaManifest = manifestInput ? mediaManifestSchema.parse(manifestInput) : undefined;
   const tokens = design?.specification.tokens;
   const b = constrainBlueprint(normalizeForRender(input), context);
-  const props = { blueprint: b, context, mediaManifest, assetUrls };
+  if (demoMode) {
+    b.sections.contact = input.sections.contact;
+    b.sections.location = input.sections.location;
+  }
+  const props = { blueprint: b, context, mediaManifest, assetUrls, demoMode };
   const presentation = resolvePresentation(b);
   const palette = surfacePalettes[presentation.theme];
   const Navigation = resolveSection("navigation", b.visual.navigation);
@@ -158,8 +170,9 @@ export function renderSiteDocument(
   mediaManifest?: MediaManifest,
   assetUrls?: Record<string, string>,
   editorMode?: boolean,
+  demoMode = false,
 ) {
-  const blueprint = constrainBlueprint(normalizeForRender(input), context);
+  const blueprint = normalizeForRender(input);
   const typographyOverridden = resolvePresentation(blueprint).typography !== design?.specification.presentation.typography;
   const appearanceCss = (appearance: StitchAppearance) => stitchAppearanceCss(typographyOverridden
     ? { ...appearance, headingFont: undefined, bodyFont: undefined } : appearance);
@@ -191,6 +204,7 @@ export function renderSiteDocument(
             mediaManifest={mediaManifest}
             assetUrls={assetUrls}
             editorMode={editorMode}
+            demoMode={demoMode}
           />
         </body>
       </html>,
