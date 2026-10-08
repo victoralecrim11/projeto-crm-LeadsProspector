@@ -20,6 +20,8 @@ O gerador de sites evoluiu para uma nova **Fase B** de auditoria e um pipeline d
 | **Busca global** | O botão **Buscar** e o atalho `Ctrl + K` ou `Cmd + K` abrem a paleta de empresas, páginas e ações rápidas. |
 | **Exportação** | Exportação da base de leads para Excel (`.xlsx`) com resumo e dados comerciais. |
 
+A atualização do baseline determinístico após as mudanças intencionais de navegação mobile e rodapé está documentada em [Baseline de renderização — navegação e rodapé](./RENDER-BASELINE-NAVEGACAO-RODAPE-2026-10-08.md).
+
 ## Origem e interpretação dos dados
 
 O radar local usa **OpenStreetMap/Overpass** como fonte. O selo `REAL OSM` significa que o registro veio diretamente do OSM; ele não garante que o estabelecimento ainda esteja ativo, nem que os dados estejam completos.
