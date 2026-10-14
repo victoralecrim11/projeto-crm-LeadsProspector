@@ -92,8 +92,8 @@ export function buildStitchScreenToolCall(
 export class RealStitchMcpClient implements StitchMcpClient {
   private client: StitchToolClient;
 
-  constructor() {
-    this.client = new StitchToolClient(resolveStitchClientConfig());
+  constructor(config = resolveStitchClientConfig()) {
+    this.client = new StitchToolClient(config);
   }
 
   async explore(request: StitchExplorationRequest): Promise<StitchRawResult> {

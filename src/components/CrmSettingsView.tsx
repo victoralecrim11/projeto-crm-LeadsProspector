@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useLocation } from 'react-router-dom';
 import { 
   User, Settings, MapPin, Mail, DollarSign, Clock, ShieldCheck, 
   Download, Save, CheckCircle2, ExternalLink, Key, Trash2, Sparkles,
@@ -11,6 +12,7 @@ import { EmailService } from '../services/EmailService';
 import { ResponsiveSelect } from './common/ResponsiveSelect';
 import { testAiProviderConnection } from '../services/aiService';
 import { getSiteAiAuthHeaders } from '../services/siteAiAuth';
+import { StitchSettingsPanel } from './StitchSettingsPanel';
 
 const AI_PROVIDERS_LIST: { id: AIProvider; name: string; tag?: string; tagColor?: string }[] = [
   { id: 'gemini', name: 'Google Gemini', tag: 'Gratuito', tagColor: 'text-emerald-400 bg-emerald-500/15 border-emerald-500/30' },
@@ -27,6 +29,7 @@ const AI_PROVIDERS_LIST: { id: AIProvider; name: string; tag?: string; tagColor?
 ];
 
 export const CrmSettingsView: React.FC = () => {
+  const location = useLocation();
   const { 
     crmSettings, 
     updateCrmSettings, 
@@ -37,7 +40,16 @@ export const CrmSettingsView: React.FC = () => {
   } = useCrm();
 
   const [formData, setFormData] = useState<CrmSettingsConfig>(crmSettings);
-  const [activeTab, setActiveTab] = useState<'closer' | 'pipeline' | 'pricing' | 'maps' | 'email' | 'backup' | 'ai' | 'midia'>('closer');
+  const [activeTab, setActiveTab] = useState<'closer' | 'pipeline' | 'pricing' | 'maps' | 'email' | 'backup' | 'ai' | 'midia' | 'stitch'>(() => {
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (tab === 'stitch' || location.hash === '#stitch') return 'stitch';
+    return tab === 'ai' ? 'ai' : 'closer';
+  });
+  useEffect(() => {
+    const tab = new URLSearchParams(location.search).get('tab');
+    if (tab === 'stitch' || location.hash === '#stitch') setActiveTab('stitch');
+    else if (tab === 'ai') setActiveTab('ai');
+  }, [location.key, location.search, location.hash]);
   const [savedSuccess, setSavedSuccess] = useState<boolean>(false);
   const [emailHistory, setEmailHistory] = useState(() => EmailService.getHistory());
   
@@ -307,6 +319,7 @@ export const CrmSettingsView: React.FC = () => {
           { id: 'pricing', label: 'Preços & Propostas', icon: <DollarSign className="w-3.5 h-3.5" /> },
           { id: 'maps', label: 'Integrações legacy', icon: <MapPin className="w-3.5 h-3.5" />, badge: 'Opcional' },
           { id: 'ai', label: 'Inteligência Artificial', icon: <Sparkles className="w-3.5 h-3.5" /> },
+          { id: 'stitch', label: 'Stitch & Design', icon: <Layers className="w-3.5 h-3.5" /> },
           { id: 'midia', label: 'Mídia & Assets', icon: <Image className="w-3.5 h-3.5" /> },
           { id: 'email', label: 'EmailService & Envio', icon: <Mail className="w-3.5 h-3.5" /> },
           { id: 'backup', label: 'Backup & Dados', icon: <Download className="w-3.5 h-3.5" /> },
@@ -741,6 +754,12 @@ export const CrmSettingsView: React.FC = () => {
         )}
 
         {/* 5. Email Service & History */}
+
+        {activeTab === 'stitch' && (
+          <div className="glass-panel p-6 rounded-2xl border border-white/10 animate-in fade-in duration-150">
+            <StitchSettingsPanel />
+          </div>
+        )}
 
 {/* 5. AI Settings (Aba Refatorada) */}
         {activeTab === 'ai' && (

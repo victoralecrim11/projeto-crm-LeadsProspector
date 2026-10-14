@@ -3,7 +3,7 @@ import { resolveStandardDesign } from '../../../src/site-builder/designPipeline.
 import { businessFromSource } from '../../../src/site-builder/leadSource.js';
 import { produceArtifact } from '../../../tools/stitch-producer/producerOrchestrator.js';
 import { deriveResponsiveCompanionIntent } from '../../../tools/stitch-producer/responsiveCompanion.js';
-import { RealStitchMcpClient } from '../../../tools/stitch-producer/clients/realStitchMcpClient.js';
+import { RealStitchMcpClient, resolveStitchClientConfig } from '../../../tools/stitch-producer/clients/realStitchMcpClient.js';
 import { rankCandidates } from './stitch/stitchCandidateRanker.js';
 import { validateAnchorCoherence } from '../../../src/site-builder/anchorCoherence.js';
 import type { DesignArtifactReference, LeadSourceContext, DesignStrategy } from '../../../src/site-builder/contracts/research.js';
@@ -274,7 +274,8 @@ export class StitchDesignProductionServiceImpl {
   public async getOrCreateProduction(
     generationRequestId: string, 
     leadId: string, 
-    sourceContext: LeadSourceContext
+    sourceContext: LeadSourceContext,
+    stitchConfig = resolveStitchClientConfig()
   ): Promise<DesignProduction> {
     const existing = await this.getProduction(generationRequestId);
     if (existing) {
@@ -314,7 +315,7 @@ export class StitchDesignProductionServiceImpl {
     this.store.set(generationRequestId, production);
     
     if (!this.activeJobs.has(generationRequestId)) {
-      const jobPromise = this.executeProductionJob(production, strategy, sourceContext);
+      const jobPromise = this.executeProductionJob(production, strategy, sourceContext, stitchConfig);
       
       let timer: NodeJS.Timeout;
       const timeoutPromise = new Promise<void>((_, reject) => {
@@ -363,14 +364,13 @@ export class StitchDesignProductionServiceImpl {
   private async executeProductionJob(
     production: DesignProduction, 
     strategy: DesignStrategy, 
-    sourceContext: LeadSourceContext
+    sourceContext: LeadSourceContext,
+    stitchConfig = resolveStitchClientConfig()
   ): Promise<void> {
-    const client = new RealStitchMcpClient();
     try {
       await this.transition(production, { stage: 'MCP_HEALTHCHECK' });
       
-      const { probeStitch } = await import('./stitch/index.js');
-      const stitchAvailable = await probeStitch('default', 'default', 'default');
+      const stitchAvailable = stitchConfig.apiKey || (stitchConfig.accessToken && stitchConfig.projectId);
       if (!stitchAvailable) {
          await this.transition(production, {
            status: 'FAILED',
@@ -380,6 +380,7 @@ export class StitchDesignProductionServiceImpl {
          });
          return;
       }
+      const client = new RealStitchMcpClient(stitchConfig);
 
       await this.transition(production, {
          status: 'MOBILE_GENERATING',

@@ -21,6 +21,8 @@ import { resolvedDesignSchema } from '../../contracts/research';
 import { deriveDefaultMediaPlan } from '../../media/mediaPlanBuilder';
 import { toast } from '../../../store/toastStore';
 import { useLeadStore } from '../../../store/leadStore';
+import { getStitchHeaders } from '../../../services/stitchConnection';
+import { getSiteAiAuthHeaders } from '../../../services/siteAiAuth';
 import { fetchOsmClassificationEvidence, needsOsmClassificationRecovery, recoverOsmClassifications } from '../../../services/osmClassificationRecovery';
 
 const initialDraftState: DraftFlowState = {
@@ -192,7 +194,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
            
            const produceRes = await fetch('/api/ai/research/stitch/produce', {
              method: 'POST',
-             headers: { 'Content-Type': 'application/json' },
+             headers: { 'Content-Type': 'application/json', ...getStitchHeaders() },
              body: JSON.stringify({
                generationRequestId: reqId,
                leadId: selectedLead.id,
@@ -234,7 +236,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
            await new Promise<void>((resolve, reject) => {
              pollInterval = setInterval(async () => {
                try {
-                 const pollRes = await fetch(`/api/ai/research/stitch/produce/${finalGenerationRequestId}`);
+                 const pollRes = await fetch(`/api/ai/research/stitch/produce/${finalGenerationRequestId}`, { headers: getSiteAiAuthHeaders() });
                  if (!pollRes.ok) throw new Error('Falha ao ler status da produção');
                  const pollData = await pollRes.json();
                  
@@ -410,8 +412,8 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
   };
 
   const handleReviewConfig = () => {
-    setPhase('idle');
-    setCurrentStep('mode');
+    onClose();
+    navigate('/configuracoes?tab=stitch');
   };
 
   const handleOpenEditor = () => {

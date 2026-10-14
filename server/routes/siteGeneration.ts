@@ -17,6 +17,8 @@ import { generateStandardAiSite } from '../services/research/standardAiService.j
 import { probeStitch } from '../services/research/stitch/index.js';
 import { researchNiche } from '../services/research/nicheResearchService.js';
 import { globalDesignResearchCache } from '../services/research/snapshotCache.js';
+import { stitchConfigForRequest, stitchIsConfigured } from '../services/research/stitchConnectionConfig.js';
+import { StitchToolClient } from '@google/stitch-sdk';
 
 const refreshBodySchema = z.object({
   niche: z.enum(['dentistry', 'restaurant', 'barbershop']),
@@ -115,7 +117,7 @@ export function siteGenerationRouter() {
       const authHeader = req.get('authorization');
       if (!authHeader || authHeader !== 'Bearer ' + token) {
         res.status(403).json({
-          error: `Acesso à ${scope} não autorizado.`,
+          error: 'Acesso à geração não autorizado. Em Configurações > Stitch & Design, informe o token de acesso do Prospector configurado no servidor (SITE_AI_ACCESS_TOKEN).',
           code: 'SITE_AI_UNAUTHORIZED',
           requestId,
         });
@@ -181,10 +183,28 @@ export function siteGenerationRouter() {
     catch { return res.status(422).json({ error: 'Não foi possível resolver o design. Verifique nicho e referências.', code: 'SITE_AI_PROVIDER_UNAVAILABLE', requestId }); }
     finally { active--; }
   });
+  router.post('/research/stitch/test', async (req, res) => {
+    const requestId = `siteai_${crypto.randomUUID()}`;
+    if (!checkProductionAuth(req, res, 'stitch', requestId)) return;
+    const config = stitchConfigForRequest(req);
+    if (!stitchIsConfigured(config)) return res.status(400).json({ error: 'Configure a chave de API do Stitch nesta tela ou as credenciais do Stitch no servidor.', code: 'STITCH_NOT_CONFIGURED' });
+    let client: StitchToolClient | undefined;
+    try {
+      client = new StitchToolClient({ ...config, timeout: 15000 });
+      await client.callTool('list_projects', {});
+      return res.json({ success: true, message: 'Conexão com o Stitch MCP validada. Acesso aos projetos confirmado; a geração depende das permissões e da cota da conta.' });
+    } catch {
+      return res.status(502).json({ error: 'Não foi possível validar o Stitch MCP. Confira a credencial, as permissões da conta e a conexão.', code: 'STITCH_CONNECTION_FAILED' });
+    } finally {
+      await client?.close().catch(() => undefined);
+    }
+  });
   router.post('/research/stitch/produce', async (req, res) => {
     const requestId = (req.get('x-request-id') as string) || `siteai_${crypto.randomUUID()}`;
     res.setHeader('X-Request-Id', requestId);
     if (!checkProductionAuth(req, res, 'stitch-production', requestId)) return;
+    const stitchConfig = stitchConfigForRequest(req);
+    if (!stitchIsConfigured(stitchConfig)) return res.status(400).json({ error: 'Configure a chave de API do Stitch em Configurações > Stitch & Design.', code: 'STITCH_NOT_CONFIGURED', requestId });
 
     const parsed = z.object({
       generationRequestId: z.string().uuid(),
@@ -201,7 +221,8 @@ export function siteGenerationRouter() {
       const prod = await stitchDesignProductionService.getOrCreateProduction(
         parsed.data.generationRequestId,
         parsed.data.leadId,
-        parsed.data.source
+        parsed.data.source,
+        stitchConfig
       );
       return res.status(202).json({
         designProductionId: prod.designProductionId,
