@@ -1,5 +1,11 @@
 # ProspectorCRM — resumo técnico atual
 
+## Retomada — 14/10/2026
+
+A configuração Stitch foi integrada nos commits `55dd258` e `c692b63`: aba própria, API key por usuário e teste MCP, sem exigir token interno. O usuário confirmou geração Farroupilha com fallback mobile; isso não homologa PAIRED nem fidelidade integral desktop/Stitch.
+
+O plano vigente de retomada está em [tasks/plan.md](../tasks/plan.md), com tarefas em [tasks/todo.md](../tasks/todo.md). Primeiro incremento: remover Atendimento vazio no rodapé final, mantendo o aviso no modo demonstração. Implementado em branch de revisão; não confundir com integração na main ou entrega do Site Studio.
+
 ## Objetivo
 
 Aplicação full-stack para descobrir negócios locais por dados do OpenStreetMap, validar oportunidades externamente e conduzir o atendimento em um CRM. O sistema reúne radar geográfico, funil, scripts comerciais com IA, propostas, contratos, projetos, agenda e exportação.
@@ -70,7 +76,7 @@ O aplicativo inicia sem leads, projetos, agendamentos, ranking ou notificações
 ### Pesquisa, imagens, movimento e MCP
 
 - Geração de imagens e movimento não estão implementados (adiados para P1/P2/P3). Qualquer intenção informada no design briefing não resultará em inserção de placeholders irreais.
-- O MCP não está integrado ao runtime do CRM.
+- O Stitch MCP está integrado ao backend de geração; a configuração do usuário usa API key. Outros MCPs não são uma capacidade genérica do runtime.
 
 ### Scripts comerciais: integração preservada
 

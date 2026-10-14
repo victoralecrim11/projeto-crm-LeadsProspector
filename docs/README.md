@@ -4,6 +4,10 @@ Plataforma full-stack para encontrar negócios locais, organizar oportunidades c
 
 O fluxo principal reúne prospecção geográfica, auditoria, abordagem comercial, geração de propostas, follow-up, contratos e acompanhamento de receita em um único CRM.
 
+## Retomada em 14/10/2026
+
+[Plano de continuidade e features](../tasks/plan.md) · [Tarefas e critérios de aceite](../tasks/todo.md) · [Ajuste do rodapé](RODAPE-SEM-ATENDIMENTO-VAZIO-2026-10-14.md).
+
 ## Estado atual
 
 O gerador de sites evoluiu para uma nova **Fase B** de auditoria e um pipeline de renderização **Visual P0**. Utilizando um novo Blueprint validado (v2), o sistema usa IA real no backend precedida por curadoria de referências e uma auditoria independente, permitindo edição por seção com renderizações visuais variadas e suporte a viewports nativos, mantendo exportação totalmente estática.

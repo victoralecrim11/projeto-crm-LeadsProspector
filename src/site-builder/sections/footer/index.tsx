@@ -14,11 +14,13 @@ function Footer({ blueprint, context, variant, demoMode }: SectionProps & { vari
       : "Enviar e-mail";
   const links = (["about", "services", "location", "contact"] as const)
     .filter((section) => blueprint.sections[section]);
+  const showContact = contacts.length > 0 || demoMode;
+  const columns = 1 + Number(links.length > 0) + Number(Boolean(showContact));
 
   return (
     <footer className={`footer-${variant}`}>
       <div className="footer-shell">
-        <div className="footer-main">
+        <div className={`footer-main footer-main--${columns}`}>
           <div className="footer-identity">
             <p className="footer-kicker">{context.business.category} · {context.business.city}</p>
             <p className="footer-wordmark">{context.business.name}</p>
@@ -34,7 +36,7 @@ function Footer({ blueprint, context, variant, demoMode }: SectionProps & { vari
               {links.map((section) => <a key={section} href={`#${section}`}>{sectionNames[section]}</a>)}
             </nav>
           )}
-          <div className="footer-contact">
+          {showContact && <div className="footer-contact">
             <p className="footer-column-title">Atendimento</p>
             {primary
               ? <a className="footer-cta" href={primary.href}>{primaryLabel}<span aria-hidden="true"> ↗</span></a>
@@ -43,7 +45,7 @@ function Footer({ blueprint, context, variant, demoMode }: SectionProps & { vari
                 : null}
             {contacts.filter((link) => link !== primary).map((link) =>
               <a key={link.kind} className="footer-secondary-link" href={link.href}>{link.label}</a>)}
-          </div>
+          </div>}
         </div>
         <div className="footer-bottom">
           <span>{demoMode ? "Projeto de demonstração" : context.business.name}</span>
@@ -68,6 +70,8 @@ export const footerStyles = `
 .footer-editorial{background:var(--primary);color:var(--on-primary)}
 .footer-shell{max-width:1200px;margin:0 auto}
 .footer-main{display:grid;grid-template-columns:minmax(0,1.7fr) minmax(140px,.65fr) minmax(210px,.85fr);gap:clamp(28px,4vw,72px);padding-bottom:clamp(48px,6vw,76px)}
+.footer-main--2{grid-template-columns:minmax(0,1.7fr) minmax(210px,1fr)}
+.footer-main--1{grid-template-columns:minmax(0,1fr)}
 .footer-kicker,.footer-column-title{font-size:11px;font-weight:700;letter-spacing:.16em;text-transform:uppercase;opacity:.72}
 .footer-wordmark{font:600 clamp(36px,4.5vw,68px)/1.04 var(--font-display,Georgia,serif);letter-spacing:-.05em;margin:18px 0 22px;overflow-wrap:anywhere}
 .footer-minimal .footer-wordmark{font-size:clamp(34px,4vw,56px)}
