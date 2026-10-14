@@ -1,3 +1,4 @@
+import { getStitchHeaders } from './stitchConnection';
 import type { CrmSettingsConfig } from "../types";
 import {
   resolvedDesignSchema,
@@ -138,7 +139,7 @@ async function api(path: string, settings: CrmSettingsConfig, body?: unknown) {
   try {
     response = await fetch("/api/ai/" + path, {
       method: body ? "POST" : "GET",
-      headers: headers(settings, body),
+      headers: { ...headers(settings, body), ...(path === "sites/standard-ai" ? getStitchHeaders() : {}) },
       body: body ? JSON.stringify(body) : undefined,
       signal: AbortSignal.timeout(420000),
     });

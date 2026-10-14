@@ -3,9 +3,10 @@ import React from 'react';
 interface ProductionProgressStepProps {
   status: string;
   stage?: string;
+  partialDesign?: boolean;
 }
 
-export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ status, stage }) => {
+export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ status, stage, partialDesign = false }) => {
   const getStatusDisplay = (s: string, stg?: string) => {
     // If we have a specific stage, use it first for more granular UI feedback
     if (stg) {
@@ -55,6 +56,11 @@ export const ProductionProgressStep: React.FC<ProductionProgressStepProps> = ({ 
       <div className="space-y-2" aria-live="polite">
         <h3 className="text-xl font-bold text-white">{display.label}</h3>
         <p className="text-slate-300 max-w-sm mx-auto">{display.desc}</p>
+        {partialDesign && (
+          <p role="status" className="max-w-sm mx-auto rounded-xl border border-amber-400/30 bg-amber-500/10 p-3 text-sm text-amber-200">
+            A versão desktop não pôde ser validada. Estamos usando o design mobile como base para concluir o site. Revise os dois tamanhos no editor.
+          </p>
+        )}
       </div>
 
       <div className="w-full max-w-xs mt-6">

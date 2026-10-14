@@ -32,25 +32,25 @@ test('storage failure reports memory fallback without logging credentials or raw
   }
 });
 
-test('Stitch headers carry both credentials; unrelated requests never carry the Stitch key', () => {
+test('Stitch requests use only the API key even when a legacy internal token exists', () => {
   try {
     setSiteAiAccessToken(' app-token ');
     setStitchConnection({ mode: 'apiKey', apiKey: ' stitch-key ' });
-    assert.deepEqual(getStitchHeaders(), { Authorization: 'Bearer app-token', 'x-stitch-api-key': 'stitch-key' });
+    assert.deepEqual(getStitchHeaders(), { 'x-stitch-api-key': 'stitch-key' });
     assert.deepEqual(getSiteAiAuthHeaders(), { Authorization: 'Bearer app-token' });
     setStitchConnection({ mode: 'server', apiKey: 'stale-key' });
-    assert.deepEqual(getStitchHeaders(), { Authorization: 'Bearer app-token' });
+    assert.deepEqual(getStitchHeaders(), {});
   } finally {
     setSiteAiAccessToken('');
     setStitchConnection({ mode: 'server', apiKey: '' });
   }
 });
 
-test('production gates Stitch access and passes each supplied key to its job without changing env', async (t) => {
+test('production accepts only caller Stitch keys without an internal token or server key fallback', async (t) => {
   const previous = { NODE_ENV: process.env.NODE_ENV, SITE_AI_ACCESS_TOKEN: process.env.SITE_AI_ACCESS_TOKEN, STITCH_API_KEY: process.env.STITCH_API_KEY, STITCH_ACCESS_TOKEN: process.env.STITCH_ACCESS_TOKEN };
   process.env.NODE_ENV = 'production';
-  process.env.SITE_AI_ACCESS_TOKEN = 'app-token';
-  delete process.env.STITCH_API_KEY;
+  delete process.env.SITE_AI_ACCESS_TOKEN;
+  process.env.STITCH_API_KEY = 'server-secret-never-used';
   delete process.env.STITCH_ACCESS_TOKEN;
   const configs: unknown[] = [];
   t.mock.method(stitchDesignProductionService, 'getOrCreateProduction', async (id, leadId, source, config) => {
@@ -66,31 +66,38 @@ test('production gates Stitch access and passes each supplied key to its job wit
   const body = JSON.stringify({ generationRequestId: crypto.randomUUID(), leadId: lead.id, source: normalizeLeadSource(lead) });
   try {
     for (const endpoint of ['produce', 'test']) {
-      const denied = await fetch(`${base}/${endpoint}`, { method: 'POST', headers: { 'content-type': 'application/json', 'x-stitch-api-key': 'private-key' }, body });
-      assert.equal(denied.status, 403);
-      assert.match((await denied.json()).error, /SITE_AI_ACCESS_TOKEN/);
+      const denied = await fetch(`${base}/${endpoint}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+      assert.equal(denied.status, 400);
+      assert.equal((await denied.json()).code, 'STITCH_NOT_CONFIGURED');
     }
     assert.equal(configs.length, 0);
-    const missing = await fetch(`${base}/produce`, { method: 'POST', headers: { Authorization: 'Bearer app-token', 'content-type': 'application/json' }, body });
+    const missing = await fetch(`${base}/produce`, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
     assert.equal(missing.status, 400);
     assert.equal((await missing.json()).code, 'STITCH_NOT_CONFIGURED');
     for (const key of ['first-private-key', 'second-private-key']) {
-      const result = await fetch(`${base}/produce`, { method: 'POST', headers: { Authorization: 'Bearer app-token', 'x-stitch-api-key': key, 'content-type': 'application/json' }, body });
+      const result = await fetch(`${base}/produce`, { method: 'POST', headers: { 'x-stitch-api-key': key, 'content-type': 'application/json' }, body });
       assert.equal(result.status, 202);
       assert.ok(!JSON.stringify(await result.json()).includes(key));
     }
     assert.deepEqual(configs.map((value: any) => value.apiKey), ['first-private-key', 'second-private-key']);
-    assert.equal(process.env.STITCH_API_KEY, undefined);
+    assert.equal(process.env.STITCH_API_KEY, 'server-secret-never-used');
+    const continuation = await fetch(base.replace('/research/stitch', '/sites/standard-ai'), {
+      method: 'POST', headers: { 'content-type': 'application/json', 'x-stitch-api-key': 'first-private-key' }, body: '{}',
+    });
+    assert.equal(continuation.status, 400);
+    assert.equal((await continuation.json()).code, 'SITE_AI_PROVIDER_INVALID_REQUEST');
+    const foreign = await fetch(`${base}/test`, { method: 'POST', headers: { origin: 'https://foreign.example', 'x-stitch-api-key': 'private-key' } });
+    assert.equal(foreign.status, 403);
     let called = false;
     t.mock.method(StitchToolClient.prototype, 'callTool', async (name: string) => {
       assert.equal(name, 'list_projects'); called = true; return { projects: [] };
     });
-    const verified = await fetch(`${base}/test`, { method: 'POST', headers: { Authorization: 'Bearer app-token', 'x-stitch-api-key': 'private-key' } });
+    const verified = await fetch(`${base}/test`, { method: 'POST', headers: { 'x-stitch-api-key': 'private-key' } });
     assert.equal(verified.status, 200);
     assert.equal(called, true);
     assert.equal((await verified.json()).success, true);
     t.mock.method(StitchToolClient.prototype, 'callTool', async () => { throw new Error('sensitive private-key'); });
-    const failed = await fetch(`${base}/test`, { method: 'POST', headers: { Authorization: 'Bearer app-token', 'x-stitch-api-key': 'private-key' } });
+    const failed = await fetch(`${base}/test`, { method: 'POST', headers: { 'x-stitch-api-key': 'private-key' } });
     assert.equal(failed.status, 502);
     assert.ok(!JSON.stringify(await failed.json()).includes('private-key'));
   } finally {

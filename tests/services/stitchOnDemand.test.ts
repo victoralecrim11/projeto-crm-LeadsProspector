@@ -59,6 +59,9 @@ test('10. cross-lead consumption é rejeitado', async () => {
 
 test('28. terminal production expira após TTL', async () => {
   const p = await stitchDesignProductionService.getOrCreateProduction('req-5', 'lead-5', mockValidSource);
+  // Finish the background writer before simulating expiration and persisting
+  // the same job; otherwise two renames race over the shared temporary file.
+  await stitchDesignProductionService['activeJobs'].get('req-5');
   p.status = 'PAIRED';
   p.terminalAt = Date.now() - (61 * 60 * 1000); // Expirado (simulando 61min)
   stitchDesignProductionService['cleanupExpired']();

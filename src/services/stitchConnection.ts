@@ -1,11 +1,10 @@
-import { getSiteAiAuthHeaders } from './siteAiAuth';
 
 export interface StitchConnection {
   mode: 'server' | 'apiKey';
   apiKey: string;
 }
 const storageKey = 'prospector.stitch.session';
-const empty: StitchConnection = { mode: 'server', apiKey: '' };
+const empty: StitchConnection = { mode: 'apiKey', apiKey: '' };
 let connection = { ...empty };
 try {
   const saved = JSON.parse(sessionStorage.getItem(storageKey) || 'null');
@@ -30,7 +29,7 @@ export function setStitchConnection(value: StitchConnection) {
 }
 
 export function getStitchHeaders(value = getStitchConnection()): Record<string, string> {
-  const headers = { ...getSiteAiAuthHeaders() };
+  const headers: Record<string, string> = {};
   if (value.mode === 'apiKey' && value.apiKey.trim()) headers['x-stitch-api-key'] = value.apiKey.trim();
   return headers;
 }

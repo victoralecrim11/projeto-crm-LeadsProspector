@@ -1,40 +1,36 @@
 import React, { useState } from 'react';
 import { Key, Sparkles, Trash2 } from 'lucide-react';
-import { getSiteAiAccessToken, setSiteAiAccessToken } from '../services/siteAiAuth';
 import { getStitchConnection, getStitchHeaders, setStitchConnection } from '../services/stitchConnection';
 
 export function StitchSettingsPanel() {
-  const [connection, setConnection] = useState(getStitchConnection);
-  const [token, setToken] = useState(getSiteAiAccessToken);
+  const [connection, setConnection] = useState(() => ({ ...getStitchConnection(), mode: 'apiKey' as const }));
   const [visible, setVisible] = useState(false);
   const [testing, setTesting] = useState(false);
   const [message, setMessage] = useState('');
   const [failed, setFailed] = useState(false);
 
   const save = () => {
-    if (connection.mode === 'apiKey' && !connection.apiKey.trim()) {
+    if (!connection.apiKey.trim()) {
       console.warn('[Stitch] Salvamento não realizado: informe a chave de API para o modo selecionado.');
       setFailed(true);
       setMessage('Informe a chave de API do Stitch.');
       return false;
     }
-    const tokenStored = setSiteAiAccessToken(token);
     const stitchStored = setStitchConnection(connection);
-    if (tokenStored && stitchStored) {
+    if (stitchStored) {
       console.info('[Stitch] Configuração salva na sessão desta aba. Credenciais não incluídas no backup do CRM.', {
-        autenticacao: connection.mode === 'apiKey' ? 'Chave de API' : 'Credenciais do servidor',
-        tokenProspectorInformado: Boolean(token.trim()),
+        autenticacao: 'Chave de API',
       });
     }
     setFailed(false);
-    setMessage(tokenStored && stitchStored ? 'Configuração salva para esta sessão.' : 'Configuração aplicada em memória. O navegador não conseguiu salvar todos os dados da sessão; confira os avisos no console antes de recarregar.');
+    setMessage(stitchStored ? 'Configuração salva para esta sessão.' : 'Configuração aplicada em memória. O navegador não conseguiu salvar todos os dados da sessão; confira os avisos no console antes de recarregar.');
     return true;
   };
   const test = async () => {
     if (!save()) return;
     setTesting(true);
     console.info('[Stitch] Iniciando teste de conexão com as credenciais aplicadas.');
-    setMessage('Verificando acesso ao Prospector e ao Stitch MCP…');
+    setMessage('Verificando acesso ao Stitch MCP…');
     try {
       const response = await fetch('/api/ai/research/stitch/test', {
         method: 'POST', headers: getStitchHeaders(), signal: AbortSignal.timeout(25000),
@@ -50,14 +46,12 @@ export function StitchSettingsPanel() {
     } finally { setTesting(false); }
   };
   const reset = () => {
-    const value = { mode: 'server' as const, apiKey: '' };
+    const value = { mode: 'apiKey' as const, apiKey: '' };
     setConnection(value);
-    setToken('');
     const stitchCleared = setStitchConnection(value);
-    const tokenCleared = setSiteAiAccessToken('');
-    if (stitchCleared && tokenCleared) console.info('[Stitch] Credenciais locais da sessão removidas. As credenciais configuradas no servidor não foram alteradas.');
+    if (stitchCleared) console.info('[Stitch] Credenciais locais da sessão removidas. As credenciais configuradas no servidor não foram alteradas.');
     setFailed(false);
-    setMessage(stitchCleared && tokenCleared ? 'Credenciais desta sessão removidas.' : 'Credenciais removidas da memória, mas a limpeza do armazenamento falhou. Confira os avisos no console antes de recarregar.');
+    setMessage(stitchCleared ? 'Credenciais desta sessão removidas.' : 'Credenciais removidas da memória, mas a limpeza do armazenamento falhou. Confira os avisos no console antes de recarregar.');
   };
   const inputClass = 'mt-2 w-full rounded-xl border border-white/15 bg-slate-950/50 px-3 py-2.5 text-sm text-white';
   return (
@@ -66,19 +60,9 @@ export function StitchSettingsPanel() {
         <h3 id="stitch-title" className="text-base font-bold text-white flex items-center gap-2"><Sparkles className="w-5 h-5 text-sky-400" />Stitch — Design de sites</h3>
         <p className="mt-1 text-sm text-slate-400">Conecte o Google Stitch para criar os layouts usados em Gerar site.</p>
       </div>
-      <label className="block text-sm text-slate-300">Token de acesso do Prospector
-        <input type={visible ? 'text' : 'password'} autoComplete="off" spellCheck={false} value={token} disabled={testing} onChange={e => { setToken(e.target.value); setMessage(''); }} className={inputClass} placeholder="Token fornecido pelo administrador do servidor" />
-      </label>
-      <p className="text-xs text-slate-400">Em produção, deve corresponder ao SITE_AI_ACCESS_TOKEN do servidor. Esse token libera o gerador; a chave abaixo autentica no Stitch.</p>
-      <label className="block text-sm text-slate-300">Autenticação do Stitch MCP
-        <select className={inputClass} value={connection.mode} disabled={testing} onChange={e => { setConnection({ ...connection, mode: e.target.value as 'server' | 'apiKey' }); setMessage(''); }}>
-          <option value="server">Usar credenciais configuradas no servidor</option>
-          <option value="apiKey">Informar minha chave de API</option>
-        </select>
-      </label>
-      {connection.mode === 'apiKey' ? <label className="block text-sm text-slate-300">Chave de API do Stitch
+      <label className="block text-sm text-slate-300">Chave de API do Stitch
         <input type={visible ? 'text' : 'password'} autoComplete="off" spellCheck={false} value={connection.apiKey} disabled={testing} onChange={e => { setConnection({ ...connection, apiKey: e.target.value }); setMessage(''); }} className={inputClass} placeholder="Cole a chave criada no Google Stitch" />
-      </label> : <p className="text-xs text-slate-400">Utiliza STITCH_API_KEY ou STITCH_ACCESS_TOKEN com GOOGLE_CLOUD_PROJECT já configurados no servidor.</p>}
+      </label>
       <div className="flex flex-wrap gap-4 text-xs text-sky-300">
         <a href="https://stitch.withgoogle.com/settings" target="_blank" rel="noreferrer">Obter chave no Google Stitch ↗</a>
         <a href="https://stitch.withgoogle.com/docs/mcp/setup" target="_blank" rel="noreferrer">Documentação do MCP ↗</a>

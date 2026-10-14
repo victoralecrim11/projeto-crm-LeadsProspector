@@ -1,12 +1,11 @@
 import type { Request } from 'express';
 import { resolveStitchClientConfig } from '../../../tools/stitch-producer/clients/realStitchMcpClient.js';
 
-// Called only after the application's production authorization check.
+// Public Stitch routes use only the caller's API key; never fall back to server credentials.
 // Per-request credentials never enter process.env or persisted job artifacts.
 export function stitchConfigForRequest(req: Request) {
   const apiKey = req.get('x-stitch-api-key')?.trim();
-  if (apiKey) return { apiKey, accessToken: undefined, projectId: undefined, timeout: 240000 };
-  return resolveStitchClientConfig();
+  return { apiKey, accessToken: undefined, projectId: undefined, timeout: 240000 };
 }
 
 export function stitchIsConfigured(config: ReturnType<typeof resolveStitchClientConfig>) {

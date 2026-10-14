@@ -290,6 +290,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
                        generationRequestId: finalGenerationRequestId,
                        designProductionId: finalDesignProductionId,
                        errorCode: pollData.errorCode,
+                       incoherenceReason: pollData.incoherenceReason,
                        stage: currentStage,
                        elapsedMs: pollData.elapsedMs || 0,
                        providerStatus: pollData.providerStatus
@@ -484,7 +485,7 @@ export const GenerationFlowOrchestrator: React.FC<GenerationFlowOrchestratorProp
         )}
 
         {(phase === 'starting' || phase === 'design' || phase === 'site-generation') && (
-          <ProductionProgressStep status={productionStatus} stage={productionStage} />
+          <ProductionProgressStep status={productionStatus} stage={productionStage} partialDesign={partialDesign} />
         )}
 
         {(phase === 'completed' || phase === 'failed') && (

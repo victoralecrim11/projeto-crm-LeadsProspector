@@ -1,9 +1,32 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import type { CrmSettingsConfig } from "../../src/types";
-import { getSiteModels } from "../../src/services/siteGenerationService";
+import { getSiteModels, generateStandardAiBlueprint } from "../../src/services/siteGenerationService";
+import { setStitchConnection } from '../../src/services/stitchConnection';
+import { normalizeLeadSource } from '../../src/site-builder/leadSource';
+import { lead } from '../fixtures/siteFixture';
 
 const settings = {} as CrmSettingsConfig;
+
+test('continuação do site envia a chave Stitch sem exigir token interno', async () => {
+  const originalFetch = globalThis.fetch;
+  let captured = new Headers();
+  setStitchConnection({ mode: 'apiKey', apiKey: 'caller-stitch-key' });
+  globalThis.fetch = async (_input, init) => {
+    captured = new Headers(init?.headers);
+    return Response.json({ error: 'interrompido após captura' }, { status: 422 });
+  };
+  try {
+    await assert.rejects(() => generateStandardAiBlueprint(settings, normalizeLeadSource(lead)), /interrompido/);
+    assert.equal(captured.get('x-stitch-api-key'), 'caller-stitch-key');
+    assert.equal(captured.has('authorization'), false);
+    await assert.rejects(() => getSiteModels(settings), /interrompido/);
+    assert.equal(captured.has('x-stitch-api-key'), false);
+  } finally {
+    globalThis.fetch = originalFetch;
+    setStitchConnection({ mode: 'apiKey', apiKey: '' });
+  }
+});
 
 test("informa quando o servidor local está indisponível", async () => {
   const originalFetch = globalThis.fetch;

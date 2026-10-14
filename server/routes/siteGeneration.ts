@@ -117,7 +117,7 @@ export function siteGenerationRouter() {
       const authHeader = req.get('authorization');
       if (!authHeader || authHeader !== 'Bearer ' + token) {
         res.status(403).json({
-          error: 'Acesso à geração não autorizado. Em Configurações > Stitch & Design, informe o token de acesso do Prospector configurado no servidor (SITE_AI_ACCESS_TOKEN).',
+          error: 'Acesso à geração não autorizado. Configure sua chave de API em Configurações > Stitch & Design.',
           code: 'SITE_AI_UNAUTHORIZED',
           requestId,
         });
@@ -185,9 +185,8 @@ export function siteGenerationRouter() {
   });
   router.post('/research/stitch/test', async (req, res) => {
     const requestId = `siteai_${crypto.randomUUID()}`;
-    if (!checkProductionAuth(req, res, 'stitch', requestId)) return;
     const config = stitchConfigForRequest(req);
-    if (!stitchIsConfigured(config)) return res.status(400).json({ error: 'Configure a chave de API do Stitch nesta tela ou as credenciais do Stitch no servidor.', code: 'STITCH_NOT_CONFIGURED' });
+    if (!stitchIsConfigured(config)) return res.status(400).json({ error: 'Informe sua chave de API do Stitch para testar a conexão.', code: 'STITCH_NOT_CONFIGURED' });
     let client: StitchToolClient | undefined;
     try {
       client = new StitchToolClient({ ...config, timeout: 15000 });
@@ -202,7 +201,6 @@ export function siteGenerationRouter() {
   router.post('/research/stitch/produce', async (req, res) => {
     const requestId = (req.get('x-request-id') as string) || `siteai_${crypto.randomUUID()}`;
     res.setHeader('X-Request-Id', requestId);
-    if (!checkProductionAuth(req, res, 'stitch-production', requestId)) return;
     const stitchConfig = stitchConfigForRequest(req);
     if (!stitchIsConfigured(stitchConfig)) return res.status(400).json({ error: 'Configure a chave de API do Stitch em Configurações > Stitch & Design.', code: 'STITCH_NOT_CONFIGURED', requestId });
 
@@ -271,7 +269,9 @@ export function siteGenerationRouter() {
   router.post('/sites/standard-ai', async (req, res) => {
     const requestId = (req.get('x-request-id') as string) || `siteai_${crypto.randomUUID()}`;
     res.setHeader('X-Request-Id', requestId);
-    if (!checkProductionAuth(req, res, 'geração', requestId)) return;
+    // BYOK may continue site assembly without an internal application token.
+    // credentials(req) still withholds all server provider secrets in production.
+    if (!req.get('x-stitch-api-key')?.trim() && !checkProductionAuth(req, res, 'geração', requestId)) return;
     const parsed = z.object({ 
       source: leadSourceContextSchema, 
       selection: z.object({ mode: z.enum(['auto', 'fast', 'quality', 'premium', 'local', 'explicit']), modelId: z.string().max(180).nullable().optional() }).strict(), 
