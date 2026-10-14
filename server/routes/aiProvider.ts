@@ -291,9 +291,20 @@ function onlySameOrigin(req: Request) {
   const origin = req.get("origin");
   if (!origin) return true;
   try {
-    const originHost = new URL(origin).host;
-    const reqHost = req.get("x-forwarded-host") || req.get("host");
-    return originHost === reqHost || reqHost?.includes('localhost');
+    const source = new URL(origin);
+    const host = req.get("host");
+    // Host is preserved by our deployment. Never let X-Forwarded-Host
+    // supplied by a client replace it. Express honors explicitly trusted
+    // proxies for req.protocol; Vercel terminates TLS before the function.
+    const protocol = process.env.VERCEL === '1'
+      ? req.get('x-forwarded-proto') || req.protocol
+      : req.protocol;
+    if (!host || !['http', 'https'].includes(protocol)) return false;
+    if (!['http:', 'https:'].includes(source.protocol) || source.username || source.password ||
+        source.pathname !== '/' || source.search || source.hash) return false;
+    const target = new URL(`${protocol}://${host}`);
+    if (target.username || target.password || target.pathname !== '/' || target.search || target.hash) return false;
+    return source.origin === target.origin;
   } catch {
     return false;
   }

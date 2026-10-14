@@ -54,7 +54,7 @@ const STORAGE_KEYS = {
 };
 
 const getInitialLeads = (): Lead[] => {
-  const saved = localStorage.getItem(STORAGE_KEYS.LEADS);
+  const saved = safeStorage.getItem(STORAGE_KEYS.LEADS);
   if (saved) {
     try {
       const parsedLeads = JSON.parse(saved) as Lead[];
@@ -77,7 +77,7 @@ const getInitialLeads = (): Lead[] => {
       const filtered = mapped.filter((lead) => isVerifiedOsmLead(lead) || lead.dataSource === 'manual');
       const { migratedLeads } = migrateLegacyLeads(filtered);
       const normalizedLeads = migratedLeads.map(normalizeStoredOsmLead);
-      localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(normalizedLeads));
+      safeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(normalizedLeads));
       return normalizedLeads;
     } catch (e) {
       console.error('Error loading saved leads', e);
@@ -87,7 +87,7 @@ const getInitialLeads = (): Lead[] => {
 };
 
 const getInitialAppointments = (): Appointment[] => {
-  const saved = localStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
+  const saved = safeStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as Appointment[];
@@ -100,7 +100,7 @@ const getInitialAppointments = (): Appointment[] => {
 const getInitialProjects = (): Project[] => loadProjects(safeStorage);
 
 const getInitialNotifications = (): AppNotification[] => {
-  const saved = localStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
+  const saved = safeStorage.getItem(STORAGE_KEYS.NOTIFICATIONS);
   if (saved) {
     try {
       const parsed = JSON.parse(saved) as AppNotification[];
@@ -113,36 +113,36 @@ const getInitialNotifications = (): AppNotification[] => {
 export const useLeadStore = create<LeadState>((set, get) => ({
   leads: getInitialLeads(),
   setLeads: (leads) => {
-    localStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
+    safeStorage.setItem(STORAGE_KEYS.LEADS, JSON.stringify(leads));
     set({ leads });
   },
   
   appointments: getInitialAppointments(),
   setAppointments: (appts) => {
-    localStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appts));
+    safeStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(appts));
     set({ appointments: appts });
   },
 
   projects: getInitialProjects(),
   setProjects: (projs) => {
-    persistProjects(localStorage, projs);
+    persistProjects(safeStorage, projs);
     set({ projects: projs });
   },
 
   notifications: getInitialNotifications(),
   addNotification: (notif) => {
     const updated = [notif, ...get().notifications];
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    safeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
     set({ notifications: updated });
   },
   markNotificationAsRead: (id) => {
     const updated = get().notifications.map(n => n.id === id ? { ...n, read: true } : n);
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    safeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
     set({ notifications: updated });
   },
   markAllNotificationsAsRead: () => {
     const updated = get().notifications.map(n => ({ ...n, read: true }));
-    localStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
+    safeStorage.setItem(STORAGE_KEYS.NOTIFICATIONS, JSON.stringify(updated));
     set({ notifications: updated });
   },
 

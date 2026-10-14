@@ -83,7 +83,7 @@ export const LeadsProspectorView: React.FC = () => {
   const [selectedQuickFilters, setSelectedQuickFilters] = useState<QuickFilterId[]>([]);
   const [selectedLeadIds, setSelectedLeadIds] = useState<string[]>([]);
   const [isScanning, setIsScanning] = useState<boolean>(false);
-  const prospectionLeads = useMemo(() => leads.filter(isVerifiedOsmLead), [leads]);
+  const prospectionLeads = useMemo(() => leads.filter(lead => isVerifiedOsmLead(lead) || lead.dataSource === 'manual'), [leads]);
 
   // Dynamic hook to fetch and keep neighborhoods synchronized with selected city
   const { neighborhoods, isSyncing } = useCityNeighborhoods(selectedCity, prospectionLeads);
@@ -247,7 +247,7 @@ export const LeadsProspectorView: React.FC = () => {
         const hasForaCrm = selectedQuickFilters.includes('fora_crm');
 
         if (hasSemSite) {
-          if (lead.hasWebsite) return false;
+          if (!isVerifiedOsmLead(lead) || lead.hasWebsite) return false;
         }
 
         // Outside of CRM (lead.inCrm === false)
@@ -668,7 +668,7 @@ export const LeadsProspectorView: React.FC = () => {
 
                         <div className="flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-bold shrink-0">
                           <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-                      <span>{typeof lead.rating === 'number' ? lead.rating : 'Avaliação OSM não informada'}</span>
+                      <span>{typeof lead.rating === 'number' ? lead.rating : 'Avaliação não informada'}</span>
                           {typeof lead.reviewsCount === 'number' && <span className="text-[10px] text-amber-400/70 font-normal">({lead.reviewsCount})</span>}
                         </div>
                       </div>
@@ -678,7 +678,7 @@ export const LeadsProspectorView: React.FC = () => {
                         <div className="flex items-center justify-between">
                           <span className="text-slate-400">Procedência:</span>
                           <span className="font-bold text-emerald-300">
-                            OpenStreetMap
+                            {lead.dataSource === 'manual' ? 'Cadastro manual' : 'OpenStreetMap'}
                           </span>
                         </div>
 
@@ -689,12 +689,12 @@ export const LeadsProspectorView: React.FC = () => {
                           </span>
                         </div>
 
-                        <div className="flex items-center justify-between text-[10px] text-slate-300">
+                        {isVerifiedOsmLead(lead) && <div className="flex items-center justify-between text-[10px] text-slate-300">
                           <span>Referência:</span>
                           <span className="text-sky-300">
                             {lead.osmType}/{lead.osmId}
                           </span>
-                        </div>
+                        </div>}
                       </div>
 
                       {/* Address & Contact */}
@@ -755,6 +755,15 @@ export const LeadsProspectorView: React.FC = () => {
       <ManualLeadModal 
         isOpen={showManualLeadModal} 
         onClose={() => setShowManualLeadModal(false)} 
+        onCreated={(lead) => {
+          setViewMode('grid');
+          setSelectedCity(`${lead.city} - ${lead.state}`);
+          setSelectedNeighborhood('Todos os Bairros');
+          setSelectedNiche('todos');
+          setSelectedQuickFilters([]);
+          setSearchTerm('');
+          setDebouncedSearchTerm('');
+        }}
       />
     </div>
   );

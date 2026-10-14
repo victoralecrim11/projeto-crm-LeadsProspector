@@ -2,13 +2,15 @@ import React, { useState } from 'react';
 import { X, Building2, MapPin, Phone, Globe, Star } from 'lucide-react';
 import { useCrm } from '../hooks/useCrm';
 import { calculateOpportunityScore } from '../utils/leadScoring';
+import type { Lead } from '../types';
 
 interface ManualLeadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onCreated?: (lead: Lead) => void;
 }
 
-export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClose }) => {
+export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClose, onCreated }) => {
   const { addCustomLead } = useCrm();
   const [formData, setFormData] = useState({
     name: '',
@@ -30,7 +32,7 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
     e.preventDefault();
     if (!formData.name || !formData.category) return;
 
-    addCustomLead({
+    const createdLead = addCustomLead({
       name: formData.name,
       category: formData.category,
       niche: formData.category,
@@ -57,6 +59,8 @@ export const ManualLeadModal: React.FC<ManualLeadModalProps> = ({ isOpen, onClos
       dataSource: 'manual',
     });
     
+    if (!createdLead) return;
+    onCreated?.(createdLead);
     setFormData({
       name: '',
       category: '',
